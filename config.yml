@@ -1,0 +1,34 @@
+--- # Document Start
+
+default:
+  # Logging
+  log_level_import: 10      # Import Logger Level
+
+  # Parallel
+  enable_parallel: True
+  cores_threshold: 4
+
+  # File Structure
+  dir_shrooms: "C:\\Users\\eric_\\NeuroMap\\s3_behav_data\\shrooms\\eye\\data\\"
+
+  # Eye Tracking
+  num_pit_trials: 200       # Number of PIT trials per block
+  pav_blocks:               # Number of Pavlovian presentations, per block
+    num_block1: 5
+    num_block2: 30
+  num_inst: 3               # Number of instrumental stimuli per value (maximum: 5)
+  num_train: 120            # Number of training trials
+  num_go_response: 8        # Number of go responses for average RT
+  pav_prob:                 # Valenced outcome probabilities for Pavlovian stimuli
+    - 1
+    - 1
+  pav_outcomes:             # Pavlovian Outcomes
+    - 100
+    - 10
+    - 0
+    - -10
+    - -100
+  instr_prob: 0.75          # Probability of correct instrumental training feedback
+  freq_query: 5             # Frequency of query trials
+
+... # Document End

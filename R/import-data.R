@@ -1,0 +1,165 @@
+# Import Data
+#
+# Imports data from various tasks utilizing a single schema
+# to perform uniform unary operations and analysis.
+#
+# Some useful keyboard shortcuts for package authoring:
+#
+#   Install Package:           'Ctrl + Shift + B'
+#   Check Package:             'Ctrl + Shift + E'
+#   Test Package:              'Ctrl + Shift + T'
+
+#' Finds Unprocessed files based on file names
+#'
+#' Finds files that exist in a raw directory, which do not have a counterpart
+#' in a processed directory.  Files names are expected to have the same file name
+#' i.e. foo_bar.fb <-> foo_bar.bf
+#'
+#' @param dir.raw Directory location for the raw directory.
+#' @param dir.processed Directory location for the processed directory.
+#' @param input.file.extension File extension to look for (empty string to disregard (standard))
+#'
+#' @return raw file names
+find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') {
+  log.debug("Checking for unprocessed data.", "IMPORT")
+
+  # Try for Read-File Exception
+  tryCatch({
+    raw <- list.files(dir.raw, pattern = paste(input.file.extension, "$", sep = ''))
+    processed <- list.files(dir.processed)
+  }, error = function(err) {
+    log.error("Error Accessing Directory", "IMPORT")
+    return(list())
+  })
+
+  if(length(raw) == 0) {
+    log.warn(paste("No Raw Files Found at ", dir.raw, sep = " "), "IMPORT")
+  }
+
+  # Remove File Extensions
+  if(input.file.extension != "") {
+    pattern <- paste("(", input.file.extension, ")", sep = "")
+    raw.simple <- (raw[which(grepl(pattern = pattern, basename(raw)))])
+  }
+  raw.simple <- sub(pattern = "(.*)\\..", replacement = "\\1", basename(raw.simple))
+  processed <- sub(pattern = "(.*)\\..", replacement = "\\1", basename(processed))
+
+  # Expects raw and processed names to be the same
+  raw <- raw[which(!raw.simple %in% processed)]
+  return(raw)
+}
+
+
+#' Imports EDF files
+#'
+#' Imports EDF (eyetracker) data and creates asc as well as read the data
+#' into dataframes.
+#'
+#' @param dir base directory for raw and proc directories.
+#' @return list of edf file locations and edf data.
+import.edf <- function(dir) {
+  os <- NeuroMap$SYSTEM$os
+
+  if(os == "Windows") {
+    file.separator <- "\\"
+  } else if(os == "OSX") {
+    file.separator <- "/"
+  }
+
+  files.edf <- find.unprocessed(paste(dir, "raw", file.separator, sep = ''),
+                                paste(dir, "proc", file.separator, sep = ''),
+                                ".edf")
+  subjects = list()
+
+  asc.paths <- c()
+  asc.data <- c()
+  for(imp in files.edf) {
+    # TODO Need more concrete file name and probably want to figure that out somewhere else
+    log.info(paste("Importing edf file", imp, sep = " "), logger = "IMPORT")
+
+    asc.path <- FDBeye::edf2asc(paste(dir, "raw", file.separator, imp, sep = ''))
+    asc.paths <- c(asc.paths, asc.path)
+    asc.data <- c(asc.data, eyelinker::read.asc(asc.path))
+  }
+
+  return(list(asc.paths = asc.paths,
+              asc.data = asc.data))
+}
+
+#' Imports MAT files
+#'
+#' Imports MAT (matlab) data and creates asc as well as read the data
+#' into dataframes.
+#'
+#' @param dir base directory for raw and proc directories.
+#' @return list of edf file locations and edf data.
+import.mat <- function(dir) {
+  os <- NeuroMap$SYSTEM$os
+
+  if(os == "Windows") {
+    file.separator <- "\\"
+  } else if(os == "OSX") {
+    file.separator <- "/"
+  }
+
+  files.mat <- find.unprocessed(paste(dir, "raw", file.separator, sep = ''),
+                                paste(dir, "proc", file.separator, sep = ''),
+                                ".mat")
+  subjects = list()
+
+  mat.paths <- c()
+  mat.data <- c()
+  for(imp in files.mat) {
+    # TODO Need more concrete file name and probably want to figure that out somewhere else
+    log.info(paste("Importing mat file", imp, sep = " "), logger = "IMPORT")
+
+    mat.datum <- R.matlab::readMat(paste(dir, "raw", file.separator, imp, sep = ''))
+    mat.data <- c(mat.data, mat.datum)
+  }
+
+  return(list(mat.data = mat.data))
+}
+
+
+#' Imports Defend the Kingdom data
+#'
+#' Imports defend the kingdom data as dataframes.
+import.dtk <- function() {
+  print("Importing Defend The Kingdom")
+}
+
+
+#' Imports Neighborhood data
+#'
+#' Imports neighborhood data as dataframes.
+import.neighborhood <- function() {
+  print("Importing Neighborhood")
+}
+
+
+#' Imports shrooms data
+#'
+#' Imports shrooms data as dataframes.
+#'
+#' @param dir directory to import from
+#' @return list of asc and mat data
+import.shrooms <- function(dir) {
+  log.info("Importing Shrooms Data", logger = "IMPORT")
+
+  asc.data <- import.edf(dir)
+  mat.data <- import.mat(dir)
+
+  return(c(asc.data, mat.data))
+}
+
+#' Pipeline Block Function
+#'
+#' @param input empty import used for block
+#'
+#' @export
+import.all <- function(input = list()) {
+  create.log("IMPORT", level = NeuroMap$CONFIG$log_level_import)
+  import.shrooms(NeuroMap$CONFIG$dir_shrooms)
+
+  return(input)
+}
