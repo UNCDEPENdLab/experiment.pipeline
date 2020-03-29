@@ -15,7 +15,7 @@ import_subject <- function(files, parsers) {
   } else { behav <- NULL }
 
   if ("physio" %in% fnames) {
-
+    #physio <- read_physio()
   } else { physio <- NULL }
 
   if ("eye" %in% fnames) {
@@ -30,9 +30,9 @@ import_subject <- function(files, parsers) {
 #to extract relevant segments and signals.
 
 #example
-abc <- import_subject(
-  files=c(behav="~/Box/s3_behav_data/neighborhood/behavior/data/raw/003_Cavanaugh_2019_Sep_30_1720.csv",
-          eye="~/Box/s3_behav_data/neighborhood/eye/data/raw/N_003_TS.edf"),
-  parsers=list(behav=read_behav_neighborhood, eye=read_eye_neighborhood)
-)
+# abc <- import_subject(
+#   files=c(behav="~/Box/s3_behav_data/neighborhood/behavior/data/raw/003_Cavanaugh_2019_Sep_30_1720.csv",
+#           eye="~/Box/s3_behav_data/neighborhood/eye/data/raw/N_003_TS.edf"),
+#   parsers=list(behav=read_behav_neighborhood, eye=read_eye_neighborhood)
+# )
 

@@ -50,28 +50,6 @@ find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') 
 }
 
 
-
-# import.edf <- function(edf.file, drive = "C") {
-#   # Overwrite Files
-#   options(FDBeye_edf2asc_opts = " -y")
-#
-#   # Get OS
-#   info <- sessionInfo()
-#   if (grepl('mac', info$running, ignore.case = TRUE)) {
-#     path <- edf.file
-#   } else if (grepl('win', info$running, ignore.case = TRUE)) {
-#     if(substring(edf.file, 1, 1) == "/") {
-#       edf.file <- paste0(drive, ":", edf.file)
-#     }
-#     path <- gsub("/", "\\\\", edf.file)
-#   } else {
-#     stop("Only Mac OSX and Windows are supported currently.")
-#   }
-#
-#   path <- FDBeye::edf2asc(edf.file)
-#   return(eyelinker::read.asc(path))
-# }
-
 ##' @title Import EDF File
 ##'
 ##' @description A convience wrapper around FDBeye file importer to
@@ -94,9 +72,11 @@ find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') 
 ##' @export
 import_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRUE, ...) {
   stopifnot(all(file.exists(edf_files))) #require that files are present
-  if (!is.null(asc_output_dir) && !dir.exists(asc_output_dir)) { dir.create(asc_output_dir) } #create output directory for ASC files if requested
-
-  if (!keep_asc) { asc_output_dir <- tempdir() } #output ascs to temporary directory
+  if (!keep_asc) {
+    asc_output_dir <- tempdir() #output ascs to temporary directory
+  } else {
+    if (!is.null(asc_output_dir) && !dir.exists(asc_output_dir)) { dir.create(asc_output_dir) } #create output directory for ASC files if requested
+  }
 
   #convert all files to asc
   asc_files <- edf2asc(edf_files, asc_output_dir=asc_output_dir, gzip_asc=gzip_asc)
@@ -105,6 +85,7 @@ import_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=T
   res <- lapply(asc_files, function(fname) {
     eye_data <- read.asc(fname=fname, ...)
     eye_data$asc_file <- fname
+    class(eye_data) <-
     return(eye_data)
   })
 
@@ -113,6 +94,152 @@ import_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=T
   names(res) <- basename(edf_files)
   return(res)
 }
+
+#' @title Import Acqknowledge ACQ files into data.frames
+#' @details
+#'   This function calls the acq2hdf5 wrapper R function. The converted HDF5 files are then
+#'   parsed by biopac_hdf5_to_dataframe, which relies heavily on the data.table package to build the
+#'   data.frame containing physiological data.
+#'
+#' @return a list of
+#' @param acq_files character vector of acq files to be converted to HDF5, then imported as data.frame
+#' @param hdf5_output_dir location for converted hdf5 files produced by acq2hdf5. Passed to acq2hdf5.
+#' @param keep_hdf5 logical indicating whether to retain hdf5 file after import completes. Default: TRUE
+#' @param acq2hdf5_location path to acq2hdf5 binary, installed by the bioread python package.
+#'
+#' @importFrom checkmate assert_file_exists
+#' @export
+import_acq <- function(acq_files, hdf5_output_dir=NULL, keep_hdf5=TRUE, acq2hdf5_location=NULL, ...) {
+  sapply(acq_files, assert_file_exists)
+  if (!keep_hdf5) {
+    hdf5_output_dir <- tempdir()  #output txts to temporary directory
+  } else {
+    if (!is.null(hdf5_output_dir) && !dir.exists(hdf5_output_dir)) { dir.create(hdf5_output_dir) } #create output directory for TXT files if requested
+  }
+
+  hdf5_files <- acq2hdf5(acq_files, acq2hdf5_location=acq2hdf5_location)
+
+  #pass additional arguments such as parse_all to read.asc
+  res <- lapply(hdf5_files, function(fname) {
+    physio_data <- list(raw=biopac_hdf5_to_dataframe(hdf5file=fname, ...), hdf5_file=fname)
+    return(physio_data)
+  })
+
+  if (!keep_hdf5) { file.remove(hdf5_files) } #cleanup hdf5 files if requested
+
+  names(res) <- basename(acq_files)
+  return(res)
+
+}
+
+#' @title Read a BIOPAC hdf5 file as a data.frame
+#' @description After converting an acq file using acq2hdf5, this function converts the hdf5 file to a data.frame
+#' @details
+#'   This function uses the data.table package to build the data.frame of physiological data because this package
+#'   is particularly good at working with large datasets without a lot of copy-in-memory steps that can slow down
+#'   processing and explode the peak RAM demand.
+#'
+#'   The function also supports upsampling of all data onto the same time resolution as the fastest
+#'   sampling rate for any channel. This is governed by the \code{upsample_to_max} argument
+#' @param hdf5file HDF5 file containing converted BIOPAC data (using acq2hdf5)
+#' @param upsample_to_max logical (TRUE/FALSE) indicating whether to upsample slower channels to the sampling
+#'   rate of the fastest channel. If \code{TRUE}, upsampling is performed on slower channels through linear interpolation.
+#'   If \code{FALSE}, NA values are inserted for unsampled time points.
+#' @param ttl_to_dec logical indicating whether to convert binary digital input channels to decimal TTL (parallel port)
+#'   codes. These codes are used to synchronize timing between behavioral and physiological data streams.
+#' @param ttl_columns A numeric vector or character vector indicating which columns within the imported dataset
+#'   contain the digital inputs that should be converted to decimal TTL codes. If not specified, channels
+#'   starting with Digital.input will be used. There should be exactly 8 channels for a 1-byte (0-255) TTL code.
+#' @importFrom rhdf5 h5readAttributes h5dump h5read
+#' @importFrom checkmate assert_file_exists assert_scalar assert_logical assert_list
+#' @importFrom data.table data.table setkey setnames
+#' @export
+biopac_hdf5_to_dataframe <- function(hdf5file, upsample_to_max=TRUE, ttl_to_dec=TRUE, ttl_columns=NULL) {
+  assert_scalar(hdf5file) #only support one input
+  assert_logical(upsample_to_max)
+  assert_logical(ttl_to_dec)
+  assert_file_exists(hdf5file)
+
+  #helper subfunction to convert a vector of binary fields to a decimal number
+  bin2dec <- function(vec) { sum(vec * 2^(seq_along(vec) - 1)) }
+
+  #BIOPAC overall sampling rate (not used in time grid)
+  sampling_rate <- rhdf5::h5readAttributes(hdf5file, "/")$samples_per_second
+
+  #determine number of channels
+  hdf5contents <- h5dump(hdf5file, load=FALSE)
+  assert_list(hdf5contents$channels) #verify that we have a list of channels
+  channel_names <- names(hdf5contents$channels)
+  channel_attributes <- lapply(channel_names, function(x) { h5readAttributes(hdf5file, paste0("/channels/", x)) })
+  channel_rates <- sapply(channel_attributes, "[[", "samples_per_second")
+  channel_data <- h5read(hdf5file, "/channels")
+  channel_names <- make.names(sapply(channel_attributes, "[[", "name"), unique = TRUE)
+  max_len <- max(sapply(channel_data, length))
+  max_rate <- max(channel_rates)
+  deltat <- 1/max_rate
+
+  all_data <- data.table::data.table(time_s=seq(0, max_len/max_rate - deltat, by=deltat))
+  setkey(all_data, time_s)
+
+  #loop over channels and append them as columns to overall data.table
+  for (cc in 1:length(channel_data)) {
+    rr <- channel_rates[cc]
+    dd <- 1/rr
+    cname <- channel_names[cc]
+    this_channel <- data.table(time_s = seq(0, max_len/rr - dd, by=dd), data = channel_data[[cc]])
+    if (upsample_to_max) {
+      interp <- approx(this_channel$time_s, this_channel$data, xout=all_data$time_s)$y #linear interpolation
+      this_channel <- data.table(time_s = all_data$time_s, data = interp)
+    }
+    setnames(this_channel, c("time_s", cname))
+    setkey(this_channel, time_s)
+    all_data <- merge(all_data, this_channel, by="time_s", all.x=TRUE)
+  }
+
+  if (ttl_to_dec) {
+    if (is.null(ttl_columns)) {
+      ttl_columns <- startsWith(names(all_data), "Digital.input")
+    } else if (is.character(ttl_columns)) {
+      ttl_columns <- grepl(ttl_columns, names(all_data), perl = TRUE)
+    }
+
+    ttl_columns <- names(all_data)[ttl_columns] #data.table prefers names for subsetting
+    if (length(ttl_columns) != 8) { stop("ttl_columns does not yield 8 columns in data frame")}
+
+    ttl_values <- apply(all_data[, ttl_columns, with=FALSE], 1, function(x) { bin2dec(x) })
+
+    #this is much much slower than apply...
+    #all_data[, newcol := bin2dec(.SD), .SDcols=ttl_columns, by = seq_len(NROW(all_data))]
+
+    all_data[, (ttl_columns) := NULL] #remove the original binary columns
+    all_data[, ttl_code := ttl_values] #add ttl decimal code
+  }
+
+  return(all_data)
+}
+
+# test <- import_acq("/Users/mnh5174/Data_Analysis/neuromap/s4_behav_data/physio/data/nmap016/nmap016.acq",
+#                  hdf5_output_dir = "/Users/mnh5174/temp_acq",
+#                  acq2hdf5_location = "/Users/mnh5174/Library/Python/3.7/bin/acq2hdf5")
+
+
+read_acq_txt <- function(acq_txt_file) {
+
+}
+
+#' general wrapper for reading physio data into the package
+#' @export
+read_physio <- function(file, parser=NULL, ...) {
+  if (is.null(parser)) { stop("Need to pass parser function to read_physio") }
+  stopifnot(file.exists(file))
+  physio <- parser(file, ...)
+  class(physio) <- c(class(physio), "ep.physio") #tag with ep.physio class
+
+  #other general post-processing for eye data
+  return(physio)
+}
+
+
 
 
 #' Imports MAT files

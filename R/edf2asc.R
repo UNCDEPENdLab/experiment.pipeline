@@ -85,7 +85,6 @@
 ##' fout <- edf2asc(fin)
 ##' fout
 ##' }
-
 edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=TRUE) {
   # detect operating system
   info <- sessionInfo()
