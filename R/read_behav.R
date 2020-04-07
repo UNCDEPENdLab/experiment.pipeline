@@ -42,7 +42,17 @@ read_behav_neighborhood <- function(file) {
   return(dat)
 }
 
-read_behav_vending <- function(file_ins, file_pav, file_pit) {
+read_behav_vending <- function(files) {
+  stopifnot(!missingArg(files))
+  stopifnot(length(files) == 3)
+  stopifnot(file.exists(files[1]))
+  stopifnot(file.exists(files[2]))
+  stopifnot(file.exists(files[3]))
+
+  file_ins = files[1]
+  file_pav = files[2]
+  file_pit = files[3]
+
   fields <- list(
     ins = c("repA.thisN",              # Response A - Button A for reward
             "repB.thisN",              # Response B - Button B for reward
@@ -136,7 +146,14 @@ read_behav_vending <- function(file_ins, file_pav, file_pit) {
     }
   )
 
-  dat <- Map(function(block_data, block_name) { block_data = mutator[[block_name]](block_data) }, dat, names(dat))
+  dat <- Map(function(block_data, block_name) {
+    block_data = tryCatch({
+      mutator[[block_name]](block_data)
+      }, error = function(e) {
+        stop(paste("Error with", block_name, "block mutator.",
+                   "Possibly wrong file passed."))
+      }
+  )}, dat, names(dat))
   return(dat)
 }
 
