@@ -16,7 +16,6 @@ read_behav_neighborhood <- function(file) {
 
   dat <- read.csv(file, stringsAsFactors = FALSE)
   dat <- dat[,fields] #retain only columns of interest
-  View(dat)
   dat <- dat %>% mutate_if(is.character, list(~if_else(. == "", NA_character_, .))) %>% #convert "" to NA
     mutate(id=if_else(is.na(participant), NA_character_, paste(participant, participant.initials, sep="_"))) %>%
     mutate(condition=case_when(
@@ -43,14 +42,14 @@ read_behav_neighborhood <- function(file) {
   return(dat)
 }
 
-read_vending <- function(file_ins, file_pav, file_pit) {
+read_behav_vending <- function(file_ins, file_pav, file_pit) {
   fields <- list(
     ins = c("repA.thisN",              # Response A - Button A for reward
             "repB.thisN",              # Response B - Button B for reward
             "vending_machine.started", # Trial start time
             "vending_machine.stopped"  # Trial stop time
     ),
-    pav = c("ï..testCS",               # Correct image)
+    pav = c("ï..testCS",               # Correct image
             "correctAns",              # Correct response
             "CS",                      # Shown image
             "blocks.thisTrialN",       # Block
@@ -95,7 +94,23 @@ read_vending <- function(file_ins, file_pav, file_pit) {
       return(df)
     },
     pav = function(df) {
-      df = df[,fields$pav]
+      df = df[,fields$pav] %>%
+        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        rename(
+          correct_image = ï..testCS,
+          correct_response = correctAns,
+          shown_image = CS,
+          block = blocks.thisTrialN,
+          trial = blocks.thisN,
+          start = vend.started,
+          stop = vend.stopped
+        )%>%
+        filter(!is.na(shown_image)) %>%
+        mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
+        rowwise() %>%
+        mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
+        select(-one_of("start", "stop")) %>%
+        mutate(block = block + 1, trial = trial + 1)
       return(df)
     },
     pit = function(df) {
@@ -105,6 +120,7 @@ read_vending <- function(file_ins, file_pav, file_pit) {
   )
 
   dat <- Map(function(block_data, block_name) { block_data = mutator[[block_name]](block_data) }, dat, names(dat))
+  return(dat)
 }
 
 #' general wrapper for reading behavioral files into the package
