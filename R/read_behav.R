@@ -75,7 +75,8 @@ read_behav_vending <- function(file_ins, file_pav, file_pit) {
   mutator = list(
     ins = function(df) {
       df <- df[,fields$ins] %>%
-        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        mutate_if(is.character,
+                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
         rename(
           responseA = repA.thisN,
           responseB = repB.thisN,
@@ -95,7 +96,8 @@ read_behav_vending <- function(file_ins, file_pav, file_pit) {
     },
     pav = function(df) {
       df = df[,fields$pav] %>%
-        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        mutate_if(is.character,
+                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
         rename(
           correct_image = ï..testCS,
           correct_response = correctAns,
@@ -115,7 +117,8 @@ read_behav_vending <- function(file_ins, file_pav, file_pit) {
     },
     pit = function(df) {
       df = df[,fields$pit] %>%
-        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        mutate_if(is.character,
+                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
         rename(
           image = Condition,
           trial = trials.thisN,
