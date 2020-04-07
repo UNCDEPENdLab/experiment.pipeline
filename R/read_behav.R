@@ -16,6 +16,7 @@ read_behav_neighborhood <- function(file) {
 
   dat <- read.csv(file, stringsAsFactors = FALSE)
   dat <- dat[,fields] #retain only columns of interest
+  View(dat)
   dat <- dat %>% mutate_if(is.character, list(~if_else(. == "", NA_character_, .))) %>% #convert "" to NA
     mutate(id=if_else(is.na(participant), NA_character_, paste(participant, participant.initials, sep="_"))) %>%
     mutate(condition=case_when(
@@ -40,6 +41,70 @@ read_behav_neighborhood <- function(file) {
   dat <- dat[!na_rows,] #drop any all-na rows
 
   return(dat)
+}
+
+read_vending <- function(file_ins, file_pav, file_pit) {
+  fields <- list(
+    ins = c("repA.thisN",              # Response A - Button A for reward
+            "repB.thisN",              # Response B - Button B for reward
+            "vending_machine.started", # Trial start time
+            "vending_machine.stopped"  # Trial stop time
+    ),
+    pav = c("ï..testCS",               # Correct image)
+            "correctAns",              # Correct response
+            "CS",                      # Shown image
+            "blocks.thisTrialN",       # Block
+            "blocks.thisN",            # Trial
+            "vend.started",            # Trial start time
+            "vend.stopped"             # Trial end time
+    ),
+    pit = c("Condition",               # Image
+            "trials.thisN",            # Trial Number
+            "pressL",                  # Number of times pressed left
+            "pressR",                  # Number of times pressed right
+            "CStest.started",          # Trial start time
+            "CStest.stopped"           # Trial end time
+    )
+  )
+
+  dat <- list(
+    ins = read.csv(file_ins, stringsAsFactors = FALSE),
+    pav = read.csv(file_pav, stringsAsFactors = FALSE),
+    pit = read.csv(file_pit, stringsAsFactors = FALSE)
+  )
+
+  mutator = list(
+    ins = function(df) {
+      df <- df[,fields$ins] %>%
+        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        rename(
+          responseA = repA.thisN,
+          responseB = repB.thisN,
+          start = vending_machine.started,
+          stop = vending_machine.stopped
+        ) %>%
+        filter(!is.na(responseA) | !is.na(responseB)) %>%
+        mutate(trial = row_number()) %>%
+        mutate_at(c("responseA"), ~if_else(. == "0", "A", NA_character_)) %>%
+        mutate_at(c("responseB"), ~if_else(. == "0", "B", NA_character_)) %>%
+        unite("response", responseA:responseB, na.rm = TRUE) %>%
+        mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
+        rowwise() %>%
+        mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
+        select(-one_of("start", "stop"))
+      return(df)
+    },
+    pav = function(df) {
+      df = df[,fields$pav]
+      return(df)
+    },
+    pit = function(df) {
+      df = df[,fields$pit]
+      return(df)
+    }
+  )
+
+  dat <- Map(function(block_data, block_name) { block_data = mutator[[block_name]](block_data) }, dat, names(dat))
 }
 
 #' general wrapper for reading behavioral files into the package
