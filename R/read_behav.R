@@ -114,7 +114,21 @@ read_behav_vending <- function(file_ins, file_pav, file_pit) {
       return(df)
     },
     pit = function(df) {
-      df = df[,fields$pit]
+      df = df[,fields$pit] %>%
+        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        rename(
+          image = Condition,
+          trial = trials.thisN,
+          start = CStest.started,
+          stop = CStest.stopped
+        ) %>%
+        filter(!is.na(trial)) %>%
+        filter(image != 'vend.png') %>%
+        mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
+        rowwise() %>%
+        mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
+        select(-one_of("start", "stop")) %>%
+        mutate(trial = trial / 2 + 1)
       return(df)
     }
   )
