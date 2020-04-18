@@ -42,6 +42,161 @@ read_behav_neighborhood <- function(file) {
   return(dat)
 }
 
+#' @importFrom dplyr mutate_all select filter mutate rowwise
+#' @importFrom tidyr unite
+#' @importFrom utils read.table
+#' @export
+read_behav_vending <- function(files) {
+
+  # Validates Parameters
+  stopifnot(!missingArg(files))
+  stopifnot(length(files) == 3)
+  stopifnot(file.exists(files[1]))
+  stopifnot(file.exists(files[2]))
+  stopifnot(file.exists(files[3]))
+
+  # Sets files based on index
+  file_ins = files[1]  # Index 1: Instrumental
+  file_pav = files[2]  # Index 2: Pavlovian
+  file_pit = files[3]  # Index 3: PIT
+
+  # Fields to keep from original dataframe
+  fields <- list(
+    ins = c("repA.thisN",              # Response A - Button A for reward
+            "repB.thisN",              # Response B - Button B for reward
+            "vending_machine.started", # Trial start time
+            "vending_machine.stopped"  # Trial stop time
+    ),
+    pav = c("ï..testCS",               # Correct image
+            "correctAns",              # Correct response
+            "CS",                      # Shown image
+            "blocks.thisTrialN",       # Block
+            "blocks.thisN",            # Trial
+            "vend.started",            # Trial start time
+            "vend.stopped"             # Trial end time
+    ),
+    pit = c("Condition",               # Image
+            "trials.thisN",            # Trial Number
+            "pressL",                  # Number of times pressed left
+            "pressR",                  # Number of times pressed right
+            "CStest.started",          # Trial start time
+            "CStest.stopped"           # Trial end time
+    )
+  )
+
+  # Import original dataframes from CSVs
+  dat <- list(
+    ins = read.csv(file_ins, stringsAsFactors = FALSE),
+    pav = read.csv(file_pav, stringsAsFactors = FALSE),
+    pit = read.csv(file_pit, stringsAsFactors = FALSE)
+  )
+
+  # List of curried upper-level functions to pass each phase data through
+  mutator = list(
+    ins = function(df) {
+      df <- df[,fields$ins] %>%
+        # Set NA to missing values
+        mutate_if(is.character,
+                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+
+        # Renames columns
+        rename(
+          responseA = repA.thisN,
+          responseB = repB.thisN,
+          start = vending_machine.started,
+          stop = vending_machine.stopped
+        ) %>%
+
+        # Removes rows with missing responses
+        filter(!is.na(responseA) | !is.na(responseB)) %>%
+
+        # Add trial number
+        mutate(trial = row_number()) %>%
+
+        # Combine response columns
+        mutate_at(c("responseA"), ~if_else(. == "0", "A", NA_character_)) %>%
+        mutate_at(c("responseB"), ~if_else(. == "0", "B", NA_character_)) %>%
+        unite("response", responseA:responseB, na.rm = TRUE) %>%
+
+        # Combine times
+        mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
+        rowwise() %>%
+        mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
+        select(-one_of("start", "stop"))
+      return(df)
+    },
+    pav = function(df) {
+      df = df[,fields$pav] %>%
+        # Set NA to missing values
+        mutate_if(is.character,
+                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+
+        # Renames columns
+        rename(
+          correct_image = ï..testCS,
+          correct_response = correctAns,
+          shown_image = CS,
+          block = blocks.thisTrialN,
+          trial = blocks.thisN,
+          start = vend.started,
+          stop = vend.stopped
+        )%>%
+
+        # Remove if no image
+        filter(!is.na(shown_image)) %>%
+
+        # Combine times
+        mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
+        rowwise() %>%
+        mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
+        select(-one_of("start", "stop")) %>%
+
+        # Change trial and block to 1-based indexing
+        mutate(block = block + 1, trial = trial + 1)
+      return(df)
+    },
+    pit = function(df) {
+      df = df[,fields$pit] %>%
+        #Set NA to missing values
+        mutate_if(is.character,
+                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+
+        # Renames columns
+        rename(
+          image = Condition,
+          trial = trials.thisN,
+          start = CStest.started,
+          stop = CStest.stopped
+        ) %>%
+
+        # Remove missing trials or vending image
+        filter(!is.na(trial)) %>%
+        filter(image != 'vend.png') %>%
+
+        # Combine times
+        mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
+        rowwise() %>%
+        mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
+        select(-one_of("start", "stop")) %>%
+
+        # Make trial 1-based index
+        mutate(trial = trial / 2 + 1)
+      return(df)
+    }
+  )
+
+  # Maps each block to correct function
+  dat <- Map(function(block_data, block_name) {
+    block_data = tryCatch({
+      mutator[[block_name]](block_data)
+      }, error = function(e) {
+        stop(paste("Error with", block_name, "block mutator.",
+                   "Possibly wrong file passed."))
+      }
+  )}, dat, names(dat))
+  return(dat)
+}
+
 #' general wrapper for reading behavioral files into the package
 #' @export
 read_behav <- function(file, parser=NULL, ...) {
