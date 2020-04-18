@@ -95,9 +95,8 @@ acq2txt <- function(acq_files, acq2txt_opts="--missing-as=.", txt_output_dir=NUL
 
 }
 
-#test <- acq2txt("/Users/michael/Data_Analysis/neuromap/s4_behav_data/physio/data/nmap016/nmap016.acq", txt_output_dir = "/Users/michael/temp_acq")
+# test <- acq2txt("/Users/mnh5174/Data_Analysis/neuromap/s4_behav_data/physio/data/nmap016/nmap016.acq",
+#                 txt_output_dir = "/Users/mnh5174/temp_acq", acq2txt_location = "/Users/mnh5174/Library/Python/3.7/bin/acq2txt")
 
-#super fast for reading acq files
-#' @importFrom data.table fread
 
 

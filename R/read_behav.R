@@ -42,23 +42,34 @@ read_behav_neighborhood <- function(file) {
   return(dat)
 }
 
+#' @title Import Quail, Morris, Balleine Vending Machine task data
+#' @param files A names character vector of three CSV files. Elements should be named 'pav', 'ins', 'pit'
 #' @importFrom dplyr mutate_all select filter mutate rowwise
 #' @importFrom tidyr unite
 #' @importFrom utils read.table
+#' @importFrom checkmate assert_atomic_vector assert_character assert_file_exists
+#' @examples
+#' \dontrun{
+#'   b <- read_behav_vending(c(
+#'      pav="070_Pavlovian_2020_Feb_18_1421.csv",
+#'      ins="070_Instrumental_2020_Feb_18_1412.csv",
+#'      pit="070_transfer_2020_Feb_18_1438.csv")
+#'   )
+#' }
 #' @export
-read_behav_vending <- function(files) {
-
+read_behav_vending <- function(files=NULL) {
   # Validates Parameters
-  stopifnot(!missingArg(files))
+  assert_atomic_vector(files)
+  assert_character(files)
+  sapply(files, assert_file_exists)
+  assert_set_equal(names(files), c("pav", "ins", "pit"))
+
   stopifnot(length(files) == 3)
-  stopifnot(file.exists(files[1]))
-  stopifnot(file.exists(files[2]))
-  stopifnot(file.exists(files[3]))
 
   # Sets files based on index
-  file_ins = files[1]  # Index 1: Instrumental
-  file_pav = files[2]  # Index 2: Pavlovian
-  file_pit = files[3]  # Index 3: PIT
+  file_ins = files["ins"]  # Instrumental
+  file_pav = files["pav"]  # Index 2: Pavlovian
+  file_pit = files["pit"]  # Index 3: PIT
 
   # Fields to keep from original dataframe
   fields <- list(
@@ -67,7 +78,7 @@ read_behav_vending <- function(files) {
             "vending_machine.started", # Trial start time
             "vending_machine.stopped"  # Trial stop time
     ),
-    pav = c("ï..testCS",               # Correct image
+    pav = c("testCS",               # Correct image
             "correctAns",              # Correct response
             "CS",                      # Shown image
             "blocks.thisTrialN",       # Block
@@ -94,6 +105,9 @@ read_behav_vending <- function(files) {
   # List of curried upper-level functions to pass each phase data through
   mutator = list(
     ins = function(df) {
+      assert_set_equal(unique(df$phase), c("VIns", "")) #validate that the file is correct (i.e., right phase)
+      assert_set_equal(unique(df$expName), c("Instrumental", "")) #validate that the file is correct (i.e., right phase)
+
       df <- df[,fields$ins] %>%
         # Set NA to missing values
         mutate_if(is.character,
@@ -122,24 +136,26 @@ read_behav_vending <- function(files) {
         mutate_at(c("start", "stop"), list(~ as.numeric(.))) %>%
         rowwise() %>%
         mutate(time = sum(stop, -start, na.rm = FALSE)) %>%
-        select(-one_of("start", "stop"))
+        select(-one_of("start", "stop")) %>% ungroup()
       return(df)
     },
     pav = function(df) {
+      assert_set_equal(unique(df$phase), c("Vpav", "")) #validate that the file is correct (i.e., right phase)
+      assert_set_equal(unique(df$expName), c("Pavlovian", "")) #validate that the file is correct (i.e., right phase)
+
       df = df[,fields$pav] %>%
         # Set NA to missing values
-        mutate_if(is.character,
-                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
 
         # Renames columns
         rename(
-          correct_image = ï..testCS,
+          correct_image = testCS,
           correct_response = correctAns,
           shown_image = CS,
           block = blocks.thisTrialN,
           trial = blocks.thisN,
           start = vend.started,
-          stop = vend.stopped
+          stop = vend.stopped #Appears to be "None" (NA) in general
         )%>%
 
         # Remove if no image
@@ -152,17 +168,19 @@ read_behav_vending <- function(files) {
         select(-one_of("start", "stop")) %>%
 
         # Change trial and block to 1-based indexing
-        mutate(block = block + 1, trial = trial + 1)
+        mutate(block = block + 1, trial = trial + 1) %>% ungroup()
       return(df)
     },
     pit = function(df) {
+      assert_set_equal(unique(df$phase), c("Vpit", "")) #validate that the file is correct (i.e., right phase)
+      assert_set_equal(unique(df$expName), c("transfer", "")) #validate that the file is correct (i.e., right phase)
+
       df = df[,fields$pit] %>%
         #Set NA to missing values
-        mutate_if(is.character,
-                  list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
+        mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
 
         # Renames columns
-        rename(
+        dplyr::rename(
           image = Condition,
           trial = trials.thisN,
           start = CStest.started,
@@ -180,28 +198,38 @@ read_behav_vending <- function(files) {
         select(-one_of("start", "stop")) %>%
 
         # Make trial 1-based index
-        mutate(trial = trial / 2 + 1)
+        mutate(trial = trial / 2 + 1) %>% ungroup()
       return(df)
     }
   )
+
 
   # Maps each block to correct function
   dat <- Map(function(block_data, block_name) {
     block_data = tryCatch({
       mutator[[block_name]](block_data)
-      }, error = function(e) {
-        stop(paste("Error with", block_name, "block mutator.",
-                   "Possibly wrong file passed."))
-      }
-  )}, dat, names(dat))
+    }, error = function(e) {
+      stop(paste("Error with", block_name, "block mutator.",
+                 "Possibly wrong file passed."))
+    }
+    )}, dat, names(dat))
   return(dat)
 }
 
+# setwd("/Users/mnh5174/Downloads/s3_ALL_data_prototype")
+# b <- read_behav_vending(c(
+#   pav="070_Pavlovian_2020_Feb_18_1421.csv",
+#   ins="070_Instrumental_2020_Feb_18_1412.csv",
+#   pit="070_transfer_2020_Feb_18_1438.csv")
+# )
+
 #' general wrapper for reading behavioral files into the package
+#' @importFrom checkmate assert_file_exists
 #' @export
 read_behav <- function(file, parser=NULL, ...) {
   if (is.null(parser)) { stop("Need to pass parser function to read_behav") }
-  stopifnot(file.exists(file))
+  assert_file_exists(file)
+
   behav <- parser(file, ...)
   class(behav) <- c(class(behav), "ep.behav") #tag with ep.behav class
 

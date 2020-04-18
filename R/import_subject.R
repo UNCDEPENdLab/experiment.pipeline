@@ -1,8 +1,8 @@
 #' function for reading multimodal data files for a subject according to a set of parsing routines
-#' @importFrom checkmate assert_subset
+#' @importFrom checkmate assert_subset assert_file_exists
 #' @export
 import_subject <- function(files, parsers) {
-  stopifnot(all(file.exists(files)))
+  sapply(files, assert_file_exists)
   if (length(files) == 0L) { stop("No files passed to import_subject") }
   stopifnot(identical(sort(names(files)), sort(names(parsers)))) #every file needs a parser
 
@@ -15,7 +15,7 @@ import_subject <- function(files, parsers) {
   } else { behav <- NULL }
 
   if ("physio" %in% fnames) {
-    #physio <- read_physio()
+    physio <- read_physio(files["physio"], parser=parsers$physio)
   } else { physio <- NULL }
 
   if ("eye" %in% fnames) {

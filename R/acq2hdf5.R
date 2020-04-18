@@ -13,9 +13,12 @@
 acq2hdf5 <- function(acq_files, acq2hdf5_opts="--compress=gzip", hdf5_output_dir=NULL, acq2hdf5_location=NULL) {
 
   sapply(acq_files, assert_file_exists) #verify that all acq files exist
+  acq_files <- sapply(acq_files, normalizePath) #ensure that paths are fully understandable by shell (e.g., ~/ won't work)
 
   if (is.null(hdf5_output_dir)) { hdf5_output_dir <- getwd() } #output to current working directory if not otherwise specified
   if (!dir.exists(hdf5_output_dir)[1L]) { dir.create(hdf5_output_dir, showWarnings = FALSE) }
+
+  hdf5_output_dir <- normalizePath(hdf5_output_dir) #ensure that absolute path is passed to bioread function
 
   # detect operating system
   os_type <- .Platform$OS.type
@@ -41,6 +44,8 @@ acq2hdf5 <- function(acq_files, acq2hdf5_opts="--compress=gzip", hdf5_output_dir
     # base::file.access() returns values 0 for success and -1 for failure
     if(unname(file.access(acq2hdf5_location, mode=0)) != 0) { stop(paste(acq2hdf5_location, "... File does not exist.", sep="\n")) }
     if(unname(file.access(acq2hdf5_location, mode=1)) != 0) { stop(paste(acq2hdf5_location, "... File is not executable.", sep="\n")) }
+
+    acq2hdf5_location <- normalizePath(acq2hdf5_location) #ensure that ~/ is handled gracefully
   }
 
   #run acq2hdf5 for each file
