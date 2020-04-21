@@ -59,8 +59,8 @@ read_acq <- function(acq_files, hdf5_output_dir=NULL, keep_hdf5=TRUE, acq2hdf5_l
   hdf5_files <- acq2hdf5(acq_files, acq2hdf5_location=acq2hdf5_location)
 
   #pass additional arguments such as parse_all to read.asc
-  res <- lapply(hdf5_files, function(fname) {
-    physio_data <- list(raw=biopac_hdf5_to_dataframe(hdf5file=fname, ...), hdf5_file=fname)
+  res <- lapply(1:length(hdf5_files), function(ff) {
+    physio_data <- list(raw=biopac_hdf5_to_dataframe(hdf5file=hdf5_files[ff], ...), hdf5_file=hdf5_files[ff], acq_file=acq_files[ff])
     return(physio_data)
   })
 

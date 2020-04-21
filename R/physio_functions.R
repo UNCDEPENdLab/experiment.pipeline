@@ -1,4 +1,4 @@
-#' @title Recode TTL code vector to reflect changes in the value
+#' @title Recode TTL code vector to reflect changes in the value, compute onsets and offsets, add to object
 #' @description This functions helps to identify the key time markers when TTL codes onset,
 #'   which is hard to detect using the raw vector alone (since the code will have some duration)
 #' @param ttl_vec a vector of integer TTL codes reconstructed from the acq file
@@ -17,16 +17,31 @@
 #'
 #'   For example, at 1000Hz, @\code{lazy_ttl} = 2 would flag any codes with duration of 2ms or less as
 #'   suspicious and would replace these with the longer, genuine code that immediately follows.
-#' @importFrom dplyr first
+#' @importFrom dplyr first group_by mutate
 #' @importFrom magrittr `%>%`
+#' @importFrom tidyr pivot_wider
+#' @importFrom checkmate assert_count assert_data_frame
 #' @author Michael Hallquist
-compute_ttl_onsets <- function(ttl_vec, lazy_ttl=2, zero_code=0) {
+#' @export
+augment_ttl_details <- function(ep.physio, lazy_ttl=2, zero_code=0, code_labels_df=NULL) {
+  stopifnot(inherits(ep.physio, "ep.physio"))
+  if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
   assert_count(lazy_ttl)
   assert_count(zero_code)
+  if (!is.null(code_labels_df)) {
+    assert_data_frame(code_labels_df)
+    stopifnot("ttl_code" %in% names(code_labels_df))
+    if (any(duplicated(code_labels_df$ttl_code))) { stop("code_labels_df must contain unique ttl_codes only; no duplicates.") }
+  }
+
+  ttl_vec <- ep.physio$raw$ttl_code
+
+  #to make comparison math below integer-valued (no bizarre x != y floating point problems)
+  if (!is.integer(ttl_vec)) { ttl_vec <- as.integer(ttl_vec) }
 
   #if there is a stuck pin, start by replacing its occurrences by zero
-  if (zero_code > 0) { ttl_vec[ttl_vec==zero_code] <- 0 }
-  dvec <- which(c(1, diff(ttl_vec)) != 0) #value changes; always treat first element as a change
+  if (zero_code > 0) { ttl_vec[ttl_vec==zero_code] <- 0L }
+  dvec <- which(c(NA_integer_, diff(ttl_vec)) != 0) #value changes; always treat first element as a change
 
   if (lazy_ttl > 0) {
     code_diff <- c(NA_integer_, diff(dvec)) #look for cases where there are rapid changes in < 10ms/samples?
@@ -34,11 +49,16 @@ compute_ttl_onsets <- function(ttl_vec, lazy_ttl=2, zero_code=0) {
     if (length(suspicious > 0)) { #window around each code
       #note that it is the *previous* code (i.e., suspicious-1) that contains the initial change
       intended_codes <- sapply(suspicious, function(pos) {
-        window <- ttl_vec[(pos-1):(pos+10)] #from previous position to 10 samples into the future
+        window <- ttl_vec[(pos-2):min(length(ttl_vec), pos+10)] #from two-back position to 10 samples into the future
 
-        #compute mode: tidy version of https://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
-        mode_ttl <- table(window) %>% sort(decreasing=TRUE) %>% names() %>% as.numeric() %>% first()
-        return(mode_ttl) #use the mode of the future to determine the intention
+        if (window[1] == 0L && window[2] != 0L && window[3] == 0L) {
+          #not suspicious, just an instantaneous code
+          return(window[2])
+        } else {
+          #compute mode: tidy version of https://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
+          mode_ttl <- table(window) %>% sort(decreasing=TRUE) %>% names() %>% as.numeric() %>% first()
+          return(mode_ttl) #use the mode of the future to determine the intention
+        }
       })
 
       #now replace the super-brief false code with the intended code
@@ -48,13 +68,119 @@ compute_ttl_onsets <- function(ttl_vec, lazy_ttl=2, zero_code=0) {
       ttl_vec[suspicious-1] <- intended_codes
 
       #recalculate the ttl_change vector on the corrected codes
-      dvec <- which(c(1, diff(ttl_vec)) != 0) #value changes; always treat first element as a change
+      dvec <- which(c(NA_integer_, diff(ttl_vec)) != 0) #value changes; always treat first element as a change
     }
   }
 
-  delta <- rep(0, length(ttl_vec))
+  delta <- rep(0L, length(ttl_vec))
+
+  #dvec contains a mixture of onsets and offsets
+  #a sequence like 0, 0, 6, 6 will generate a positive diff: 0, 0, 6, 0 for the *onset*
+  #a sequence like 6, 6, 0, 0 will generate a negative diff: 0, 0, -6, 0 for the *offset*
+  #one is tempted to say that positive diffs are onsets and negative diffs are offsets
+  #but if there is a rapid code change like: 127, 127, 62, 62, the negative diff represents onset of a different code (no zero period)
+  #to be sure, we need to window around each change to classify it
+  recode_ttl <- lapply(dvec, function(pos) {
+    if (pos == 1L) {
+      window <- c(0L, ttl_vec[pos:(pos+1)]) #pad a zero value at the 0th position
+    } else if (pos == length(ttl_vec)) {
+      window <- c(ttl_vec[(pos-1):pos], 0L) #pad a zero value at the last+1 position
+    } else {
+      window <- ttl_vec[(pos-1):(pos+1)] #+/-1 around position
+    }
+
+    if (window[1] == 0L && window[2] != 0L && window[3] == window[2]) {
+      df <- data.frame(event="onset", ttl_code=window[2], position=pos, stringsAsFactors=FALSE)
+    } else if (window[2] == 0L && window[1] != 0L && window[3] == 0L) {
+      df <- data.frame(event="offset", ttl_code=window[1], position=pos-1, stringsAsFactors=FALSE)
+    } else if (window[1]  != window[2] && window[1] != 0L && window[2] != 0L) {
+      df <- rbind(
+        data.frame(event="offset", ttl_code=window[1], position=pos-1, stringsAsFactors=FALSE),
+        data.frame(event="onset", ttl_code=window[2], position=pos, stringsAsFactors=FALSE)
+      )
+    } else if (window[1] == 0L && window[2] != 0L && window[3] == 0L) {
+      #instantaneous/one-sample event: offset will be captured by second if-else above in next iteration of lapply over dvec
+      df <- data.frame(event="onset", ttl_code=window[2], position=pos, stringsAsFactors=FALSE)
+    } else { print(window); stop("Haven't figured out how to interpret this change in TTLs") }
+
+    return(df)
+  })
+
+  recode_ttl <- bind_rows(recode_ttl)
+  recode_ttl_df <- recode_ttl %>% group_by(ttl_code, event) %>% arrange(position) %>% mutate(occurrence=1:n()) %>%
+    ungroup() %>% pivot_wider(values_from="position", names_from="event") %>%
+    mutate(onset_s=ep.physio$raw$time_s[onset], offset_s=ep.physio$raw$time_s[offset], duration_s=offset_s-onset_s) %>%
+    select(ttl_code, occurrence, onset, offset, onset_s, offset_s, duration_s, everything())
+
+  #merge code details, if available
+  if (!is.null(code_labels_df)) { recode_ttl_df <- recode_ttl_df %>% left_join(code_labels_df, by="ttl_code") }
+
   delta[dvec] <- ttl_vec[dvec]
-  return(delta)
+
+  ep.physio$raw$ttl_onset <- delta
+  ep.physio$ttl_codes <- recode_ttl_df
+  return(ep.physio)
+}
+
+#' @importFrom checkmate assert_integerish assert_logical
+#' @importFrom dplyr filter arrange
+#' @importFrom magrittr `%>%`
+#' @export
+splice_physio <- function(ep.physio, start_code=NULL, end_code=NULL, other_codes=NULL, strict=TRUE) {
+  stopifnot(inherits(ep.physio, "ep.physio"))
+  if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
+  if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
+  assert_logical(strict)
+  sapply(other_codes, test_integerish, null.ok=TRUE)
+  assert_integerish(start_code)
+  assert_integerish(end_code)
+  code_set <- c(start_code, end_code, other_codes)
+
+  #allow for multiple matches of start and end codes
+  codes_df <- ep.physio$ttl_codes %>% arrange(onset) %>% mutate(splice_match=ttl_code %in% code_set)
+  #%>% filter(ttl_code %in% code_set) %>% arrange(onset)
+
+  if (sum(codes_df$splice_match) == 0L)  {
+    warning("Unable to find any ttl_codes in the set: ", paste(code_set, collapse=", "))
+    return(NULL)
+  }
+
+  #loop over ttl_codes, finding contiguous blocks of codes that fall between start_code and end_code
+  block <- 0
+  codes_df$block <- 0
+  cur_block_code <- 0
+  for (i in 1:nrow(codes_df)) {
+    this_code <- codes_df$ttl_code[i]
+    if (this_code == start_code) {
+      block <- block+1
+      cur_block_code <- block
+    }
+
+    codes_df$block[i] <- cur_block_code
+
+    if (!is.null(other_codes) && strict && cur_block_code != 0 &&
+        this_code != 0L && !this_code %in% code_set) {
+      stop("TTL code ", this_code, " within block does not match acceptable set: ", paste(code_set, collapse=", "))
+    }
+
+    if (this_code == end_code) { cur_block_code <- 0 } #set block back to 0
+  }
+
+  if (max(codes_df$block)==0L) {
+    warning("Unable to extract any blocks")
+    return(NULL)
+  } else {
+    extracted <- lapply(1:block, function(b) {
+      res <- codes_df %>% filter(block==b) %>% slice(1, n()) %>% summarize(onset=min(onset), offset=max(offset)) %>% unlist()
+      raw_subset <- ep.physio$raw[res[1]:res[2],]
+      ttl_subset <- ep.physio$ttl_codes %>% filter(onset >= res[1] & offset <= res[2])
+      return(list(raw=raw_subset, ttl_codes=ttl_subset, hdf5_file=ep.physio$hdf5_file, acq_file=ep.physio$acq_file))
+    })
+
+    names(extracted) <- paste0("block", 1:block)
+  }
+
+  return(extracted)
 }
 
 
@@ -132,7 +258,7 @@ biopac_hdf5_to_dataframe <- function(hdf5file, upsample_to_max=TRUE, ttl_to_dec=
     ttl_columns <- names(all_data)[ttl_columns] #data.table prefers names for subsetting
     if (length(ttl_columns) != 8) { stop("ttl_columns does not yield 8 columns in data frame")}
 
-    ttl_values <- apply(all_data[, ttl_columns, with=FALSE], 1, function(x) { bin2dec(x) })
+    ttl_values <- as.integer(apply(all_data[, ttl_columns, with=FALSE], 1, function(x) { bin2dec(x) }))
 
     #this is much much slower than apply...
     #all_data[, newcol := bin2dec(.SD), .SDcols=ttl_columns, by = seq_len(NROW(all_data))]
