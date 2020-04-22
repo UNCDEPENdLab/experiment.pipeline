@@ -61,6 +61,9 @@ read_acq <- function(acq_files, hdf5_output_dir=NULL, keep_hdf5=TRUE, acq2hdf5_l
   #pass additional arguments such as parse_all to read.asc
   res <- lapply(1:length(hdf5_files), function(ff) {
     physio_data <- list(raw=biopac_hdf5_to_dataframe(hdf5file=hdf5_files[ff], ...), hdf5_file=hdf5_files[ff], acq_file=acq_files[ff])
+    physio_data$sampling_rate <- attr(physio_data$raw, "sampling_rate") #promote to metadata
+    physio_data$max_channel_rate <- attr(physio_data$raw, "max_channel_rate") #promote to metadata
+
     return(physio_data)
   })
 

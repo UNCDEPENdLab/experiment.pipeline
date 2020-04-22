@@ -41,10 +41,10 @@ augment_ttl_details <- function(ep.physio, lazy_ttl=2, zero_code=0, code_labels_
 
   #if there is a stuck pin, start by replacing its occurrences by zero
   if (zero_code > 0) { ttl_vec[ttl_vec==zero_code] <- 0L }
-  dvec <- which(c(NA_integer_, diff(ttl_vec)) != 0) #value changes; always treat first element as a change
+  dvec <- which(c(NA_integer_, diff(ttl_vec)) != 0) #value changes; always treat first element as undefined
 
   if (lazy_ttl > 0) {
-    code_diff <- c(NA_integer_, diff(dvec)) #look for cases where there are rapid changes in < 10ms/samples?
+    code_diff <- c(NA_integer_, diff(dvec)) #look for cases where there are rapid changes in the difference time series
     suspicious <- dvec[which(code_diff < lazy_ttl)] #positions at which the super-fast new code is registered
     if (length(suspicious > 0)) { #window around each code
       #note that it is the *previous* code (i.e., suspicious-1) that contains the initial change
@@ -131,7 +131,7 @@ splice_physio <- function(ep.physio, start_code=NULL, end_code=NULL, other_codes
   if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
   if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
   assert_logical(strict)
-  sapply(other_codes, test_integerish, null.ok=TRUE)
+  sapply(other_codes, assert_integerish, null.ok=TRUE)
   assert_integerish(start_code)
   assert_integerish(end_code)
   code_set <- c(start_code, end_code, other_codes)
@@ -267,5 +267,88 @@ biopac_hdf5_to_dataframe <- function(hdf5file, upsample_to_max=TRUE, ttl_to_dec=
     all_data[, ttl_code := ttl_values] #add ttl decimal code
   }
 
+  attr(all_data, "sampling_rate") <- sampling_rate
+  attr(all_data, "max_channel_rate") <- max_rate
+
   return(all_data)
 }
+
+#' @title downsample_physio
+#' @description This function reduces the
+#' @param ep.physio An ep.physio object created by read_acq
+#' @param downsample_factor An integer factor used to subsample data
+#' @param digital_channels Column names or positions containing digital channels, These will be downsampled using the
+#'   \code{downsample_digital_timeseries} function to use the within-chunk mode, rather than blind subsampling.
+#' @param method How to downsample the signal. The default is \code{"decimate"}, which calls \code{signal::decimate}.
+#'   This applies a low-pass filter before downsampling to avoid aliasing. The alternative is \code{"subsample"}, which
+#'   simply takes every nth sample from the original time series.
+#' @importFrom signal decimate
+#' @importFrom checkmate assert_count assert_data_frame
+#' @export
+downsample_physio <- function(ep.physio, downsample_factor=1, digital_channels=c("ttl_code", "ttl_onset", "Digital.*"), method="decimate") {
+  stopifnot(inherits(ep.physio, "ep.physio"))
+  if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
+  if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
+  assert_data_table(ep.physio$raw) #for now, we are using data.table objects, so DT syntax applies
+  assert_count(downsample_factor)
+
+  phys_cols <- names(ep.physio$raw)
+
+  d_cols <- grep(paste0("^(", paste(digital_channels, collapse="|"), ")$"), phys_cols, perl=TRUE, value=TRUE)
+  a_cols <- phys_cols[!phys_cols %in% d_cols]
+
+  if (length(a_cols) > 0L) {
+    if (method=="decimate") {
+      analog_data <- lapply(ep.physio$raw[, ..a_cols], function(col) {
+        #calculation channels that involve filtering can have trailing zeros that throw off decimate
+        nas = which(is.na(col))
+        if (length(nas) > 0L) {
+          if (all(diff(nas) == 1) && max(nas) == length(col)) { #only works for trailing NAs
+            message("Replacing ", length(nas), " trailing NAs with zeros to permit decimation. Check trailing elements if they are important.")
+            col[nas] <- 0 #replace trailing NAs with zero
+            #col <- col[1:(nas[1]-1)] #all elements before the first NA
+            #navec <- rep(NA_real_, ceiling(length(col)/downsample_factor))
+          } else { stop("NAs present in signal that are not at the end. Cannot decimate.") }
+        }
+
+        return(decimate(col, q=downsample_factor))
+      })
+    } else if (method=="subsample") {
+      analog_data <- lapply(ep.physio$raw[, ..a_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
+    } else { stop("unknown downsampling method: ", method) }
+  } else {
+    analog_data <- NULL
+  }
+
+  if (length(d_cols) > 0L) {
+    #could support subsampling here -- doesn't seem like a great idea, though
+    digital_data <- lapply(ep.physio$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, TRUE) })
+  } else {
+    digital_data <- NULL
+  }
+
+  if (is.null(analog_data)) {
+    ret <- digital_data
+  } else if (is.null(digital_data)) {
+    ret <- analog_data
+  } else {
+    ret <- cbind(as.data.frame(analog_data), as.data.frame(digital_data))
+    ret <- ret[,phys_cols] #revert to original column order
+  }
+
+  ep.physio$raw <- ret
+  attr(ret, "sampling_rate") <- attr(ret, "sampling_rate")/downsample_factor
+  attr(ret, "max_channel_rate") <- attr(ret, "max_channel_rate")/downsample_factor
+  ep.physio$sampling_rate <- ep.physio$sampling_rate/downsample_factor
+  ep.physio$max_channel_rate <- ep.physio$max_channel_rate/downsample_factor
+
+  #downsample onsets in $ttl_codes
+  if (!is.null(ep.physio$ttl_codes)) {
+    ep.physio$ttl_codes$onset <- floor(ep.physio$ttl_codes$onset/downsample_factor) #round toward earlier samples
+    ep.physio$ttl_codes$offset <- floor(ep.physio$ttl_codes$offset/downsample_factor) #round toward earlier samples
+  }
+
+  return(ep.physio)
+
+}
+
