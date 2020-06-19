@@ -38,3 +38,7 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 .DS_Store
+
+# C/C++ outputs
+*.so
+*.o
