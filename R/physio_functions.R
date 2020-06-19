@@ -125,6 +125,18 @@ augment_ttl_details <- function(ep.physio, lazy_ttl=2, zero_code=0, code_labels_
 #' @importFrom checkmate assert_integerish assert_logical
 #' @importFrom dplyr filter arrange
 #' @importFrom magrittr `%>%`
+#' @examples
+#' \dontrun{
+#'    #acq_data is an object read in by read_acq and then augmented by
+#'    acq_data <- read_acq("~/Downloads/s3_ALL_data_prototype/070_SK_Physio.acq",
+#'      acq2hdf5_location = "~/Library/Python/3.7/bin/acq2hdf5")[[1]]
+#'
+#'    #read in a codes data.frame into codes
+#'    acq_data <- augment_ttl_details(acq_data, zero_code = 4, code_labels_df=codes)
+#'
+#'    #look for physio data between codes 6 and 28, allowing 12, 14, 20, 22 in between
+#'    acq_data_reduce <- splice_physio(acq_data, start_code=6, end_code=28, other_codes=c(12, 14, 20, 22))
+#' }
 #' @export
 splice_physio <- function(ep.physio, start_code=NULL, end_code=NULL, other_codes=NULL, strict=TRUE) {
   stopifnot(inherits(ep.physio, "ep.physio"))

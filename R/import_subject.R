@@ -22,7 +22,9 @@ import_subject <- function(files, parsers) {
     eye <- read_eye(files["eye"], parser=parsers$eye)
   } else { eye <- NULL }
 
-  return(list(behav=behav, physio=physio, eye=eye))
+  ret <- list(behav=behav, physio=physio, eye=eye)
+  class(ret) <- c("ep.subject", "list")
+  return(ret)
 }
 
 #For physiology data, these are collected in one long acquisition, not one file per experiment.
