@@ -1,9 +1,3 @@
-
-
-
-log <- read.csv(file = "070_dtk_behav.log", sep = "\n", header = F)
-
-
 setwd("/Users/sophie_paolizzi/github_repos/experiment.pipeline/inst/examples/")
 
 # Basic DTK structure --------------------------------------------------
@@ -23,10 +17,10 @@ fields <- c('MinName' #stimulus presented (cross-phase indicator of minion type)
 
 instr <- c("corrAns", #b or n. This key will block attack
             "incorrAns", #b or n. This key is ineffective at blocking attacks
-            "Attacker.started", # tioming for when a minion appeared on screen. These occur when pts are not pressing shields. shoiuld be a time in milliseconds?
+            "Attacker.started", # timing for when a minion appeared on screen. These occur when pts are not pressing shields. shoiuld be a time in milliseconds?
             "block", #first or second block (Instr, Instr-2)
             )
-##To pull and tranform into columns from log: DATA: KEYPRESS: TIMING
+##To pull and tranform into columns from log: DATA: KEYPRESS: TIMING for keypresses
 
 instr_quiz <- c('MinName' #stimulus presented (cross-phase indicator of minion type)
            "corrAns", #b or n. This key will blocks attack and we want to know what the correct response is
@@ -35,7 +29,7 @@ instr_quiz <- c('MinName' #stimulus presented (cross-phase indicator of minion t
            "slider.started",#when quiz questions about block 2 of instr were asked (needed for log file matching)
            "slider.response", # numeric response indicating effectiveness of each key in block 2 ('instr_2", obatined from slider)
 )
-##To pull and tranform into columns from log: quiz keypresses and timing!
+##To pull and tranform into columns from log: quiz questions/timing
 
 Pav <- c( "corRes", #b, n, space, s and k. This reflects the answer to the quizzes
           "Pavlovian.thisN", #phase trial number, should have 44 trials indexed 0-44
