@@ -1,10 +1,11 @@
 # psuedo code for data processing scheme
 
 rawfiles <- getAllFiles()
-partitionedFiles <- groupFilesByTaskSub(rawfiles, yamlMapping)
+fileInfo <- getFileInfo(rawfiles, yamlMapping)
 # above step produces a list of tuples. the first dimension is task&subject pair. 2nd dimension is modality
-taskSubModeDfs <- mapply(read_data, yamlMapping) # output of wrangle step
-taskSubModeDfsQA <- qualityChecks(taskSubDfs) # output of quality checks step
+# the below yaml file maps file meta-data to a parser. e.g. task x, phase y, mode z maps to parser B
+taskSubModeDfs <- parseFiles(fileInfo, yamlMapping) # output of wrangle step
+taskSubModeDfsQA <- qualityChecks(taskSubModeDfs) # output of quality checks step
 taskSubDf <- synthesize(taskSubDfsQA) # output of synthesis step
 
 read_behav <- function(filesOfTaskSub, parsers) {
