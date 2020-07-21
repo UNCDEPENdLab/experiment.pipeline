@@ -50,6 +50,8 @@ log_PITshields <- log_temp %>% dplyr::filter(grepl("PITshield: image =", Event))
 
 #then create long log file & organize in time
 log_clean <- rbind(log_data, log_trials, log_ins_quiz, log_Pav, log_PITshields)
+#needs to be numeric for arrange() to work
+log_clean$Timestamp <- as.numeric(log_clean$Timestamp)
 log_clean <- log_clean %>% arrange(Timestamp)
 
 
