@@ -22,12 +22,13 @@ chunkFileInfoDf <- function(infoDF) {
 	for (sub in unique(infoDF$id)) {
 		#subjects[[sub]] = list()
 		for (tasky in unique(filter(infoDF, id==sub)$task)) {
-			#TODO: would add another loop here to segment by modality as well
+			#NOTE: would add another loop here to segment by modality as well
 			#subjects[[sub]][[tasky]] = filter(infoDF, id==sub, task==tasky) %>% select(path, phase, suf, mode)
 			subjects[[length(subjects)+1]] = list(data=filter(infoDF, id==sub, task==tasky) %>% select(path, phase, suf, mode),
 												  id=sub, task=tasky)
 		}
 	}
+	# attempt at doing the above functionally --> lower code maintenance, more flexible
 	#subjects = mapply(function(df, sub, tasky) {
 	#					return(list(filter(df, id==sub, task==tasky) %>% select(path, phase, suf, mode), sub, tasky)) },
 	#					unique(infoDF$id), unique(infoDF$task), df=infoDF)
@@ -46,7 +47,7 @@ parseFiles <- function(groupedFiles, yamlFile) {
 			# apply appropriate parser
 	# output list of data frames: subject-task-mode --> multi-dimensional
 	parserMap = read_yaml(yamlFile)
-	# choose parser and feed it all files in df at once
+	# choose parser and feed it all files in df
 	lapply(groupedFiles, function(entry, parserMap) {
 			   data = get(parserMap[[entry$task]]$Behav)(entry$data$path) 
 			   print(data)
