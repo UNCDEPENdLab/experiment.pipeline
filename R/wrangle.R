@@ -1,6 +1,10 @@
 library(dplyr)
 
-main = function(files, yamlFile) {
+#' @param files A vector of file paths
+#' @param yamlFile A path to a YAML file specifiying a hierachical mapping from task and modality to parser function name
+#' @description This function implements the wrangle step. It takes the raw output files from session 3 experiments and parses and combines these files within a modality, task and subject, into the object model.
+#' @return A list of behav object models.
+wrangle = function(files, yamlFile) {
 	return(parseFiles(chunkFileInfoDf(getFileInfo(files)), yamlFile))
 }
 
@@ -37,7 +41,11 @@ chunkFileInfoDf <- function(infoDF) {
 	return(subjects)
 }
 
-parseFiles <- function(groupedFiles, yamlFile) {
+#' @param groupedFiles A list of lists. Each sublist has a 'data', 'id' and 'task' element. sublists are constructed of data from files with the same subject and task.
+#' @param parserYaml A yaml file specifying a mapping between tasks and modalities to a file parsing function
+#' @description applies the correct parsing function to each group of files. parsers must return a list of event data frames, where each phase has its own df
+#' @return A list of ep.subject.task.behav objects
+parseFiles <- function(groupedFiles, parserYaml) {
 	# use yaml mapping to decide which parser to use on each set of files
 	# combination of different file suffixes is handled within the specific parser
 	# for yaml specification
@@ -50,11 +58,9 @@ parseFiles <- function(groupedFiles, yamlFile) {
 	# choose parser and feed it all files in df
 	lapply(groupedFiles, function(entry, parserMap) {
 			   data = get(parserMap[[entry$task]]$Behav)(entry$data$path) 
-			   print(data)
-			   return(list(data=tibble(data),
-						   task=entry$task, id=entry$id))
+			   return(list(data=tibble(data), task=entry$task, id=entry$id))
 		  }, parserMap=parserMap) %>%
-	return()
+	return() #TODO: return list of object models
 }
 
 # TODO: construct regex dynamically from names specified in file. shouldnt have to manually rewrite regex if names change
@@ -65,6 +71,7 @@ parseFilename <- function(filename) {
 	return(fields$names)
 }
 
+# from: https://www.r-bloggers.com/regex-named-capture-in-r/
 re.capture = function(pattern, string, ...) {
   rex = list(src=string, 
              result=regexpr(pattern, string, perl=TRUE, ...), 

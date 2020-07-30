@@ -1,0 +1,12 @@
+---
+VendingMachine:
+    Behav: read_behav_vending
+Neighborhood:
+    Behav: read_behav_neighborhood
+Kingdom:
+    Behav: parser3
+SortingMushrooms:
+    Behav: parser4
+VanillaBaseline:
+    Behav: parser5
+---
