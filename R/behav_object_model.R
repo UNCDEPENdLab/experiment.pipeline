@@ -15,13 +15,14 @@ ep_subject_task.behav = function(
 						 )
 {
 
-	events = sapply(paste("s3data.", phases, sep=""),
+	# takes advantage of fact that elements are automatically named by argument
+	data = sapply(phases,
 					function(phase) {
 						return(NA)
 					},
 					simplify=FALSE)
 
-	qas = sapply(paste("s3qa.", phases, sep=""),
+	qas = sapply(phases,
 				 	function(phase) {
 					 	x = list(checks=NA, regression_plot=NA, timing_errors=NA)
 						#set class here?
@@ -31,5 +32,5 @@ ep_subject_task.behav = function(
 
 	meta = list(session_number=session_number, date=date, time=time, subject_id=subject_id, task_number=task_number)
 
-	return(c(events, qas, meta))
+	return(list(data=data, qa=qas, metadata=meta))
 }

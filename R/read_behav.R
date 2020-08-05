@@ -39,7 +39,7 @@ read_behav_neighborhood <- function(file) {
   na_rows <- apply(dat, 1, function(r) { all(is.na(r)) })
   dat <- dat[!na_rows,] #drop any all-na rows
 
-  return(dat)
+  return(list(default=dat))
 }
 
 #' @title Import Quail, Morris, Balleine Vending Machine task data
