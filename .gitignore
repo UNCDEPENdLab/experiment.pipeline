@@ -42,3 +42,7 @@ vignettes/*.pdf
 # C/C++ outputs
 *.so
 *.o
+
+Session.vim
+.gitignore
+*scratch*
