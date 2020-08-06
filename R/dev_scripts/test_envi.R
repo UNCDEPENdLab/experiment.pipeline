@@ -3,13 +3,12 @@
 
 pacman::p_load(eyelinker, FDBeye, tidyverse)
 
-basedir <- "~/github_repos/experiment.pipeline/"
+basedir <- "C:/Users/vietp/Documents/PennState/DEPENd_Lab/experiment.pipeline/"
 
 source(paste0(basedir, "/R/import_subject.R"))
 source(paste0(basedir, "/R/read_eye.R"))
 source(paste0(basedir, "/R/edf2asc.R"))
 source(paste0(basedir, "/R/import-data.R"))
-
 
 
 edf_path <- paste0(basedir, "inst/examples/070_neighborhood_eye.edf")
@@ -59,7 +58,7 @@ read_eye_generic <- function(file) {
   ### 2. make sure all names are present
   expected_edf_fields <- c("raw", "sacc", "fix", "blinks", "msg", "input", "info")
   stopifnot(all(expected_edf_fields %in% names(eye_parsed)))
-  ### 2. make sure all names are present
+  ### 3. make sure all timestamps are present
   
   
   
@@ -68,7 +67,7 @@ read_eye_generic <- function(file) {
 
 
 
-# this.sub.eye <- read_eye(edf_path, read_eye_neighborhood)
+this.sub.eye <- read_eye(edf_path, read_eye_neighborhood)
 
 
 
