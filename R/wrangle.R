@@ -8,9 +8,7 @@ wrangle = function(files, yamlFile) {
 	return(parseFiles(chunkFileInfoDf(getFileInfo(files)), yamlFile))
 }
 
-# groups files by task, subject, modality
-# information obtained from filename
-# the first dimension is task&subject pair. 2nd dimension is modality
+#' @return a data frame where each row corresponds to a file path, and has several columns with extracted information
 getFileInfo <- function(files) {
 	info = as.data.frame(sapply(files, parseFilename) %>% t())
 	info = mutate(info, id = as.numeric(id), path = row.names(info)) %>% arrange(path) %>% select(path, everything())
@@ -19,9 +17,11 @@ getFileInfo <- function(files) {
 	return(info)
 }
 
-# INPUT: a data frame containing information about files (output from getFileInfo)
-# OUTPUT: a list of data frames
+#' @param infoDF A data frame containing information about files (output from getFileInfo)
+#' @return  a list of data frames
+#' @description groups files by task, subject, modality. information obtained from filename. the first dimension is task&subject pair. 2nd dimension is modality
 chunkFileInfoDf <- function(infoDF) {
+	#TODO: use "split" function instead
 	subjects = list()
 	for (sub in unique(infoDF$id)) {
 		#subjects[[sub]] = list()
@@ -46,21 +46,25 @@ chunkFileInfoDf <- function(infoDF) {
 #' @description applies the correct parsing function to each group of files. parsers must return a list of event data frames, where each phase has its own df
 #' @return A list of ep.subject.task.behav objects
 parseFiles <- function(groupedFiles, parserYaml) {
-	# use yaml mapping to decide which parser to use on each set of files
-	# combination of different file suffixes is handled within the specific parser
-	# for yaml specification
-		# filter from yaml
-		# get parser
-		# for subject
-			# apply appropriate parser
-	# output list of data frames: subject-task-mode --> multi-dimensional
-	parserMap = read_yaml(yamlFile)
+
+	parserMap = read_yaml(parserYaml) #TODO: do this with S3 style OO: generic class functions instead?
+
 	# choose parser and feed it all files in df
 	lapply(groupedFiles, function(entry, parserMap) {
 			   data = get(parserMap[[entry$task]]$Behav)(entry$data$path) 
-			   return(list(data=tibble(data), task=entry$task, id=entry$id))
+			   return(list(data=data, task=entry$task, id=entry$id))
 		  }, parserMap=parserMap) %>%
-	return() #TODO: return list of object models
+	lapply(createObjModel)%>%
+	return()
+}
+
+createObjModel = function(wrapedParse) {
+	newObj = ep_subject_task.behav(phases=names(wrapedParse$data), subject_id=wrapedParse$id, task=wrapedParse$task)
+	for (name in names(wrapedParse$data)) {
+		newObj$data[[name]] = tibble(wrapedParse$data[[name]])
+	}
+	
+	return(newObj)
 }
 
 # TODO: construct regex dynamically from names specified in file. shouldnt have to manually rewrite regex if names change
