@@ -58,8 +58,34 @@ read_eye_generic <- function(file) {
   ### 2. make sure all names are present
   expected_edf_fields <- c("raw", "sacc", "fix", "blinks", "msg", "input", "info")
   stopifnot(all(expected_edf_fields %in% names(eye_parsed)))
-  ### 3. make sure all timestamps are present
-  
+  ### 3. make sure all time data fields are continuous 
+  i <- 1
+  for (dataType in eye_parsed){ # for each data type (i.e. raw, sacc, etc.)
+    # Check for "time" field if it exists in data type
+    if ("time" %in% names(dataType)){
+      expectedTime <- min(dataType$time):max(dataType$time)
+      if (!identical(dataType$time, expectedTime)){
+        stop("time field is not continuous in ", names(eye_parsed[i]), " data")
+      }
+    }
+    
+    #check for "stime" field if it exists in data type
+    if ("stime" %in% names(dataType)){
+      expectedTime <- min(dataType$stime):max(dataType$stime)
+      if (!identical(dataType$stime, expectedTime)){
+        stop("stime field is not continuous in ", names(eye_parsed[i]), " data")
+      }
+    }
+    
+    #check for "etime" field if it exists in data type
+    if ("etime" %in% names(dataType)){
+      expectedTime <- min(dataType$etime):max(dataType$etime)
+      if (!identical(dataType$stime, expectedTime)){
+        stop("etime field is not continuous in ", names(eye_parsed[i]), " data")
+      }
+    }
+    i <- i+1
+  }
   
   
   return(eye_parsed)
