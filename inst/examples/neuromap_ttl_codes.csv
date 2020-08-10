@@ -1,0 +1,54 @@
+Task,Phase,Stimuli,Port
+DtK,Inst,Minion,5
+DtK,Inst/Tra,Fix,15
+DtK,Inst,MinionChange,7
+DtK,Pav,Blue,37
+DtK,Pav,Goblin,29
+DtK,Pav,Reload,55
+DtK,Tra,ITIPit,69
+DtK,Tra,PitShield,61
+DtK,Tra,PhaseStart,63
+N,0.7,1,79
+N,0.3,1,84
+N,0.7,-1,85
+N,0.3,-1,86
+N,0.7,1,87
+N,0.3,1,92
+N,0.7,-1,93
+N,0.3,-1,94
+N,,cavb_1,95
+N,,feedback,100
+VM,Pav,CS1,111
+VM,Pav,US1,117
+VM,Pav,Feedback,119
+VM,Tra,red,126
+VM,Tra,blue,132
+VM,Tra,green,134
+VM,Tra,yellow,140
+VM,Inst,S1 ,101
+VM,Inst,S2,103
+VM,Inst,Feedback,109
+SM,Inst,Feedback,166
+SM,Inst,Feedback,167
+SM,Inst,Mushroom,142
+SM,Inst,Mushroom,143
+SM,Tra,PIT,197
+SM,Tra,PIT,198
+SM,Pav,Frac,172
+SM,Pav,Frac,173
+SM,Inst,Invalid,148
+SM,Compare,Compare,150
+SM,Experiment,Begin,151
+DtK,Experiment,Begin,156
+N,Experiment,Begin,157
+VM,Inst,Begin,158
+VM,Pav,Begin,159
+VM,Tra,Begin,164
+SM,Pav,Feedback,191
+SM,Pav,Feedback,196
+VB,Start,Start,6
+VB,Mid,4 min,12
+VB,Mid,3 min,14
+VB,Mid,2 min,20
+VB,Mid,1 min,22
+VB,End,End,28
