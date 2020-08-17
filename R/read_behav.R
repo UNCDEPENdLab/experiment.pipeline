@@ -62,23 +62,23 @@ read_behav_vending <- function(files=NULL) {
   assert_atomic_vector(files)
   assert_character(files)
   sapply(files, assert_file_exists)
-  assert_set_equal(names(files), c("pav", "ins", "pit"))
+  assert_set_equal(names(files), c("Pavlov", "Instr", "Trans"))
 
   stopifnot(length(files) == 3)
 
   # Sets files based on index
-  file_ins = files["ins"]  # Instrumental
-  file_pav = files["pav"]  # Index 2: Pavlovian
-  file_pit = files["pit"]  # Index 3: PIT
+  file_Instr = files["Instr"]  # Instrumental
+  file_Pavlov = files["Pavlov"]  # Index 2: Pavlovian
+  file_Trans = files["Trans"]  # Index 3: PIT
 
   # Fields to keep from original dataframe
   fields <- list(
-    ins = c("repA.thisN",              # Response A - Button A for reward
+    Instr = c("repA.thisN",              # Response A - Button A for reward
             "repB.thisN",              # Response B - Button B for reward
             "vending_machine.started", # Trial start time
             "vending_machine.stopped"  # Trial stop time
     ),
-    pav = c("testCS",               # Correct image
+    Pavlov = c("testCS",               # Correct image
             "correctAns",              # Correct response
             "CS",                      # Shown image
             "blocks.thisTrialN",       # Block
@@ -86,7 +86,7 @@ read_behav_vending <- function(files=NULL) {
             "vend.started",            # Trial start time
             "vend.stopped"             # Trial end time
     ),
-    pit = c("Condition",               # Image
+    Trans = c("Condition",               # Image
             "trials.thisN",            # Trial Number
             "pressL",                  # Number of times pressed left
             "pressR",                  # Number of times pressed right
@@ -97,18 +97,18 @@ read_behav_vending <- function(files=NULL) {
 
   # Import original dataframes from CSVs
   dat <- list(
-    ins = read.csv(file_ins, stringsAsFactors = FALSE),
-    pav = read.csv(file_pav, stringsAsFactors = FALSE),
-    pit = read.csv(file_pit, stringsAsFactors = FALSE)
+    Instr = read.csv(file_Instr, stringsAsFactors = FALSE),
+    Pavlov = read.csv(file_Pavlov, stringsAsFactors = FALSE),
+    Trans = read.csv(file_Trans, stringsAsFactors = FALSE)
   )
 
   # List of curried upper-level functions to pass each phase data through
   mutator = list(
-    ins = function(df) {
-      assert_set_equal(unique(df$phase), c("VIns", "")) #validate that the file is correct (i.e., right phase)
-      assert_set_equal(unique(df$expName), c("Instrumental", "")) #validate that the file is correct (i.e., right phase)
+    Instr = function(df) {
+      assert_set_equal(unique(df$phase), c("VIns")) #validate that the file is correct (i.e., right phase)
+      assert_set_equal(unique(df$expName), c("Instrumental")) #validate that the file is correct (i.e., right phase)
 
-      df <- df[,fields$ins] %>%
+      df <- df[,fields$Instr] %>%
         # Set NA to missing values
         mutate_if(is.character,
                   list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
@@ -139,11 +139,11 @@ read_behav_vending <- function(files=NULL) {
         select(-one_of("start", "stop")) %>% ungroup()
       return(df)
     },
-    pav = function(df) {
+    Pavlov = function(df) {
       assert_set_equal(unique(df$phase), c("Vpav", "")) #validate that the file is correct (i.e., right phase)
       assert_set_equal(unique(df$expName), c("Pavlovian", "")) #validate that the file is correct (i.e., right phase)
 
-      df = df[,fields$pav] %>%
+      df = df[,fields$Pavlov] %>%
         # Set NA to missing values
         mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
 
@@ -171,11 +171,11 @@ read_behav_vending <- function(files=NULL) {
         mutate(block = block + 1, trial = trial + 1) %>% ungroup()
       return(df)
     },
-    pit = function(df) {
+    Trans = function(df) {
       assert_set_equal(unique(df$phase), c("Vpit", "")) #validate that the file is correct (i.e., right phase)
       assert_set_equal(unique(df$expName), c("transfer", "")) #validate that the file is correct (i.e., right phase)
 
-      df = df[,fields$pit] %>%
+      df = df[,fields$Trans] %>%
         #Set NA to missing values
         mutate_if(is.character, list(~if_else(. == "" | . == "None", NA_character_, .))) %>%
 
@@ -209,10 +209,10 @@ read_behav_vending <- function(files=NULL) {
     block_data = tryCatch({
       mutator[[block_name]](block_data)
     }, error = function(e) {
-      stop(paste("Error with", block_name, "block mutator.",
-                 "Possibly wrong file passed."))
+      stop(paste("Error with", block_name, "block mutator.", "Possibly wrong file passed. Error was:\n", e))
     }
     )}, dat, names(dat))
+  # elements of dat are already named by phase
   return(dat)
 }
 

@@ -1,12 +1,18 @@
 ---
+# if possible, hook this into the Enums defined in repo
+# data_automation:s3_data_org/helper.py so that the string reps are managed in
+# one place
 VendingMachine:
     Behav: read_behav_vending
+    Physio: read_physio_vending
+    Eye: read_eye_neighborhood
 Neighborhood:
     Behav: read_behav_neighborhood
+    Eye: read_eye_neighborhood
 Kingdom:
     Behav: parser3
 SortingMushrooms:
     Behav: parser4
 VanillaBaseline:
     Behav: parser5
----
+    Eye: read_eye_vanillabaseline

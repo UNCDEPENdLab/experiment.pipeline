@@ -1,10 +1,10 @@
-# implementation of behav object model 
+# implementation of behav object model
 # http://adv-r.had.co.nz/S3.html
 
 # TODO: conform to OO conventions? S3?
 # how to write to facilitate generic functions?
 # set class of object?
-ep_subject_task.behav = function(
+ep_subject_task.Behav = function(
 						 task=NA,
 						 phases=c("default"),	# needs to be a character VECTOR so that output list is named
 						 date=NA,
@@ -30,7 +30,17 @@ ep_subject_task.behav = function(
 					},
 					simplify=FALSE)
 
-	meta = list(session_number=session_number, date=date, time=time, subject_id=subject_id, task_number=task_number)
+	meta = list(session_number=session_number, date=date, time=time, subject_id=subject_id, task_number=task_number, task=task)
 
 	return(list(data=data, qa=qas, metadata=meta))
+}
+
+ep_subject_task.Eye = function(...)
+{
+	return(ep_subject_task.Behav(...))
+}
+
+ep_subject_task.Physio = function(...)
+{
+	return(ep_subject_task.Behav(...))
 }
