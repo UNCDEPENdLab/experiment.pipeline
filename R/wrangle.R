@@ -7,10 +7,15 @@ library(dplyr)
 # what are the moving parts?
 #TODO:
 # [X] raw files: need to be named to the target template. done via data_automation/s3_data_org code. just a matter of getting the files we need here
-# [ ] parser functions: need to conform to a certain interface
-# [ ]   need to better define this interface. most parsers arent yet implemented so there shouldnt be many limitations
 # [X] wrangle code: needs to be generalized, rn behav is still slightly hardcoded
-# [ ] object models: rn, only behav is implemented, will have to implement a skeleton objmodel for other modalities
+# [X] object models: rn, only behav is implemented, will have to implement a skeleton objmodel for other modalities
+# [ ] how to handle multiple files per phase? parsers need to be adjusted
+# [ ] define parser function interface
+#		input: list of file paths for a single subject, task and modality, named by phase. each named phase element may be a list of paths.
+#		output: list of data frames named by phase
+# [ ] document wrangle code better
+# [ ] create comprehensive demo showing:
+#		wrangling across tasks, subjects and modalites
 
 #' @param files A vector of file paths
 #' @param yamlFile A path to a YAML file specifiying a hierachical mapping from
@@ -20,8 +25,8 @@ library(dplyr)
 #' within a modality, task and subject, into the object model.
 #' @return A list of lists, where the first level is by task and subject, and
 #' the second level by mode. bottom elements are ep.subject.task objects
-wrangle = function(files, yamlFile) {
-	return(parseFiles(getFileInfo(files), yamlFile))
+wrangle = function(files) {
+	return(parseFiles(getFileInfo(files)))
 }
 
 #' @param files a character vector of raw s3 data files that have been renamed
@@ -81,9 +86,6 @@ split_list = function(l, conds) {
 #' the second level by mode. bottom elements are ep.subject.task objects
 parseFiles <- function(parsedFilesDF, parserYaml) {
 
-	#TODO: do this with S3 style OO: generic class functions instead?
-	parserMap = read_yaml(parserYaml)
-
 	cats = c("task", "id")
 	groupedFiles = split_list(parsedFilesDF, cats)
 	print("grouped files")
@@ -98,26 +100,26 @@ parseFiles <- function(parsedFilesDF, parserYaml) {
 			# feed output of parser into correct obj model constructor
 			# create list of each modality's obj model
 
-	objModels = lapply(groupedFiles, splitByMode, parserMap=parserMap)
+	objModels = lapply(groupedFiles, splitByMode)
 
 	return(objModels)
 }
 
-splitByMode = function(df, parserMap) {
+splitByMode = function(df) {
 	print("in split by mode")
 	print(df)
-	lapply(split_list(df, c("mode")), chooseParserAndModel, parserMap=parserMap) %>%
+	lapply(split_list(df, c("mode")), chooseParserAndModel) %>%
 	return()
 }
 
-chooseParserAndModel = function(df, parserMap) {
+chooseParserAndModel = function(df) {
 	print("in chooseParserAndModel")
 	print(df)
 	task.i = unlist(unique(df$task))
 	mode.i = unlist(unique(df$mode))
 	id.i  = unlist(unique(df$id))
 	pathsByPhase = df$path %>% setNames(df$phase)
-	data = get(parserMap[[task.i]][[mode.i]])(pathsByPhase)
+	data = get(paste("read", mode.i, task.i, sep="_"))(pathsByPhase)
 	list(data=data, task=task.i, id=id.i, mode=mode.i) %>%
 	createObjModel() %>%
 	return()
