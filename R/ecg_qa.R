@@ -75,7 +75,11 @@ ecg_stripplot <- function(ecg_df, beat_df=NULL, freq=1000, max_rows=5,
       geom_line() +
       geom_point(data=sub_spike, mapping=aes(y=ecg, color=annotator)) +
       stat_smooth(data=sub_ibi, mapping=aes(y=RR, color=NULL), color="blue", method=lm, formula=y ~ splines::ns(x, 8)) +
-      facet_wrap(~panel, ncol=1, scales="free_x") + xlab("Time (min)")
+      facet_wrap(~panel, ncol=1, scales="free_x") + xlab("Time (min)") +
+      theme( #get rid of strip headers
+        strip.background = element_blank(),
+        strip.text.x = element_blank()
+      )
     plot(g)
   }
   dev.off()

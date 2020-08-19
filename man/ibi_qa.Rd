@@ -28,11 +28,11 @@ ibi_qa(
 After converting importing acq file into the experiment.pipeline structure, this function converts the ECG signal to an IBI ts and conducts basic QA checks on the IBI ts.
 }
 \details{
-This function uses the detect_rpeaks function from rsleep to create an interbeat interval time series of the ECG signal. Future versions of this function will likely additionally integrate wfdb as a QRS detection method.  
+This function uses the detect_rpeaks function from rsleep to create an interbeat interval time series of the ECG signal. Future versions of this function will likely additionally integrate wfdb as a QRS detection method.
   This function then converts the IBI ts into a HRV data set using RHRV. By converting the IBI ts into RHRV, we then interpolate the IBI ts onto a time grid.
   Finally, this funciton employs the tidyverse package to wrangle that data and provide basic QA and automatizes outlier checks.
-  By default, outliers are defined as 2IQRs above the 75th percentile of IBI differences or below the 25th percentile. Alternative outlier definitons can be provided as an argument into the function. 
-  Part of these outlier checks include provide plots of the ecg signal where it is believed there is to be an outleir. 
+  By default, outliers are defined as 2IQRs above the 75th percentile of IBI differences or below the 25th percentile. Alternative outlier definitons can be provided as an argument into the function.
+  Part of these outlier checks include provide plots of the ecg signal where it is believed there is to be an outleir.
   For the purpose verifying these QA checks (i.e., to ascertain if there's a problem with the QRS detection algorithm), this function also returnes the IBI time series plotted over the ecg signal as both as a single plot (for the entire time series) and as a list of plots binned by time_bin increments (default is 100s). N.B. For long time series, this total plot will be less useful and it is recommend to interrogate the plot list obejct instead.
 }
 \author{
