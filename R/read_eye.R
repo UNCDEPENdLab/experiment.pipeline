@@ -12,9 +12,18 @@ read_eye <- function(file, parser=NULL, ...) {
 #' specific function for importing neighborhood eye tracking data into the package
 #' need to add task-specific processing
 #' @export
-read_eye_neighborhood <- function(file) {
-  if (length(file) > 1L) { stop("At present, read_eye_neighborhood is designed for one file at a time") }
-  #store as temp asc file
-  eye_parsed <- read_edf(file, keep_asc=FALSE, parse_all=TRUE)[[1]] #read_edf always returns list -- here we only one the one file
-  return(eye_parsed)
+read_Eye_Neighborhood <- function(file) {
+  #if (length(file) > 1L) { stop("At present, read_eye_neighborhood is designed for one file at a time") }
+  ##store as temp asc file
+  #eye_parsed <- read_edf(file, keep_asc=FALSE, parse_all=TRUE)[[1]] #read_edf always returns list -- here we only one the one file
+  #return(eye_parsed)
+  return(list(default=list("filler for neighborhood eye data")))
+}
+
+read_Eye_VanillaBaseline = function(files) {
+	return(list(default=list("filler for vanillabaseline eye data")))
+}
+
+read_Eye_VendingMachine = function(files) {
+	return(list(default=list("filler for vending machine eye data")))
 }

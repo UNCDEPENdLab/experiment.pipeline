@@ -1,32 +1,98 @@
 library(dplyr)
 
-# parse filenames to get modality and task information
-# feed filenames to parsers in modality, task, subject groups
-# for each task, and subject, combine modality information into one object. for now, just put each modality object model into a list
+# CHECKLIST:
+# [ ] parsers
+#		[ ] behav
+#			[X] vending machine
+#			[ ] neighborhood (needs to accept multiple files per phase)
+#			[ ] sorting mushrooms
+#			[ ] kindgom
+#			[ ] vanilla baseline
+#		[ ] physio
+#			[ ] vending machine
+#			[ ] neighborhood
+#			[ ] sorting mushrooms
+#			[ ] kindgom
+#			[ ] vanilla baseline
+#		[ ] eye
+#			[ ] vending machine
+#			[ ] neighborhood
+#			[ ] sorting mushrooms
+#			[ ] kindgom
+#			[ ] vanilla baseline
+# [ ] object models
+#		[X] behav
+#		[ ] physio
+#		[ ] eye
+# [X] wrangle framework
 
-# what are the moving parts?
-#TODO:
-# [X] raw files: need to be named to the target template. done via data_automation/s3_data_org code. just a matter of getting the files we need here
-# [X] wrangle code: needs to be generalized, rn behav is still slightly hardcoded
-# [X] object models: rn, only behav is implemented, will have to implement a skeleton objmodel for other modalities
-# [ ] how to handle multiple files per phase? parsers need to be adjusted
-# [ ] define parser function interface
-#		input: list of file paths for a single subject, task and modality, named by phase. each named phase element may be a list of paths.
-#		output: list of data frames named by phase
-# [ ] document wrangle code better
-# [ ] create comprehensive demo showing:
-#		wrangling across tasks, subjects and modalites
+# Low level parsing function interface
+# A parser should be written for each MODALITY and each TASK. Each task and
+# modality has 1 or more files per subject that must be processed. These files
+# can be further divided by PHASE and file type (.mat, .csv, etc...)
+# The code in this file (wrangle.R) will direct raw input files to their
+# correct parser, grouped by MODALITY, TASK and SUBJECT, so that the parser has
+# access to all relevant information at once.
+#
+# Parsers should conform to the following interface:
+# INPUT: files
+# 	'files' is a list whose elements are named by PHASE and are character vectors.
+#		e.g. files = list(Instr = "path/to/instrumental.csv", Pavlov = c("path/to/pav.csv", "path/to/pav.log"))
+# OUTPUT:
+#	a list whose elements are named by PHASE and are data frames containing the
+#	parsed and consolidated information from all files for that phase passed to
+#	the parser
+#
+# RATIONALE
+# The format, content and distribution of the raw data varies across tasks,
+# modalites and phases, requiring specialized code to be written. However, the
+# data can then be shaped into similar formats (data frames) that can be
+# processed agnostically and the specialzed parsers can be applied in general
+# way. As long as each parser fits into this interface, the code in this file
+# will be able to wrangle the raw data into a form consistent across tasks and
+# modalites.
+
+# Using wrangle.R
+# wrangle.R implements a framework for parsing raw s3 files. It uses the
+# filenames of the input to direct them to the correct parsing function, and
+# unites the output of all the parsers to construct object models for each
+# TASK, SUBJECT and MODALITY. The name of main function is 'wrangle'
+# INPUT: 'paths'
+# 	'paths' is a character vector whose elements are paths to raw s3 files.
+# 		additionally, the basenames of the files should conform to the s3 renaming
+# 		template discussed on slite and implemented in data_automation/s3_data_org
+# 		(see https://depend.slite.com/app/channels/rnpb9CPuyb/notes/dzkTTQKWKC)
+# OUTPUT:
+#	a list whose elements are named by TASK and SUBJECT and are themselves
+#	lists whose elements are named by MODALITY and are the object models for
+#	that TASK, SUBJECT and MODALITY.
+#		e.g. output might look like: list(VendingMachine.70=list(Behav=behav_obj_model, Eye=eye_obj_model), Neighborhood.83=list(Physio=physio <- physio_obj_model))
+# USAGE:
+# see wrangle-demo.R and the 'wrangle' function in wrangle.R
 
 #' @param files A vector of file paths
-#' @param yamlFile A path to a YAML file specifiying a hierachical mapping from
-#' task and modality to parser function name
 #' @description This function implements the wrangle step. It takes the raw
 #' output files from session 3 experiments and parses and combines these files
 #' within a modality, task and subject, into the object model.
 #' @return A list of lists, where the first level is by task and subject, and
-#' the second level by mode. bottom elements are ep.subject.task objects
-wrangle = function(files) {
-	return(parseFiles(getFileInfo(files)))
+#' the second level by mode. bottom elements are object models
+wrangle = function(paths) {
+	return(parseFiles(getFileInfo(paths)))
+}
+
+#' @param parsedFilesDF a data frame produced by getFileInfo containing parsed
+#' path information
+#' @description applies the correct parsing function to each group of files.
+#' @return a list where each element is named by SUBJECT and TASK and is itself
+#' a list of object models, one for each modality present
+parseFiles <- function(parsedFilesDF) {
+
+	cats = c("task", "id")
+	groupedFiles = split_list(parsedFilesDF, cats)
+
+	objModels = lapply(groupedFiles, splitByMode)
+
+	return(objModels)
 }
 
 #' @param files a character vector of raw s3 data files that have been renamed
@@ -38,83 +104,47 @@ wrangle = function(files) {
 getFileInfo <- function(files) {
 	info = as.data.frame(sapply(files, parseFilename) %>% t())
 	info = mutate(info, id = as.numeric(id), path = row.names(info)) %>%
-		arrange(path) %>% select(path, everything())
+		arrange(path) %>%
+		select(path, everything())
 	info[ info == "" ] <- NA
-
-	print("file df")
-	print(info)
 	return(info)
 }
 
-#' @param l a list of objects
-#' @param conds a character vector of names to split objects in l on
-#' @return a flattened list of objects, each element being a list of objects
-split_list = function(l, conds) {
-	#print(conds)
-	firstTime = TRUE
-	for (t in conds) {
-		#print("t is")
-		#print(t)
-		#print("l is: ")
-		#print(l)
-		if (!firstTime) {
-			#print("not first time")
-			l = lapply(l, function(x, t) split(x, f=as.factor(unlist(x[[t]], use.names=FALSE))), t=t) %>% unlist(recursive=F)
-		}
-		else {
-			#print("first time")
-			#print("l[[t]] is ")
-			#print(l[[t]])
-			f = as.factor(unlist(l[[t]], use.names=FALSE))
-			l = split(l, f)# %>% unlist(recursive = F)
-			firstTime = FALSE
-		}
+#' @param df a data frame
+#' @param conds a character vector of names to split df on
+#' @description repeatedly applies the base 'split' function to the input data
+#' frame, keeping the structure flat instead of creating a hiearchy of lists
+#' @return a flattened list of data frames divided by elements in conds
+split_list = function(df, conds) {
+	# convert list to factor
+	f = as.factor(unlist(df[[conds[[1]]]], use.names=FALSE))
+	df = split(df, f)
+	for (t in conds[-1]) {
+		df = lapply(df, function(x, t) {
+							split(x, f=as.factor(unlist(x[[t]], use.names=FALSE)))
+						},
+						t=t) %>%
+			unlist(recursive=F)
 	}
-	#print(l)
-	return(l)
+	return(df)
 }
 
-#' @param parsedFilesDF A list of lists. Each sublist has a 'data', 'id' and
-#' 'task' element. sublists are constructed of data from files with the same
-#' subject and task.
-#' @param parserYaml A yaml file specifying a mapping between tasks and
-#' modalities to a file parsing function
-#' @description applies the correct parsing function to each group of files.
-#' parsers must return a list of event data frames, where each phase has its
-#' own df
-#' @return A list of lists, where the first level is by task and subject, and
-#' the second level by mode. bottom elements are ep.subject.task objects
-parseFiles <- function(parsedFilesDF, parserYaml) {
-
-	cats = c("task", "id")
-	groupedFiles = split_list(parsedFilesDF, cats)
-	print("grouped files")
-	print(groupedFiles)
-
-	# groupedFiles: list by task and id. modes are still mixed together
-	# i want: list of object models by task and id, where each element is a
-	# list of modality specific obj models
-		# for each entry in groupedFiles
-			# split by mode
-			# feed paths in each above split into the correct parser
-			# feed output of parser into correct obj model constructor
-			# create list of each modality's obj model
-
-	objModels = lapply(groupedFiles, splitByMode)
-
-	return(objModels)
-}
-
+#' @param df a data frame
+#' @description applies the chooseParserAndModel function to each split of df by modality
+#' @return a list whose elements are named by modality and are the corresponding object model
 splitByMode = function(df) {
-	print("in split by mode")
-	print(df)
+	# automatically named by mode due to split function
 	lapply(split_list(df, c("mode")), chooseParserAndModel) %>%
 	return()
 }
 
+#' @param df a data frame
+#' @description applies the correct parsing function to the paths of the same
+#' SUBJECT, TASK and MODALITY listed in df and passes the output to the object
+#' model constructor. relies on the parsing functions being named like:
+#' "read_(Behav|Eye|Physio)_(VendingMachine|Neighborhood|VanillaBaseline|SortingMushrooms|Kingdom)"
+#' @return an object model
 chooseParserAndModel = function(df) {
-	print("in chooseParserAndModel")
-	print(df)
 	task.i = unlist(unique(df$task))
 	mode.i = unlist(unique(df$mode))
 	id.i  = unlist(unique(df$id))
@@ -125,16 +155,20 @@ chooseParserAndModel = function(df) {
 	return()
 }
 
-#' @param wrapedParse a list with 3 named elements: data, task, id
-#' @description uses information from wrapedParse to feed object model initializer
+#' @param wrapedParse a list with 3 named elements: data, task, id and mode
+#' @description uses information from wrapedParse to feed object model
+#' constructor for the given phase. relies on object model constructors being
+#' named like: "ep_subject_task.(Behav|Eye|Physio)"
 #' @return an object model
 createObjModel = function(wrapedParse) {
-	print("creating obj model")
-	print(str(wrapedParse))
+	# looks up correct object model constructor for this modality
 	objModelFunc = get(paste("ep_subject_task.", wrapedParse$mode, sep=""))
+
+	# applies the constructor
 	newObj = objModelFunc(phases=names(wrapedParse$data),
 						  subject_id=wrapedParse$id, task=wrapedParse$task)
 
+	# converts each data frame to a tibble
 	for (name in names(wrapedParse$data)) {
 		newObj$data[[name]] = tibble(wrapedParse$data[[name]])
 	}
@@ -142,14 +176,15 @@ createObjModel = function(wrapedParse) {
 	return(newObj)
 }
 
-# TODO: construct regex dynamically from names specified in file. shouldnt have to manually rewrite regex if names change
 parseFilename <- function(filename) {
+	# TODO: construct regex dynamically from names specified in file. shouldnt have to manually rewrite regex if names change
+	# TODO: this pattern will have to be loaded from a config file somewhere
 	pattern <- "(?<id>\\d{1,4})(\\_(?<initials>\\w{2}))?\\_(?<task>[A-Za-z]+)\\_((?<phase>(Pavlov|Instr|Trans))\\_)?(?<mode>(Eye|Behav|Physio))\\.(?<suf>.*)"
-	#print(regexpr(pattern, filename, perl=TRUE))
 	fields <- re.capture(pattern, basename(filename))
 	return(fields$names)
 }
 
+# apparently named regex in R is tricky
 # from: https://www.r-bloggers.com/regex-named-capture-in-r/
 re.capture = function(pattern, string, ...) {
   rex = list(src=string,

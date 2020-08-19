@@ -1,6 +1,6 @@
 #' @importFrom dplyr mutate if_else case_when rename select
 #' @export
-read_behav_neighborhood <- function(file) {
+read_Behav_Neighborhood <- function(file) {
   fields <- c("face", #face stimulus
               "pgo", #probability of outcome(-1 or +1 point), see next column
               "outcome", #1, 0 or -1. get point, no point, or lose point for SIS.
@@ -57,7 +57,7 @@ read_behav_neighborhood <- function(file) {
 #'   )
 #' }
 #' @export
-read_behav_vending <- function(files=NULL) {
+read_Behav_VendingMachine <- function(files=NULL) {
   # Validates Parameters
   assert_atomic_vector(files)
   assert_character(files)

@@ -1,16 +1,23 @@
+read_Physio_VendingMachine = function(files) {
+	assert_set_equal(names(files), c(NULL))
+	
+	return(list(default=list("filler for vending machine physio data")))
+}
 
 #' @title Read physiology from neighborhood task
 #' @param physio_data This can be an \code{ep.physio} object, in which case we just window it to the relevant
 #'   time periods. Or, this
-read_physio_neighborhood <- function(physio_data) {
+read_Physio_Neighborhood <- function(physio_data) {
 
-  if (!inherits(physio_data, "ep.physio")) {
-    #An acq filename was passed in. Import it
-    assert_file_exists(physio_data)
-
-  }
+  #if (!inherits(physio_data, "ep.physio")) {
+    ##An acq filename was passed in. Import it
+    #assert_file_exists(physio_data)
+#
+  #}
 
   #Now nar
+
+	return(list(default=list("filler for neighborhood physio data")))
 
 }
 
