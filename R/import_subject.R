@@ -34,7 +34,8 @@ import_subject <- function(files, parsers) {
 #example
 # abc <- import_subject(
 #   files=c(behav="~/Box/s3_behav_data/neighborhood/behavior/data/raw/003_Cavanaugh_2019_Sep_30_1720.csv",
-#           eye="~/Box/s3_behav_data/neighborhood/eye/data/raw/N_003_TS.edf"),
-#   parsers=list(behav=read_behav_neighborhood, eye=read_eye_neighborhood)
+#           eye="~/Box/s3_behav_data/neighborhood/eye/data/raw/N_003_TS.edf",
+#           physio="~/Box/s3_behav_data/neighborhood/eye/data/raw/003_physio.acq"),
+#   parsers=list(behav=read_behav_neighborhood, eye=read_eye_neighborhood, physio=read_physio_neighborhood)
 # )
 

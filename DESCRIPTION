@@ -21,7 +21,8 @@ Imports:
   methods,
   utils,
   checkmate,
-  Rcpp (>= 1.0.1)
+  Rcpp (>= 1.0.1),
+  rsleep
 LinkingTo:
   Rcpp,
   RcppArmadillo

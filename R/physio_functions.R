@@ -122,6 +122,14 @@ augment_ttl_details <- function(ep.physio, lazy_ttl=2, zero_code=0, code_labels_
   return(ep.physio)
 }
 
+#' Function to splice an ep.physio object to a section demarcated by start and end codes.
+#' @param ep.physio An ep.physio object that already contains the $ttl_codes field
+#' @param start_code The onset TTL code that should be used for the start of splicing
+#' @param end_code The offset TTL code that should be used to end the splice
+#' @param other_codes an optional vector of other codes that are allowed between
+#'   \code{start_code} and \code{end_code}.
+#' @param strict a boolean indicating whether the function should throw an error if TTL codes
+#'   are found within the splice that are not contained in \code{other_codes}
 #' @importFrom checkmate assert_integerish assert_logical
 #' @importFrom dplyr filter arrange
 #' @importFrom magrittr `%>%`
