@@ -179,6 +179,9 @@ boxcar_smooth <- function(sig, window_size=10) {
 #' @param type The type of annotation to be imported from WFDB. Defaults to "N" for normal beats in ECG
 #' @param wfdb_path location of the WFDB bin directory on this computer.
 #'
+#' @importFrom data.table fifelse fread
+#' @importFrom checkmate assert_file_exists assert_logical assert_integerish assert_directory_exists assert_file_exists
+#' @importFrom lubridate hms
 #' @author Michael Hallquist
 #' @export
 import_wfdb_annotations <- function(wfdb_file, annotator, elapsed=TRUE, channel=0L, type="N",

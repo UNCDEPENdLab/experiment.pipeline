@@ -43,3 +43,6 @@ resolve each beat by eye. Higher values (e.g., 10) may be useful for a summary v
 \description{
 A convenience function for plotting ECG time series and QRS detection
 }
+\author{
+Michael Hallquist
+}

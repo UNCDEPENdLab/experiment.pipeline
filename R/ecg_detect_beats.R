@@ -40,7 +40,7 @@
 #'   $ecg_df is a data.table containing the time and ecg trace of the raw data.
 #'
 #' @examples
-#'  \dontrun {
+#'  \dontrun{
 #'    ecg_data <- ecg_detect_beats("ecg_027_full.txt.bz2", detectors="gqrs")
 #'  }
 #' @importFrom RHRV CreateHRVData SetVerbose LoadBeatVector BuildNIHR InterpolateNIHR
@@ -56,7 +56,7 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
                              correct_peaks=TRUE, wfdb_path="/usr/local/wfdb/bin",
                              signal_mult=1000,
                              adc_gain=1000) {
-  
+
   checkmate::assert_number(freq)
   checkmate::assert_subset(detectors, c("wqrs", "gqrs", "ecgpuwave", "sqrs"))
   checkmate::assert_logical(correct_peaks)
@@ -64,33 +64,33 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
   checkmate::assert_file_exists(file.path(wfdb_path, "wrsamp"), access="rx") #does the wrsamp command exist?
   checkmate::assert_integerish(signal_mult)
   checkmate::assert_integerish(adc_gain)
-  
+
   if (is.character(ecg_trace)) {
     ecg_raw <- data.table::fread(ecg_trace)
   } else if (is.vector(ecg_trace)) {
     ecg_raw <- data.table(ecg=ecg_trace) #function was passed in data
   } else { error("Cannot interpret input ecg_trace.") }
-  
+
   ecg_raw[, "time" := seq(0, by=1/freq, length.out=nrow(ecg_raw))]
   setnames(ecg_raw, c("ecg", "time"))
-  
+
   #not needed for anything
   #ecg_raw[, "rownum" := 1:nrow(ecg_raw)]
   #setnames(ecg_raw, c("ecg", "time", "rownum"))
-  
+
   setkey(ecg_raw, time) #index on time (speeds up merge with event data, if needed)
-  
+
   #wfdb likes to output files to a local target
   curwd <- getwd()
   setwd(file.path(dirname(wfdb_out_file)))
   on.exit(setwd(curwd))
-  
+
   #import original data into wfdb format
   #always write to file before passing to wrsamp (in case it was vector or compressed file to begin with)
   data.table::fwrite(ecg_raw[,"ecg"], file = file.path(dirname(wfdb_out_file), "ecg_input.txt"))
   system(paste0(wfdb_path, "/wrsamp -F ", freq, " -G ", adc_gain, " -x ", signal_mult,
                 " -i ", file.path(dirname(wfdb_out_file), "ecg_input.txt"), " -o ", basename(wfdb_out_file)))
-  
+
   #small helper subfunction to get a data.table from RHRV containing HR and RR for a set of beat times
   get_hrv_dt <- function(beat_times, freq) {
     hrv.data = CreateHRVData()
@@ -100,32 +100,32 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
     hrv.data = InterpolateNIHR(hrv.data, freqhr = freq)
     beat_times <- data.table(hrv.data$Beat)
     setnames(beat_times, c("time", "niHR", "RR"))
-    
+
     #get time codes on exact grid that matches raw data so that any merge with raw data works
     beat_times[, "time":=plyr::round_any(time, 1/freq)]
     setkey(beat_times, time)
     return(beat_times)
   }
-  
+
   #helper subfunction to import WFDB beats, compute HR and RR and index by time
   #Note: RHRV::LoadBeatWFDB doesn't do well with sqrs annotations -- times are wrong!
   #Thus, move away from its import function in favor of our internal import_wfdb_annotations
   import_wfdb_beats <- function(wfdb_out_file, annotator, freq) {
     ann_df <- import_wfdb_annotations(wfdb_out_file, annotator)
-    
+
     beat_times <- get_hrv_dt(ann_df$time_sec, freq)
-    
+
     #add beat positions (in terms of ECG trace vector) back to data.table
     beat_times[, "pos" := ann_df$pos]
     beat_times[, "annotator" := annotator] #tag source of annotation
-    
+
     return(beat_times)
   }
-  
+
   #helper subfunction to add peak-shifted columns
   add_peak_correction <- function(ecg_df, beat_list, annotator, freq)  {
     #message("Correcting peaks post-gqrs detection")
-    
+
     #Use bpm = 200 and allow a maximum shift of the half the period
     # of a typical IBI. So, at 1000 Hz, we'd say an IBI of 300ms is typical for
     # BPM=200. Thus, the shift can be up to 150 samples.
@@ -134,30 +134,30 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
                                    search_radius = shift_allowance,
                                    smooth_window_size=shift_allowance,
                                    peak_dir='up')
-    
+
     beat_times <- get_hrv_dt(ecg_df$time[shifted_peaks], freq = freq)
     beat_times[, "pos" := shifted_peaks]
     beat_times[, "annotator" := paste0(annotator, "_shift")] #tag source of annotation
-    
+
     beat_list[[paste0(annotator, "_shift")]] <- beat_times
-    
+
     return(beat_list)
   }
-  
+
   beat_list <- list() #for storing beat annotations
-  
+
   #loop over WFDB detectors
   for (dd in detectors) {
     checkmate::assert_file_exists(file.path(wfdb_path, dd))
     system(paste0(wfdb_path, "/", dd, " -r ", basename(wfdb_out_file), " ", flags[[dd]]))
-    
+
     #sqrs always forces the extension to .qrs, which generates collisions and confusion
     if (dd=="sqrs") { file.rename(paste0(wfdb_out_file, ".qrs"), paste0(wfdb_out_file, ".sqrs")) }
     beat_list[[dd]] <- import_wfdb_beats(wfdb_out_file, dd, freq)
-    
+
     #add shifted peaks to beat events list
     if (isTRUE(correct_peaks)) { beat_list <- add_peak_correction(ecg_raw, beat_list, dd, freq) }
   }
-  
+
   return(list(beat_data=do.call(rbind, beat_list), ecg_df = ecg_raw))
 }

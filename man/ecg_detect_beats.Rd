@@ -72,7 +72,7 @@ Note that WFDB is very picky about the analog-digital converter gain settings an
   QRS complexes through the correct_peaks function (ported from wfdb-python).
 }
 \examples{
- \dontrun {
+ \dontrun{
    ecg_data <- ecg_detect_beats("ecg_027_full.txt.bz2", detectors="gqrs")
  }
 }

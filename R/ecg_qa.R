@@ -13,9 +13,13 @@
 #' @param height the height of the PDF output in inches. Default: 10
 #' @param out_pdf the filename (and optionally, path) of the PDF to be created
 #'
-#' @importFrom checkmate assert_data_frame
-#' @importFrom dplyr filter mutate select
-#' @importFrom ggplot2 ggplot stat_smooth geom_line geom_point facet_wrap
+#' @importFrom checkmate assert_data_frame assert_subset
+#' @importFrom dplyr filter mutate select left_join
+#' @importFrom ggplot2 ggplot stat_smooth geom_line geom_point facet_wrap theme aes theme_bw xlab element_blank
+#' @importFrom splines ns
+#'
+#' @author Michael Hallquist
+#' @export
 ecg_stripplot <- function(ecg_df, beat_df=NULL, freq=1000, max_rows=5,
                           spike_annotations=c("gqrs"),
                           ibi_splines=c("gqrs"),
@@ -24,12 +28,13 @@ ecg_stripplot <- function(ecg_df, beat_df=NULL, freq=1000, max_rows=5,
 
   checkmate::assert_data_frame(ecg_df)
   checkmate::assert_data_frame(beat_df, null.ok = TRUE)
-  checkmate::assert_subset(spike_annotations, c("gqrs", "sqrs", "wqrs", "ecgpuwave"))
-  checkmate::assert_subset(ibi_splines, c("gqrs", "sqrs", "wqrs", "ecgpuwave"))
+  checkmate::assert_subset(spike_annotations, c("gqrs", "sqrs", "wqrs", "ecgpuwave", "gqrs_shift", "sqrs_shift", "wqrs_shift", "ecgpuwave_shift"))
+  checkmate::assert_subset(ibi_splines, c("gqrs", "sqrs", "wqrs", "ecgpuwave", "gqrs_shift", "sqrs_shift", "wqrs_shift", "ecgpuwave_shift"))
   checkmate::assert_data_frame(ecg_df)
 
-  ecg_df[, "time" := time/60] #convert to minutes for ease of display
-  beat_df[, "time" := time/60]
+  #N.B. data.table adds columns by reference, so changing time to minutes here would lead to storage in the original object!
+  #ecg_df[, "time" := time/60] #convert to minutes for ease of display
+  #beat_df[, "time" := time/60]
 
   #can realistically fit about 20 seconds of data in a 10 inch space (2 seconds/inch)
   per_strip <- freq*spi*width
@@ -71,7 +76,8 @@ ecg_stripplot <- function(ecg_df, beat_df=NULL, freq=1000, max_rows=5,
     sub_ecg <- ecg_df %>% filter(page==pp)
     sub_spike <- spike_df %>% filter(page==pp)
     sub_ibi <- ibi_df %>% filter(page==pp)
-    g <- ggplot(sub_ecg, aes(x=time, y=ecg)) + theme_bw(base_size=13) +
+    #convert time to minutes in display
+    g <- ggplot(sub_ecg, aes(x=time/60, y=ecg)) + theme_bw(base_size=13) +
       geom_line() +
       geom_point(data=sub_spike, mapping=aes(y=ecg, color=annotator)) +
       stat_smooth(data=sub_ibi, mapping=aes(y=RR, color=NULL), color="blue", method=lm, formula=y ~ splines::ns(x, 8)) +
