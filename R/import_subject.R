@@ -1,4 +1,4 @@
-#' function for reading multimodal data files for a subject according to a set of parsing routines
+#' function for reading multimodal data files for a subject according to a set of parsing routines. This function is in working shape.
 #' @importFrom checkmate assert_subset assert_file_exists
 #' @export
 import_subject <- function(files, parsers) {
