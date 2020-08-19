@@ -1,0 +1,41 @@
+# notes on experiment yaml qa approach
+
+* seems like this is the right approach. definitely dont want to be doing this
+  in the code
+  	* that is, dont want a giant function that checks all of this and youd have
+	  to read the code to figure out what checks are valid
+* how will data values from the experiment be mapped to names in the yaml? for
+  example, currently blocks are called by name in the yaml "go_t_w", but in the
+  data frames its just a number.j
+	* basically, might need translation between higher level concepts in yaml
+	  to values given in data
+	* and/or standardize names and data formats when wrangling data so that the
+	  relationship is easier
+* what are the kinds of things we need to check for? looks like:
+	* parameters matching a value
+	* parameters matching a value and in a specific sequence in time
+	* might need to perform calculation using multiple values and then verify
+	  the output
+* seems like will need a function that reads this yaml and can figure out what
+  kind of verification needs to be performed. it could then call the correct
+  general purpose function to achieve that.
+  	* some checks will likely be need to run on multiple tasks/modalities
+	* yaml will serve as a human-friendly way of DESCRIBING what the goal is,
+	  not how to get there. thus, whatever parses this yaml will have to be very
+	  smart to figure out HOW to go about checking those things.
+	* e.g. the function reads the file for neighborhood, sees that there is a
+	  sequence of events specified, and so calls a general function, with
+	  arguments derived from the yaml and the specific data, to check that
+	  specific thing only. the parser notes the output and moves on to the next
+	  type of check.
+
+Biggest challenges:
+
+1) designing the language that will be used in the yaml to be applicable to all
+tasks at once
+2) designing the language that will be used in the yaml (and that in the data)
+so that it can consistently and predictably be mapped to the language used in the
+real data
+3) accommodating the different types of checks that must be done
+4) designing the language such that it is conducive to being read by a parsing
+function (as mentioned above)

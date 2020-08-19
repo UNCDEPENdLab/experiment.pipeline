@@ -4,7 +4,7 @@ library(dplyr)
 # [ ] parsers
 #		[ ] behav
 #			[X] vending machine
-#			[ ] neighborhood (needs to accept multiple files per phase)
+#			[.] neighborhood (needs to accept multiple files per phase: csv and log)
 #			[ ] sorting mushrooms
 #			[ ] kindgom
 #			[ ] vanilla baseline
@@ -47,10 +47,10 @@ library(dplyr)
 # The format, content and distribution of the raw data varies across tasks,
 # modalites and phases, requiring specialized code to be written. However, the
 # data can then be shaped into similar formats (data frames) that can be
-# processed agnostically and the specialzed parsers can be applied in general
+# processed agnostically and the specialzed parsers can be applied in a general
 # way. As long as each parser fits into this interface, the code in this file
-# will be able to wrangle the raw data into a form consistent across tasks and
-# modalites.
+# will be able to wrangle the raw data into a form that is consistent across
+# tasks and modalites.
 
 # Using wrangle.R
 # wrangle.R implements a framework for parsing raw s3 files. It uses the
@@ -59,14 +59,14 @@ library(dplyr)
 # TASK, SUBJECT and MODALITY. The name of main function is 'wrangle'
 # INPUT: 'paths'
 # 	'paths' is a character vector whose elements are paths to raw s3 files.
-# 		additionally, the basenames of the files should conform to the s3 renaming
+# 		additionally, the names of the files should conform to the s3 renaming
 # 		template discussed on slite and implemented in data_automation/s3_data_org
 # 		(see https://depend.slite.com/app/channels/rnpb9CPuyb/notes/dzkTTQKWKC)
 # OUTPUT:
 #	a list whose elements are named by TASK and SUBJECT and are themselves
 #	lists whose elements are named by MODALITY and are the object models for
 #	that TASK, SUBJECT and MODALITY.
-#		e.g. output might look like: list(VendingMachine.70=list(Behav=behav_obj_model, Eye=eye_obj_model), Neighborhood.83=list(Physio=physio <- physio_obj_model))
+#		e.g. output might look like: list(VendingMachine.70=list(Behav=behav_obj_model, Eye=eye_obj_model), Neighborhood.83=list(Physio=physio_obj_model))
 # USAGE:
 # see wrangle-demo.R and the 'wrangle' function in wrangle.R
 
