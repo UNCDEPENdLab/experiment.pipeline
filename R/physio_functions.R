@@ -299,23 +299,32 @@ biopac_hdf5_to_dataframe <- function(hdf5file, upsample_to_max=TRUE, ttl_to_dec=
 #' @param downsample_factor An integer factor used to subsample data
 #' @param digital_channels Column names or positions containing digital channels, These will be downsampled using the
 #'   \code{downsample_digital_timeseries} function to use the within-chunk mode, rather than blind subsampling.
-#' @param method How to downsample the signal. The default is \code{"decimate"}, which calls \code{signal::decimate}.
-#'   This applies a low-pass filter before downsampling to avoid aliasing. The alternative is \code{"subsample"}, which
-#'   simply takes every nth sample from the original time series.
+#' @param method How to downsample the signal. The default is \code{"subsample"}, which
+#'   simply takes every nth sample from the original time series. The alternative is \code{"decimate"}, which calls \code{signal::decimate}.
+#'   This applies a low-pass filter before downsampling to avoid aliasing. At the moment, there are big ringing artifacts at the beginning...
 #' @importFrom signal decimate
-#' @importFrom checkmate assert_count assert_data_frame
+#' @importFrom checkmate assert_count assert_data_frame assert_data_table
 #' @export
-downsample_physio <- function(ep.physio, downsample_factor=1, digital_channels=c("ttl_code", "ttl_onset", "Digital.*"), method="decimate") {
+downsample_physio <- function(ep.physio, downsample_factor=1, digital_channels=c("ttl_code", "ttl_onset", "Digital.*"), method="subsample") {
   stopifnot(inherits(ep.physio, "ep.physio"))
   if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
   if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
   assert_data_table(ep.physio$raw) #for now, we are using data.table objects, so DT syntax applies
   assert_count(downsample_factor)
 
-  phys_cols <- names(ep.physio$raw)
+  orig_cols <- names(ep.physio$raw)
+  t_cols <- "time_s" #hard code single time column for now
+  phys_cols <- orig_cols[!orig_cols %in% t_cols]
 
   d_cols <- grep(paste0("^(", paste(digital_channels, collapse="|"), ")$"), phys_cols, perl=TRUE, value=TRUE)
   a_cols <- phys_cols[!phys_cols %in% d_cols]
+
+  #time downsampling should use the subsampling approach since it is not a periodic signal
+  if (length(t_cols) > 0L) {
+    time_data <- lapply(ep.physio$raw[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
+  } else {
+    time_data <- NULL
+  }
 
   if (length(a_cols) > 0L) {
     if (method=="decimate") {
@@ -331,7 +340,11 @@ downsample_physio <- function(ep.physio, downsample_factor=1, digital_channels=c
           } else { stop("NAs present in signal that are not at the end. Cannot decimate.") }
         }
 
-        return(decimate(col, q=downsample_factor))
+        padl <- plyr::round_any(.1*length(col), downsample_factor)
+        cpad <- c(rep(0, padl), col, rep(0, padl))
+        nz_dsamp <- padl/downsample_factor
+        dsig <- decimate(cpad, q=downsample_factor, ftype="iir")
+        return(dsig[(nz_dsamp+1):(length(dsig)-nz_dsamp)])
       })
     } else if (method=="subsample") {
       analog_data <- lapply(ep.physio$raw[, ..a_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
@@ -356,7 +369,9 @@ downsample_physio <- function(ep.physio, downsample_factor=1, digital_channels=c
     ret <- ret[,phys_cols] #revert to original column order
   }
 
-  ep.physio$raw <- ret
+  if (!is.null(time_data)) { ret <- cbind(ret, as.data.frame(time_data)) }
+
+  ep.physio$raw <- ret[,orig_cols] #put back in original column order
   attr(ret, "sampling_rate") <- attr(ret, "sampling_rate")/downsample_factor
   attr(ret, "max_channel_rate") <- attr(ret, "max_channel_rate")/downsample_factor
   ep.physio$sampling_rate <- ep.physio$sampling_rate/downsample_factor
