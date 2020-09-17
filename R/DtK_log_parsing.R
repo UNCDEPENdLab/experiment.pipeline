@@ -1,5 +1,6 @@
 #Overall code for parsing long files
 pacman::p_load(tidyverse, dplyr)
+setwd("~/github_repos/experiment.pipeline/inst/examples/")
 #code for reading log files. handy!
 log_raw <- read.csv(file = "070_dtk_behav.log", sep = "\n", header = F)
 
