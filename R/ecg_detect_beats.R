@@ -110,9 +110,9 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
   #helper subfunction to import WFDB beats, compute HR and RR and index by time
   #Note: RHRV::LoadBeatWFDB doesn't do well with sqrs annotations -- times are wrong!
   #Thus, move away from its import function in favor of our internal import_wfdb_annotations
-  import_wfdb_beats <- function(wfdb_out_file, annotator, freq, wfdb_path = "/usr/local/wfdb/bin") {
+  import_wfdb_beats <- function(wfdb_out_file, annotator, freq, wfdb_bin = "/usr/local/wfdb/bin") {
     ann_df <- import_wfdb_annotations(wfdb_out_file, annotator, elapsed = TRUE, channel = 0L,
-                                      type = "N", wfdb_path = wfdb_path)
+                                      type = "N", wfdb_path = wfdb_bin)
 
     beat_times <- get_hrv_dt(ann_df$time_sec, freq)
 
@@ -154,7 +154,7 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
 
     #sqrs always forces the extension to .qrs, which generates collisions and confusion
     if (dd=="sqrs") { file.rename(paste0(wfdb_out_file, ".qrs"), paste0(wfdb_out_file, ".sqrs")) }
-    beat_list[[dd]] <- import_wfdb_beats(wfdb_out_file, dd, freq)
+    beat_list[[dd]] <- import_wfdb_beats(wfdb_out_file, dd, freq, wfdb_bin = wfdb_path)
 
     #add shifted peaks to beat events list
     if (isTRUE(correct_peaks)) { beat_list <- add_peak_correction(ecg_raw, beat_list, dd, freq) }
