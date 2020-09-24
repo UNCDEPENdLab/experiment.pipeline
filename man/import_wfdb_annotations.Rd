@@ -10,7 +10,7 @@ import_wfdb_annotations(
   elapsed = TRUE,
   channel = 0L,
   type = "N",
-  wfdb_path = "~/Downloads/wfdb/bin"
+  wfdb_path = "/usr/local/wfdb/bin"
 )
 }
 \arguments{

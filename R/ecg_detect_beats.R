@@ -110,8 +110,8 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
   #helper subfunction to import WFDB beats, compute HR and RR and index by time
   #Note: RHRV::LoadBeatWFDB doesn't do well with sqrs annotations -- times are wrong!
   #Thus, move away from its import function in favor of our internal import_wfdb_annotations
-  import_wfdb_beats <- function(wfdb_out_file, annotator, freq) {
-    ann_df <- import_wfdb_annotations(wfdb_out_file, annotator)
+  import_wfdb_beats <- function(wfdb_out_file, annotator, freq, wfdb_path = "/usr/local/wfdb/bin") {
+    ann_df <- import_wfdb_annotations(wfdb_out_file, annotator, wfdb_path)
 
     beat_times <- get_hrv_dt(ann_df$time_sec, freq)
 
