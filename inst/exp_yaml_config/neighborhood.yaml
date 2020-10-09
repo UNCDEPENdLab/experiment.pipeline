@@ -17,6 +17,12 @@ definitions:
     rt: rt
     start_time: #key_resp_10.started
     end_time: #key_resp_10.stopped
+  eye: &eye
+    pre_event_msg: [TEST, TEST]
+    sampling_rate: 1000
+    expect_duration: [1800, 900]
+    return_raw: FALSE
+
 
 blocks:
   go_t_w:

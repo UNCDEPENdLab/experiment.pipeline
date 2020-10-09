@@ -1,4 +1,5 @@
 #' @importFrom yaml read_yaml
+#' @importFrom checkmate assert_int assert_count assert_subset
 validate_exp_yaml <- function(yaml_file) {
   stopifnot(file.exists(yaml_file))
   yy <- read_yaml(yaml_file)
@@ -6,8 +7,14 @@ validate_exp_yaml <- function(yaml_file) {
   reqnames <- c("experiment_name", "variable_mapping",
                 "runs", "blocks")
 
-  optnames <- c("definitions") #aliases for reused snippets/nodes
+  #NH: is this required to validate the yaml?
+  optnames <- c("definitions") #aliases for reused snippets/nodes.
 
+
+  # stopifnot(all(reqnames %in% names(yy)))
+  assert_subset(reqnames, names(yy))
+
+  return(yy)
 }
 
 #' @importFrom checkmate assert_int assert_count assert_subset
