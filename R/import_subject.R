@@ -19,7 +19,7 @@ import_subject <- function(files, parsers) {
   } else { physio <- NULL }
 
   if ("eye" %in% fnames) {
-    eye <- read_eye(files["eye"], parser=parsers$eye)
+    eye <- read_process_eye(files["eye"], parser=parsers$eye)
   } else { eye <- NULL }
 
   ret <- list(behav=behav, physio=physio, eye=eye)

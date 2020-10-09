@@ -11,19 +11,20 @@ init_eyelog <- function(log_dir = NULL){
   }
   
   
-  fname <- sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\2", file)
+  fname <- sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\2", file) # strips ascending path and replaces file extension
   log_fname <- file.path(log_dir, paste0(fname, ".elog"))
   
   if(file.exists(log_fname)){
     message("elog already exists for: ", fname, ". Overwriting.") #can entertain other options, but this is fine for now.
   }
   
-  sink(log_fname) # strips ascending path and replaces file extension
+  sink(log_fname) # open sink
+  
   cat("---------------------------------------------\n---------------------------------------------\nexperiment.pipeline eye QA log for: ", file, 
       "\n\nProcessed on ")
   cat(as.character(Sys.time()))
       cat("\n---------------------------------------------\n---------------------------------------------\nsessionInfo:\n\n")
-  sessionInfo()
+  print(sessionInfo())
   cat("\n---------------------------------------------\n---------------------------------------------\n")
       
   # cat("hello")
