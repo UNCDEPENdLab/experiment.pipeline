@@ -1,0 +1,34 @@
+---
+title: 'experiment.pipeline: preprocessing and QA of eye gaze and pupilometry data'
+author: "Nate Hall"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#specify that chunks should run relative to the root working directory (may need to be changed per user)
+knitr::opts_knit$set(root.dir = "/Users/natehall/github_repos/experiment.pipeline/")
+
+#load necessary packages
+# pacman::p_load()
+
+# for local work, this script just fires up an environment that allows me to work with the functions I need. Once we package-ize it, will need to change this.
+source("/Users/natehall/github_repos/experiment.pipeline/NH_local/setup_envi.R")
+
+# x <- read_process_eye(file = edf_path) #
+```
+
+## Overview
+
+
+Here, I review how to use the experiment.pipeline package to preprocess and perform quality assurance for eyetracking data collected from an arbitrary computerized task. 
+
+
+

@@ -95,6 +95,9 @@ read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRU
 
   names(res) <- basename(edf_files)
 
+  #tag with initial .edf name
+  for(i in 1:length(res)){res[[i]][["edf_file"]] <- edf_files[i]}
+
   if(gen_log){cat("\n--------------\n1. Read EDF file: COMPLETE\n--------------\n")}
   return(res)
 }
