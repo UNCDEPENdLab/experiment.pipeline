@@ -2,8 +2,10 @@
 pacman::p_load(dplyr, tidyverse)
 setwd("~/github_repos/experiment.pipeline/inst/examples/")
 
+#import raw file
 file <- (file.path("~/github_repos/experiment.pipeline/inst/examples/070_neighborhood_behav.csv"))
 
+#Everything we pull from the raw neighborhood file and what it means. 
 fields <- c("face", #face stimulus
             "pgo", #probability of outcome(-1 or +1 point), see next column
             "outcome", #1, 0 or -1. get point, no point, or lose point for SIS.
@@ -16,7 +18,7 @@ fields <- c("face", #face stimulus
             "participant", #participant Number
             "participant.initials" #participant initials
 )
-  
+  #transformations to make data more readable
   dat <- read.csv(file, stringsAsFactors = FALSE)
   dat <- dat[,fields] #retain only columns of interest
   dat <- dat %>% mutate_if(is.character, list(~if_else(. == "", NA_character_, .))) %>% #convert "" to NA
@@ -37,3 +39,8 @@ fields <- c("face", #face stimulus
     ) %>%
     mutate(block_trial=block_trial + 1, block = block + 1, trial=1:n()) %>% #use 1-based indexing
     select(-participant, -participant.initials)
+  write.csv(dat, "neighborhood_clean_output_ex.csv")
+  
+  
+  
+  

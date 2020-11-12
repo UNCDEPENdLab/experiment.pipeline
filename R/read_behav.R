@@ -20,10 +20,10 @@ read_Behav_Neighborhood <- function(file) {
     mutate(id=if_else(is.na(participant), NA_character_, paste(participant, participant.initials, sep="_"))) %>%
     mutate(condition=case_when(
       is.na(pgo) ~ NA_character_,
-      pgo == 0.3 && outcome == 1 ~ "no_t_w",
-      pgo == 0.3 && outcome == -1 ~ "no_t_a",
-      pgo == 0.7 && outcome == 1 ~ "go_t_w",
-      pgo == 0.7 && outcome == -1 ~ "go_t_a",
+      pgo == 0.3 & outcome == 1 ~ "no_t_w", ##SP changed from "&&" to "&", as only first argument was evaluated with "&&"
+      pgo == 0.3 & outcome == -1 ~ "no_t_a",
+      pgo == 0.7 & outcome == 1 ~ "go_t_w",
+      pgo == 0.7 & outcome == -1 ~ "go_t_a",
       TRUE ~ NA_character_
     )) %>%
     rename(
