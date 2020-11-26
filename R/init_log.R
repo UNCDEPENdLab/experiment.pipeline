@@ -36,23 +36,48 @@ init_eyelog <- function(log_dir = NULL){
 #' @param code chunk of code for tryCatch to evaluate. As in the TC documentation, multiple lines of code should be contained within {}.
 #' @param describe_text string containing standardized information about the significance of the code being run. This will print as COMPLETE for successful execution and ERROR and WARNING is something undesirable happens, while allowing code execution to continue below.
 
-tryCatch.ep <- function(code, describe_text = NULL, handle = "all"){
-  if(handle == "all"){
+tryCatch.ep <- function(code, describe_text = NULL){
     o <- tryCatch(code,
                   error = function(c) {
-                    cat(describe_text, " ERROR (", gsub("\\n", "", as.character(c)),")\n", sep = "")
+                    if(is.null(describe_text)){
+                      cat("ERROR (", gsub("Error: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")
+                    } else {cat(describe_text, " ERROR (", gsub("Error: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")}
                     return(c)},
                   warning = function(c) {
-                    cat(describe_text, " WARNING (", gsub("\\n", "", as.character(c)),")\n", sep = "")
-                    return(c)},
-                  message = function(c) cat(describe_text, " MESSAGE (", gsub("\\n", "", as.character(c)),")\n", sep = "")
+                    if(is.null(describe_text)){
+                      cat("WARNING (", gsub("simpleWarning: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")
+                    } else {cat(describe_text, " WARNING (", gsub("simpleWarning: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")}
+                    return(c)}
     )
-  } else {
-    message("selective condition handling not yet available")
-  }
   # print complete if no error or warning
   if(!any(c("error", "warning") %in% class(o))) {cat(describe_text, " COMPLETE\n", sep = "")}
 }
 
 
+#' Open log chunks (to be run at the top of every sub-function of read_process_eye)
+#' simply standardizes for later crawler scripts to recognize
 
+log_chunk_header <- function(text){cat("--------------\n",text,"\n--------------\n")}
+
+
+#' simple increment function for steps: https://stackoverflow.com/questions/5738831/r-plus-equals-and-plus-plus-equivalent-from-c-c-java-etc
+# inc <- function(x){eval.parent(substitute(x <- x + 1))}
+
+
+
+
+
+#' generate warning message version of stopifnot
+#'
+#' @importFrom R.utils egsub
+#'
+
+# this was a fail. for some reason the trycatch exports an error.
+
+# warnifnot <- function(cond){
+#   if(!cond){warning(cond, "is not TRUE")}
+# }
+#
+# warnifnot <- stopifnot
+# body(warnifnot) <- do.call(substitute, list(body(stopifnot),
+#                                             list(stop = quote(warning))))

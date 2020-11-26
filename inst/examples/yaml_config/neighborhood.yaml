@@ -18,9 +18,27 @@ definitions:
     start_time: #key_resp_10.started
     end_time: #key_resp_10.stopped
   eye: &eye
-    pre_event_msg: [TEST, TEST]
-    sampling_rate: 1000
-    expect_duration: [1800, 900]
+    meta_check:
+      meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+      meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+      recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
+    inherit_btw_tr: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+      calibration_check:
+        cal: ['!CAL CALIBRATION HV9']
+        val: ['!CAL VALIDATION HV9']
+      move_to_within:
+        msgs: []
+        put_after: '!MODE RECORD CR 1000 2 1 R'
+    pre_event:
+      msg: ['!MODE RECORD CR 1000 2 1 R', 'TRIALID', 'SYNCTIME']
+      ordered: TRUE
+    event_info:
+      msg: ['TRIALID']
+      extaction_method: regex_single # can think about adding others later.
+      msg_regex: ['(?<=\\s).+'] # everything following first white space.
+      split_by: ['_']
+      msg_parts: ['block', 'run', 'trial']
+    aoi_indicator: ['!V IAREA RECTANGLE']
     return_raw: FALSE
     coincident_msg: blocked #placeholder for now for messages that occur at the exact same timestamp in the .edf file. blocked will essentially expand the number of rows in the raw df by creating multiple rows with the same ET measurements but different messages. If it beceomes relevant later, can include options for "spread" which keeps the same number of rows and spreads messages at the same timestamp into multiple columns or "shift" which could just shift multiple messages "down" to the few milleseconds after the timestamp of coincident messages. Though as of 10/29/20 I don't see any reason why we'd need to code around simple "blocked structure".
 

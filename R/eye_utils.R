@@ -6,12 +6,12 @@
 #' @param eye raw eye object pulled directly from the .edf file using read_edf(). Must be a list with expected_edf_fields c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file").
 
 
-initialize_eye <- function(eye) {
+initialize_eye <- function(eye, config) {#, c. = 2) {
 
   if (class(eye) != "list") { stop("Something went wrong: initialize_eye requires list input.") }
 
-  cat("2. Initialize eye object:\n")
-
+  # cat("\n--------------\n", c., " Initialize eye object:\n--------------\n")
+  cat("\n--------------\n2. Initialize eye object:\n--------------\n")
 
   ### 2.1 make sure all names are present
   expected_edf_fields <- c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file")
@@ -67,12 +67,12 @@ initialize_eye <- function(eye) {
     #store the gaps for later
     mm <- eye$raw$time[which(!all_time %in% eye$raw$time)] # missing measurements
 
-    ###### deprecated: too cumbersome to store all missing measurements, and have instead elected to summarise in a compact DT below. Given how these missing blocks are generated, we know that they are consecutive blocks of missing data.
-    # eout$metadata[["missing_measurements"]][["raw_blocks"]] <- mms <- split(mm, cumsum(c(1, diff(mm) != 1))) #contains all timestamps in between session start and end time that are missing blocked by consecutive timestamps. will likely want to dump before returning output
-    # eout$metadata[["missing_measurements"]][["cumulative_byblock"]] <- lapply(mms, function(x) {length(x)}) %>% do.call(c,.) %>% as.numeric() # vector containing the length of each consecutive missing timestamp block.
+    ###### deprecated: too cumbersome to store all missing measurements, and have instead elected to summarise in a compact DT below. Given how these missing events are generated, we know that they are consecutive events of missing data.
+    # eout$metadata[["missing_measurements"]][["raw_events"]] <- mms <- split(mm, cumsum(c(1, diff(mm) != 1))) #contains all timestamps in between session start and end time that are missing blocked by consecutive timestamps. will likely want to dump before returning output
+    # eout$metadata[["missing_measurements"]][["cumulative_byevent"]] <- lapply(mms, function(x) {length(x)}) %>% do.call(c,.) %>% as.numeric() # vector containing the length of each consecutive missing timestamp block.
     # eout$metadata[["missing_measurements"]][["summary"]] <-  data.table("start" = lapply(mms, function(x) {min(x)}) %>% do.call(c,.),
     #                                                                     "end" = lapply(mms, function(x) {max(x)}) %>% do.call(c,.),
-    #                                                                     # "length" = eout$metadata[["missing_measurements"]][["cumulative_byblock"]])
+    #                                                                     # "length" = eout$metadata[["missing_measurements"]][["cumulative_byevent"]])
 
     # much simplified.
     mms <- split(mm, cumsum(c(1, diff(mm) != 1))) # rather than exporting as metadata (too cumbersome) store for input into summary DT.
@@ -88,14 +88,14 @@ initialize_eye <- function(eye) {
 
   cat("- 2.4 Document missing measurements: COMPLETE\n")
 
-  ### 5. check for continuity in blocks
+  ### 5. check for continuity in events
 
-  if(all(unique(eout$raw$block) == seq(min(unique(eout$raw$block)), max(unique(eout$raw$block)),1))){
+  if(all(unique(eout$raw$eventn) == seq(min(unique(eout$raw$eventn)), max(unique(eout$raw$eventn)),1))){
     # confirmed that unique sorts in order they appear in the array. E.g. y <- c(1,1,3,3,2,3); unique(y) : [1] 1 3 2.
-    # will therefor check for skipped blocks and the ordering.
-    cat("- 2.5 Confirm raw block continuity: COMPLETE\n")
+    # will therefor check for skipped events and the ordering.
+    cat("- 2.5 Confirm raw event continuity: COMPLETE\n")
   } else{
-    cat("- 2.5 Confirm raw block continuity: FAIL\n")
+    cat("- 2.5 Confirm raw event continuity: FAIL\n")
   }
 
 
@@ -121,25 +121,25 @@ initialize_eye <- function(eye) {
     gev <- eout$gaze[[i]]
 
 
-    ## 6.i.1. block sequencing same between gaze metric and raw data? If not, this would mean that not a single gaze event happened during this trial, which could be a bit fishy.
+    ## 6.i.1. event sequencing same between gaze metric and raw data? If not, this would mean that not a single gaze event happened during this trial, which could be a bit fishy.
 
-    #may want to play with this later, but for now flag in list of issues that for these blocks there was no evidence of a certain event (not necessarily a sign of bad data)
-    issues[[i]][["block_without_ev"]] <- which(!unique(eout$raw$block) %in% unique(gev$block))
+    #may want to play with this later, but for now flag in list of issues that for these events there was no evidence of a certain event (not necessarily a sign of bad data)
+    issues[[i]][["event_without_ev"]] <- which(!unique(eout$raw$eventn) %in% unique(gev$eventn))
 
-    if(!all(unique(gev$block) == unique(eout$raw$block))){
-      cat("--- ",step, " Search for blocks without events: WARNING (",length(issues[[i]][["block_without_ev"]]),")\n", sep = "")
+    if(!all(unique(gev$eventn) == unique(eout$raw$eventn))){
+      cat("--- ",step, " Search for events without gaze events: WARNING (",length(issues[[i]][["event_without_ev"]]),")\n", sep = "")
     } else{
-      cat("---",step, " Search for blocks without events: COMPLETE\n")
+      cat("---",step, " Search for events without gaze events: COMPLETE\n")
     }
 
 
-    ## 6.i.2. Two nit-picky checks: confirm timestamps are equal and present in raw and gev data. confirm same block numbering between raw and gev data. Then tag raw data with event number.
+    ## 6.i.2. Two nit-picky checks: confirm timestamps are equal and present in raw and gev data. confirm same event numbering between raw and gev data. Then tag raw data with event number.
     # This essentially checks that correspondence between raw and extracted gaze events are exactly as expected.
     # in an ideal world these all run without issue, though even very minuscule mismatches will get flagged here. If there becomes some consistency in mismatches, perhaps it's worth doing some investigating.
 
     step_26i2 <- paste0("2.6.", which(gevs == i), ".2")
 
-    counts_26i2 <- list()#  "etime_mismatch" , "block_mismatch")
+    counts_26i2 <- list()#  "etime_mismatch" , "event_mismatch")
     # since this loops over typically thousands of gaze events, this is the most computationally intensive part of the initialization script.
     for (j in 1:nrow(gev)) {
       # print(j)
@@ -155,10 +155,10 @@ initialize_eye <- function(eye) {
         counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
       }
 
-      #check 2: confirm same block numbering between raw and gev data.
-      if(!ev$block == unique(r$block)){
-        b_mismatch <- data.table("gev" = i, "gev_num" = j, "ev_block" = ev$block, "raw_num" = unique(r$block))
-        counts_26i2[["block_mismatch"]] <- rbind(counts_26i2[["block_mismatch"]], b_mismatch)
+      #check 2: confirm same event numbering between raw and gev data.
+      if(!ev$eventn == unique(r$eventn)){
+        b_mismatch <- data.table("gev" = i, "gev_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
+        counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
       }
 
       #tag raw data with event number
@@ -223,23 +223,23 @@ initialize_eye <- function(eye) {
   # N.B. however, if the user passes important information before turning the tracker on (as in the sorting mushrooms data), it will be important to allow for users to move messages in the interstitial spaces between recordings to the beginning of a trial/event. Later will include this in the YAML parsing framework.
   btw_tr <- eye$msg %>% anti_join(eout$raw, by = "time") %>% data.table()
   if(nrow(btw_tr) == 0){
-    cat("- 2.8.1 Between-trial message storage: COMPLETE (EMPTY)\n", sep = "")
+    cat("-- 2.8.1 Between-trial message storage: COMPLETE (EMPTY)\n", sep = "")
   } else{
     eout$metadata[["btw_tr_msg"]] <- btw_tr
-    cat("- 2.8.1 Between-trial message storage: COMPLETE (NON-EMPTY)\n", sep = "")
+    cat("-- 2.8.1 Between-trial message storage: COMPLETE (NON-EMPTY)\n", sep = "")
   }
 
   # 8.2 drop cr.info column
   cr <- unique(eout$raw$cr.info)
   if(length(cr) == 1 & cr == "..."){
     eout$raw <- eout$raw %>% select(-cr.info)
-    cat("- 2.8.2 Drop cr.info in raw data: COMPLETE\n", sep = "")
-  } else{ cat("- 2.8.2 Retain cr.info in raw data: COMPLETE (",paste0(cr, collapse = ","),")\n", sep = "")}
+    cat("-- 2.8.2 Drop cr.info in raw data: COMPLETE\n", sep = "")
+  } else{ cat("-- 2.8.2 Retain cr.info in raw data: COMPLETE (",paste0(cr, collapse = ","),")\n", sep = "")}
 
   # 8.3 merge messages to raw data.
   # N.B. the left_join means that between trial messages will not be copied over but rather are stored in metadata if between trial messages are of interest. Since there is no corresponding measurements of gaze/pupil in the raw data there is nowhere in the raw time series to place these relatively unhelpful messages.
   # N.B. Under the current set-up this operation will increase the number of rows if multiple messages are passed simultaneously. At a later point, one could change this format with the yaml config file under $definitions$eye$coincident_msg.
-  eout$raw <- eout$raw %>% left_join( dplyr::filter(eye$msg, !text %in% unique(btw_tr$text)), by = c("block", "time")) %>% rename(`et.msg` = `text`)  %>% mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
+  eout$raw <- eout$raw %>% left_join( dplyr::filter(eye$msg, !text %in% unique(btw_tr$text)), by = c("eventn", "time")) %>% rename(`et.msg` = `text`)  %>% mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
 
   # important to back-translate to original messages due to the use of left_join.
   umsg <- unique(eout$raw$et.msg)[which(unique(eout$raw$et.msg) != ".")] #unique messages in the final output.
@@ -254,7 +254,7 @@ initialize_eye <- function(eye) {
   }
 
   if(all(umsg %in% umsg_orig)){
-    cat("- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: COMPLETE\n", sep = "")
+    cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: COMPLETE\n", sep = "")
   } else{ # if any mismatch between what is contained in raw data and original message structure, print error and do some digging.
 
     miss_msgs <- umsg[!umsg %in% umsg_orig]
@@ -268,9 +268,10 @@ initialize_eye <- function(eye) {
     }
 
 
-    cat("- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: WARNING: errors in this step have not been fully vetted. \n", sep = "")
+    cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: WARNING: errors in this step have not been fully vetted. \n", sep = "")
   }
 
+  cat("\n")
   return(eout)
 }
 

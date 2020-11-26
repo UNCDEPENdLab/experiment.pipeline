@@ -4,7 +4,7 @@ validate_exp_yaml <- function(yaml_file) {
   stopifnot(file.exists(yaml_file))
   yy <- read_yaml(yaml_file)
 
-  reqnames <- c("experiment_name", "variable_mapping",
+  reqnames <- c("task", "variable_mapping",
                 "runs", "blocks")
 
   #NH: is this required to validate the yaml?

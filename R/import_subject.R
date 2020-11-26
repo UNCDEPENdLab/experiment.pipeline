@@ -4,7 +4,7 @@
 import_subject <- function(files, yaml_file) {
   sapply(files, assert_file_exists)
   if (length(files) == 0L) { stop("No files passed to import_subject") }
-  stopifnot(identical(sort(names(files)), sort(names(parsers)))) #every file needs a parser
+  # stopifnot(identical(sort(names(files)), sort(names(parsers)))) #every file needs a parser
 
   fnames <- names(files)
   valid_fields <- c("behav", "physio", "eye")
