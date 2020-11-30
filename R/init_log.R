@@ -50,7 +50,7 @@ tryCatch.ep <- function(code, describe_text = NULL){
                     return(c)}
     )
   # print complete if no error or warning
-  if(!any(c("error", "warning") %in% class(o))) {cat(describe_text, " COMPLETE\n", sep = "")}
+  if(!any(c("error", "warning") %in% class(o)) & !is.null(describe_text)) {cat(describe_text, " COMPLETE\n", sep = "")}
 }
 
 

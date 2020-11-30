@@ -41,7 +41,7 @@ parse_config_eye <- function(eye, config, header = "3. Parse config file for ep.
 
   # tictoc::tic(); beepr::beep()
   ### 3.5 Event sequences check
-  dt <- "- 3.4 Check event message sequence and ordering:"
+  dt <- "- 3.5 Check event message sequence and ordering:"
   if("msg_seq" %in% names(c.e$event_info)){
     eye <- check_msg_seq(c.e, eye, dt)
   } else{
@@ -314,7 +314,7 @@ check_msg_seq <- function(c.e, eye, dt){
   }
   #' split off function for cleaning up standard config setup.
   #'
-  tidy_eye_config <- function(config, dt){
+  tidy_eye_config <- function(config, dt = NULL){
     tryCatch.ep({
       c.e <- config[["definitions"]][["eye"]]
       if("msg_seq" %in% names(c.e$event_info)){
