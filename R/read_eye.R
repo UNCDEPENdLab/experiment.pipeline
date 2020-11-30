@@ -23,7 +23,6 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
   ### 2. Perform basic initial validation checks and compute new variables
   ######
   eye <- eye_init <- initialize_eye(eye)#, c. = stepC); inc(stepC)
-  tictoc::toc(); beepr::beep()
 
   #########
   ### 3. Parse eye messages from experiment.pipeline config file, specified in task.yaml.
@@ -35,20 +34,28 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
   }
 
 
-  ### 4. Split pupil into separate structure
+  #########
+  ### 4. Tag data with AOI coords and
+  #########
+  if (!"aoi" %in% names(config$definitions$eye)) {
+    cat("No AOI configurations supplied. Skipping")
+  } else{
+    eye <- eye_aoi <- add_aois(eye, config, use_raw = FALSE)#; inc(stepC)
+  }
+  tictoc::toc(); beepr::beep()
 
-
+  #########
   ### 5. Gaze QA
+  #########
 
-
+  #########
   ### 6. Pupil QA
+  #########
 
-
+  #########
   ### 7. Diagnostic Plots
+  #########
 
-
-
-  #other general post-processing for eye data
   return(eye)
 }
 
