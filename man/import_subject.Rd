@@ -2,10 +2,10 @@
 % Please edit documentation in R/import_subject.R
 \name{import_subject}
 \alias{import_subject}
-\title{function for reading multimodal data files for a subject according to a set of parsing routines}
+\title{function for reading multimodal data files for a subject according to a set of parsing routines. This function is in working shape.}
 \usage{
 import_subject(files, parsers)
 }
 \description{
-function for reading multimodal data files for a subject according to a set of parsing routines
+function for reading multimodal data files for a subject according to a set of parsing routines. This function is in working shape.
 }

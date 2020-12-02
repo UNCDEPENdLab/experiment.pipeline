@@ -19,7 +19,7 @@ checkAndLog = function(validator, objects, mode=NA, header=NA, footer=NA) {
 	}
 }
 
-#' @importFrom dplyr
+#' @importFrom dplyr filter
 #' @description an example validator
 checkRtKey = function(df) {
 	checks = filter(df, is.na(rt) & (key_pressed!="None" | !is.na(key_pressed) ))
