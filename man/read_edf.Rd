@@ -9,6 +9,7 @@ read_edf(
   asc_output_dir = NULL,
   keep_asc = TRUE,
   gzip_asc = TRUE,
+  samples = TRUE,
   ...
 )
 }

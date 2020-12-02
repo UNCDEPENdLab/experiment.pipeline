@@ -1,0 +1,17 @@
+
+EDF2ASC: EyeLink EDF file -> ASCII (text) file translator
+EDF2ASC version 4.0 MacOS X Jul  7 2014 
+(c)1995-2013 by SR Research, last modified Jul  7 2014
+
+processing file 070_neighborhood_eye.edf 
+===================Preamble of file 070_neighborhood_eye.edf===================
+| DATE: Tue Feb 18 15:07:24 2020                                              |
+| TYPE: EDF_FILE BINARY EVENT SAMPLE TAGGED                                   |
+| VERSION: EYELINK II 1                                                       |
+| SOURCE: EYELINK CL                                                          |
+| EYELINK II CL v4.594 Jul  6 2012                                            |
+| CAMERA: EyeLink CL Version 1.4 Sensor=BHA                                   |
+| SERIAL NUMBER: CL1-89122                                                    |
+| CAMERA_CONFIG: 89122140.SCD                                                 |
+===============================================================================
+

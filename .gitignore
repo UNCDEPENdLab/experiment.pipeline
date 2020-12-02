@@ -42,3 +42,6 @@ vignettes/*.pdf
 # C/C++ outputs
 *.so
 *.o
+
+# Nate local scratch space
+NH_local

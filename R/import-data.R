@@ -70,7 +70,8 @@ find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') 
 ##'       "~/Box/s3_behav_data/neighborhood/eye/data/raw/N_004_az.edf"), keep_asc=FALSE, parse_all=TRUE)
 ##' }
 ##' @export
-read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRUE, ...) {
+read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRUE, samples=TRUE, ...) {#c. = 1, ...) {
+
   stopifnot(all(file.exists(edf_files))) #require that files are present
   if (!keep_asc) {
     asc_output_dir <- tempdir() #output ascs to temporary directory
@@ -83,15 +84,32 @@ read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRU
 
   #pass additional arguments such as parse_all to read.asc
   res <- lapply(asc_files, function(fname) {
-    eye_data <- read.asc(fname=fname, ...)
+
+    eye_data <- pkgcond::suppress_warnings(read.asc(fname=fname, samples=samples,...), pattern = "had status 255", fixed =TRUE)
     eye_data$asc_file <- fname
     class(eye_data) <-
-    return(eye_data)
+      return(eye_data)
   })
 
   if (!keep_asc) { file.remove(asc_files) } #cleanup asc files if requested
 
   names(res) <- basename(edf_files)
+
+  # tag with initial .edf name
+  for(i in 1:length(res)){res[[i]][["edf_file"]] <- edf_files[i]}
+
+  # to avoid confusion, re-label .edf "block" column with the more useful title "event" to fit with ep conventions.
+  res <- lapply(res, function(x){ # over subjects
+    lapply(x, function(y){ # over elements in ep.subject
+      if("block" %in% names(y)){
+        y <- y %>% rename(`eventn` = `block`)
+      }
+      return(y)
+    })
+  })
+
+
+  cat("\n--------------\n1. Read EDF file: COMPLETE\n--------------\n")
   return(res)
 }
 
