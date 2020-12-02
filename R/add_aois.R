@@ -1,6 +1,6 @@
 
 
-add_aois <- function(eye, config, header = "4. Tag data with AOIs:", use_raw = FALSE){
+add_aois <- function(eye, config, header = "5. Tag data with AOIs:", use_raw = FALSE){
 
   log_chunk_header(header)
 
@@ -8,17 +8,17 @@ add_aois <- function(eye, config, header = "4. Tag data with AOIs:", use_raw = F
   tryCatch.ep({
     c.aoi <- tidy_eye_config(config)[["aoi"]]
     stopifnot(all(c("indicator", "extraction_method", "extract_coords", "extract_labs", "split_coords") %in% names(c.aoi)))
-  }, describe_text = "- 4.1 Extract AOI config options:")
+  }, describe_text = "- 5.1 Extract AOI config options:")
 
   ### 4.2 pull AOI information into new columns by eventn
   aoi_ref <- gen_aoi_ref(eye,
                          c.aoi,
-                         "- 4.2 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
+                         "- 5.2 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
 
   ### 4.3 tag gaze data with AOI_look field
   eye <- gen_aoi_look(eye,
                       aoi_ref,
-                      "- 4.3 Generate AOI fields in data:")
+                      "- 5.3 Generate AOI fields in data:")
 
 
 
@@ -29,7 +29,7 @@ add_aois <- function(eye, config, header = "4. Tag data with AOIs:", use_raw = F
 gen_aoi_look <- function(eye, aoi_ref, dt = NULL, use_raw = FALSE){
   cat(dt, "\n")
     if(use_raw){ ## leaving in as an option, though I think it is probably more important to gauge which AOIs were the focus during saccades (to/from) and fixations.
-      dt <- "-- 4.3.1 Appending AOIs to raw data"
+      dt <- "-- 5.3.1 Appending AOIs to raw data"
       tryCatch.ep({
         eye$raw$aoi_look <- "."
 
@@ -51,7 +51,7 @@ gen_aoi_look <- function(eye, aoi_ref, dt = NULL, use_raw = FALSE){
       eye$metadata$aoi_ref <- aoi_ref
     } else{
       # saccades
-      dt <- "-- 4.3.1 Appending AOIs to saccade data"
+      dt <- "-- 5.3.1 Appending AOIs to saccade data"
       tryCatch.ep({eye$gaze$sacc$aoi_start <- "."
       eye$gaze$sacc$aoi_end <- "."
       for (i in 1:nrow(eye$gaze$sacc)) {
@@ -82,7 +82,7 @@ gen_aoi_look <- function(eye, aoi_ref, dt = NULL, use_raw = FALSE){
 
 
       # fixations
-      dt <- "-- 4.3.1 Appending AOIs to fixation data"
+      dt <- "-- 5.3.1 Appending AOIs to fixation data"
       tryCatch.ep({eye$gaze$fix$aoi_look <- "."
       for (i in 1:nrow(eye$gaze$fix)) {
         # print(i)
