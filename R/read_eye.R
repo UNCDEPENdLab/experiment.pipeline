@@ -39,12 +39,13 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
     toc()
   }
 
+
   ######
-  ### 4 "Tidy timeseries". Incl downsampling raw and pupil data, making sure trial, block_trial tags, etc look right and appends indicator columns from specified messages (e.g. start_recording/ stimulus_on).
+  ### 4 "Tidy timeseries". Incl downsampling and interpolation of raw gaze and pupil data. Makes sure trial, block_trial tags, etc look right and appends indicator columns from specified messages (e.g. start_recording/ stimulus_on).
   ######
 
-  tic("4. timeseries time")
-  eye <- eye_cleantime <- tidy_eye_timeseries(eye, config, use_raw = FALSE)#; inc(stepC)
+  tic("4. downsamp/interp time")
+  eye <- eye_cleantime <- tidy_eye_timeseries(eye, config)#; inc(stepC)
   toc()
 
   #########

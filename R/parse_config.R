@@ -337,11 +337,11 @@ tidy_eye_config <- function(config, dt = NULL){
 
 
 # config <- validate_exp_yaml(yaml_file = yaml_file) #testing neighborhood
-eye <- eye_init
-
-config <- validate_exp_yaml(yaml_file = "~/github_repos/experiment.pipeline/inst/examples/yaml_config/shrooms.yaml")
-dt <- "- 3.1 Extract eye definitions for processing:"
-c.e <- tidy_eye_config(config, dt)
+# eye <- eye_init
+#
+# config <- validate_exp_yaml(yaml_file = "~/github_repos/experiment.pipeline/inst/examples/yaml_config/shrooms.yaml")
+# dt <- "- 3.1 Extract eye definitions for processing:"
+# c.e <- tidy_eye_config(config, dt)
 
 # eye_msg_report(eye)
 #######

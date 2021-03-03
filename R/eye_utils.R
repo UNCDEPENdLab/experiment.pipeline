@@ -289,7 +289,7 @@ tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:")
   ### 4.1 Extract timeseries configuration options
   tryCatch.ep({
     c.ts <- tidy_eye_config(config)[["ts"]]
-    stopifnot(all(c("downsample_bins") %in% names(c.ts)))
+    # stopifnot(all(c("downsample_bins") %in% names(c.ts))) # if omitted, run defaults.
   }, describe_text = "- 4.1 Extract TS config options:")
 
   ### 4.2 Reset timestamps to 0 at first recording
@@ -318,29 +318,40 @@ tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:")
   }, describe_text = "- 4.2 Shift timestamps to 0 start point:")
 
 
-  ### 4.3 Downsample gaze
-  dt <- "- 4.3 Downsample Gaze:\n"
-  if("gaze" %in% names(c.ts$downsample_bins)){
-    # eye <-  handle_between_trial(c.e, eye, dt)
+  ### 4.3 Downsample eye data
+  dt <- "- 4.3 Downsample Gaze:"
+  if("downsample_factor" %in% names(c.ts)){
+    if("downsample_method" %in% names(c.ts)){
+      tryCatch.ep({
+        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor, method = c.ts$downsample_method)
+      },describe_text = dt)
+    } else { # fallback on default method ("mean")
+      tryCatch.ep({
+        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor)
+      },describe_text = dt)
+    }
+  } else{ # fallback on downsampling rate of 50 (at 1000Hz this would downsample to 20Hz, or 1 measurement every .05 sec), and "mean" method
     tryCatch.ep({
-      ds <- downsample_gaze(eye$raw, bin.length = c.ts$downsample_bins$gaze, aggvars = c("eventn", "event", "block", "block_trial"))
-
-
+      eye <- downsample_eye(eye)
     },describe_text = dt)
-
-    down
-
-  } else{
-    cat(paste0(dt, " SKIP\n"))
   }
 
+
+  return(eye)
 }
 
 
 
 
 
-downsample_eye <- function(eye, downsample_factor=1, method = "subsample_avg"){#digital_channels=c("ttl_code", "ttl_onset", "Digital.*"), method="subsample") {
+downsample_eye <- function(eye, downsample_factor=50,
+                           digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
+                           analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
+                           char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
+                           # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
+                           method = "mean" # mean, subsamp
+){
+
   stopifnot(inherits(eye, "ep.eye"))
   # if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
   if (is.null(eye$raw)) { stop("Cannot find $raw element in ep.eye object") }
@@ -348,142 +359,143 @@ downsample_eye <- function(eye, downsample_factor=1, method = "subsample_avg"){#
   assert_count(downsample_factor)
 
   orig_cols <- names(eye$raw)
-  t_cols <- "time" #hard code single time column for now
-  eye_cols <- orig_cols[!orig_cols %in% t_cols]
+  t_cols <- "time" #hard code single time column for now, dont see how this would need to be different.
+  d_cols <- digital_channels
+  a_cols <- analog_channels
+  c_cols <- char_channels
 
-  # d_cols <- grep(paste0("^(", paste(digital_channels, collapse="|"), ")$"), phys_cols, perl=TRUE, value=TRUE)
-  # a_cols <- phys_cols[!phys_cols %in% d_cols]
-  a_cols <- eye_cols
 
-  #time downsampling should use the subsampling approach since it is not a periodic signal
   if (length(t_cols) > 0L) {
     time_data <- lapply(eye$raw[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
+    time_data <- data.frame(time_data$time) %>% rename(`time` = `time_data.time`) %>% data.table() # sometimes dplyr is just easier...
   } else {
     time_data <- NULL
   }
 
-  if (length(a_cols) > 0L) {
-    if (method=="decimate") {
-      analog_data <- lapply(eye$raw[, ..a_cols], function(col) {
-        #calculation channels that involve filtering can have trailing zeros that throw off decimate
-        nas = which(is.na(col))
-        if (length(nas) > 0L) {
-          if (all(diff(nas) == 1) && max(nas) == length(col)) { #only works for trailing NAs
-            message("Replacing ", length(nas), " trailing NAs with zeros to permit decimation. Check trailing elements if they are important.")
-            col[nas] <- 0 #replace trailing NAs with zero
-            #col <- col[1:(nas[1]-1)] #all elements before the first NA
-            #navec <- rep(NA_real_, ceiling(length(col)/downsample_factor))
-          } else { stop("NAs present in signal that are not at the end. Cannot decimate.") }
-        }
+  ## adapted function originally written by MNH to downsample using subsampling (k every n sample) or mean (average within-bin)
+  subsample_dt <- function(dt, keys=key(dt), dfac=1L, method="subsamp") {
 
-        padl <- plyr::round_any(.1*length(col), downsample_factor)
-        cpad <- c(rep(0, padl), col, rep(0, padl))
-        nz_dsamp <- padl/downsample_factor
-        dsig <- decimate(cpad, q=downsample_factor, ftype="iir")
-        return(dsig[(nz_dsamp+1):(length(dsig)-nz_dsamp)])
-      })
-    } else if (method=="subsample") {
-      analog_data <- lapply(eye$raw[, ..a_cols], function(col) {col[seq(1, length(col), downsample_factor)] })
-    } else if(method == "subsample_avg"){
-      # analog_data <- lapply(eye$raw[, ..a_cols], function(col) {
-      #
-        subsamps <- data.frame(start = seq(1, nrow(eye$raw), downsample_factor)) %>%
-          mutate(end = start + (downsample_factor -1)) %>% rownames_to_column() %>% rename(`time_ds` = `rowname`) %>% mutate(time_ds = as.numeric((time_ds)))
+    checkmate::assert_data_table(dt)
+    if (method=="subsamp") {
+      dt <- data.table(do.call(cbind,lapply(dt, function(col) {col[seq(1, length(col), dfac)] })))
+    } else if (method=="mean") {
+      downsamp <- function(col, dfac=1L) { col[seq(1, length(col), dfac)] }
 
-        # object.size(eye)/1000000
-        downsamps_raw <- list()
-        # library(tictoc)
-        tic()
-        for(ds in subsamps$time_ds){
-          downsamps_raw[[ds]] <- ss <- eye$raw[subsamps[which(subsamps$time_ds == ds),"start"]:subsamps[which(subsamps$time_ds == ds),"end"],]
-        }
-        toc()
-        analog_data <- lapply(subsamps[1:10,"time_ds"], function(tds) {
+      dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N), by=keys]
+      dt <- dt[, lapply(.SD, mean), by=c(keys, "chunk")] #compute mean of every k samples
+      dt[, chunk := NULL]
+      # dt[, time := time - (dfac-1)/2]
+    }
+    return(dt)
+  }
 
-        })
+  downsample_chars <- function(dt){
+      # dt <- eye$raw[, ..c_cols]
+      dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N)]#, by=keys]
+      setkeyv(dt, "chunk")
+      dt <- dt[, lapply(.SD, function(x) paste(unique(x), collapse = " | ")), by = chunk]
+      dt[, et.msg := gsub(" | .", "", et.msg, fixed = TRUE)]
+      dt[, et.msg := gsub(". | ", "", et.msg, fixed = TRUE)]
+      dt[, chunk := NULL]
+  }
 
-
-        x <- sampstarts %>% group_by(time_ds) %>% dplyr::mutate(time_ds_mean = median(col[start:end], na.rm = TRUE))
-        print(x, n =500)
-        # })
-    } else { stop("unknown downsampling method: ", method) }
+  #### Downsample analog data
+  if (length(at_cols) > 0L) {
+    if(method == "mean"){
+      setkeyv(eye$raw, c("eventn", "time", "block_trial"))
+    }
+    analog_data <- subsample_dt(eye$raw[,..a_cols], dfac = downsample_factor, method = method)
   } else {
+    message("unknown downsampling method: ", method)
     analog_data <- NULL
   }
 
-  # if (length(d_cols) > 0L) {
-  #   #could support subsampling here -- doesn't seem like a great idea, though
-  #   digital_data <- lapply(eye$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, TRUE) })
-  # } else {
-  #   digital_data <- NULL
-  # }
+  #### Downsample digital data
+  if (length(d_cols) > 0L) {
+    #could support subsampling here -- doesn't seem like a great idea, though
+    digital_data <- data.table(do.call(cbind,lapply(eye$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
+  } else {
+    digital_data <- NULL
+  }
+
+  #### Downsample character data
+  if(length(c_cols > 0L)){
+    char_data <- downsample_chars(eye$raw[,..c_cols])
+  }
 
   if (is.null(analog_data)) {
     ret <- digital_data
   } else if (is.null(digital_data)) {
     ret <- analog_data
   } else {
-    ret <- cbind(as.data.frame(analog_data), as.data.frame(digital_data))
-    ret <- ret[,phys_cols] #revert to original column order
+    stopifnot(nrow(analog_data) == nrow(digital_data)) # if this is violated, cbinding these will almost certainly be flawed.
+    ret <- cbind(as.data.frame(digital_data), as.data.frame(analog_data))
+    ret <- cbind(digital_data, analog_data)
   }
 
-  if (!is.null(time_data)) { ret <- cbind(ret, as.data.frame(time_data)) }
+  if (!is.null(char_data)) {
+    stopifnot(nrow(ret) == nrow(char_data))
+    ret <- cbind(ret, char_data) }
 
-  eye$raw <- ret[,orig_cols] #put back in original column order
-  attr(ret, "sampling_rate") <- attr(ret, "sampling_rate")/downsample_factor
-  attr(ret, "max_channel_rate") <- attr(ret, "max_channel_rate")/downsample_factor
-  eye$sampling_rate <- eye$sampling_rate/downsample_factor
-  eye$max_channel_rate <- eye$max_channel_rate/downsample_factor
 
-  #downsample onsets in $ttl_codes
-  if (!is.null(eye$ttl_codes)) {
-    eye$ttl_codes$onset <- floor(eye$ttl_codes$onset/downsample_factor) #round toward earlier samples
-    eye$ttl_codes$offset <- floor(eye$ttl_codes$offset/downsample_factor) #round toward earlier samples
-  }
+  if (!is.null(time_data)) {
+    stopifnot(nrow(ret) == nrow(time_data))
+    ret <- cbind(data.table(time_data), ret) }
+
+  ret <- ret[,..orig_cols] #revert to original column order
+
+
+  ### assign back into ep.eye structure.
+  eye$downsample <- ret
+
+
+  eye$metadata$downsample_factor <- downsample_factor
+  eye$metadata$downsample_method <- method
 
   return(eye)
-
 }
 
 
 
 
 
-downsample_gaze <- function(dataframe, bin.length = 50, timevar = "time", aggvars = c("subject", "condition", "target", "trial", "object", "timebins"), type="gaze"){
-  if(type=="gaze") {
-    browser()
-    downsample <- dataframe %>%
-      mutate(timebins = round(!!sym(timevar)/bin.length)*bin.length)
-    # if there are aggregation variables, then aggregate
-    if(length(aggvars > 0)){
-      downsample <- downsample %>%
-        dplyr::group_by_(.dots = aggvars) %>%
-        dplyr::summarize(acc = unique(acc), rt = unique(rt),
-                         Fix = mean(Fix) > 0.5) %>%
-        dplyr::ungroup()
-    }
-    return(downsample)
-  }
-  # if (type=="pupil") {
-  #   downsample <- dataframe %>%
-  #     mutate(timebins = round(!!sym(timevar)/bin.length)*bin.length)
-  #   # if there are aggregation variables, then aggregate
-  #   if(length(aggvars > 0)){
-  #     downsample <- downsample %>%
-  #       dplyr::group_by(.dots = aggvars) %>%
-  #       dplyr::summarize(aggbaseline=mean(baselinecorrectedp)) %>%
-  #       dplyr::ungroup()
-  #   }
-  # }
-  return(downsample)
-}
+### scratch below.
 
-
-
-
-
-
-
-
-
-
+# downsample_gaze <- function(dataframe, bin.length = 50, timevar = "time", aggvars = c("subject", "condition", "target", "trial", "object", "timebins"), type="gaze"){
+#   if(type=="gaze") {
+#     browser()
+#     downsample <- dataframe %>%
+#       mutate(timebins = round(!!sym(timevar)/bin.length)*bin.length)
+#     # if there are aggregation variables, then aggregate
+#     if(length(aggvars > 0)){
+#       downsample <- downsample %>%
+#         dplyr::group_by_(.dots = aggvars) %>%
+#         dplyr::summarize(acc = unique(acc), rt = unique(rt),
+#                          Fix = mean(Fix) > 0.5) %>%
+#         dplyr::ungroup()
+#     }
+#     return(downsample)
+#   }
+#   # if (type=="pupil") {
+#   #   downsample <- dataframe %>%
+#   #     mutate(timebins = round(!!sym(timevar)/bin.length)*bin.length)
+#   #   # if there are aggregation variables, then aggregate
+#   #   if(length(aggvars > 0)){
+#   #     downsample <- downsample %>%
+#   #       dplyr::group_by(.dots = aggvars) %>%
+#   #       dplyr::summarize(aggbaseline=mean(baselinecorrectedp)) %>%
+#   #       dplyr::ungroup()
+#   #   }
+#   # }
+#   return(downsample)
+# }
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#

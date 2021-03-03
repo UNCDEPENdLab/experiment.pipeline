@@ -55,9 +55,11 @@ find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') 
 ##' @description A convience wrapper around FDBeye file importer to
 ##'      import using UTF-8 format
 ##'
-##' @details Call edf2asc" R function to conver *edf files to *edf
+##' @details Call edf2asc" R function to convert *edf files to *asc
 ##'     files.  This wrapper  only allows a single path instead of multiple.
 ##'     Existing *asc files will be overwritten because we se the option to -y.
+##'     Before using this function, you must have the SR Research edf2asc downloaded from the SR Research Website (Downloads/Eyelink Developers Kit: https://www.sr-support.com/thread-13.html)
+##'     and included in PATH. See https://rdrr.io/github/davebraze/FDBeye/man/edf2asc.html for details on how to add the command-line utility to your PATH.
 ##'
 ##' @param edf.file Path to *edf file in UTF-8 format (UNIX/MAC pathing).  Paths will
 ##'     be converted relative to your OS.

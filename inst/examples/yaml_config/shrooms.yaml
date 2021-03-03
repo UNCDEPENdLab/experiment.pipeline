@@ -54,10 +54,14 @@ definitions: #shared key mapping for behavior across blocks
       extract_labs: ["[a-z]+$"]
       split_coords: " "
     ts:
-      downsample_bins:
-        gaze: 50
-        pupil: 50
-    return_raw: TRUE
+    # Currently, script downsamples gaze and pupil concurrently. Is it worth splitting up this functionality?
+      downsample_factor: 50
+        # gaze: 50
+        # pupil: 50
+      downsample_method: "mean"
+        # gaze: "mean"
+        # pupil: "mean"
+    return_raw: TRUE # If false, and data are downsampled, will remove the raw data from the ep object.
     # coincident_msg: 11/1/20: deprecated, but can revive if there is interest. blocked #placeholder for now for messages that occur at the exact same timestamp in the .edf file. blocked will essentially expand the number of rows in the raw df by creating multiple rows with the same ET measurements but different messages. If it beceomes relevant later, can include options for "spread" which keeps the same number of rows and spreads messages at the same timestamp into multiple columns or "shift" which could just shift multiple messages "down" to the few milleseconds after the timestamp of coincident messages. Though as of 10/29/20 I don"t see any reason why we"d need to code around simple "blocked structure".
   phys:
     parport_task_begin: 151
