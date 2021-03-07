@@ -32,7 +32,7 @@ preprocess_gaze <- function(eye, config, header = "4. Additional gaze-specific p
                           method = c.gaze[["downsample"]][["method"]])
   }
 
-
+  return(eye)
 }
 
 
