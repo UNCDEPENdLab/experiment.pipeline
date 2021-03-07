@@ -47,22 +47,14 @@ parse_config_eye <- function(eye, config, header = "3. Parse config file for ep.
     cat(paste0(dt, " SKIP\n"))
   }
 
-
-
-  # Include this as an outside step from config parsing, to allow for different options for how AOI inputs to become known to the eye object.
-
-  # ### 3.6 AOI parsing
-  # dt <- "- 3.4 Config-based AOI parsing:"
-  # if("msg_seq" %in% names(c.e$event_info)){
-  #   eye <- aoi_parse(c.e, eye, dt)
-  # } else{
-  #   cat(paste0(dt, " SKIP\n"))
-  # }
-
+  # ### 3.6 Collapse timestamps
+  # dt <- "- 3.6 Collapse timestamps with more than one row:"
+  # eye <- collapse_time(eye, dt)
 
   return(eye)
-
 }
+
+
 
 
 #' split off function for checking message sequence.
@@ -333,6 +325,9 @@ tidy_eye_config <- function(config, dt = NULL){
   }, describe_text = dt)
   return(c.e)
 }
+
+
+
 # Run these for testing: --------------------------------------------------
 
 

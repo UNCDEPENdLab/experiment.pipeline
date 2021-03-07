@@ -271,12 +271,171 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
     cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: WARNING: errors in this step have not been fully vetted. \n", sep = "")
   }
 
+  shift_eye_timing <- function(eye, dt){
+    tryCatch.ep({
+      t_start <- eye$raw$time[1]
+      eye$metadata$t_start <- t_start
+
+      # raw
+      eye$raw$time <- eye$raw$time - t_start
+      # saccades
+      eye$gaze$sacc$stime <- eye$gaze$sacc$stime - t_start
+      eye$gaze$sacc$etime <- eye$gaze$sacc$etime - t_start
+      # fixations
+      eye$gaze$fix$stime <- eye$gaze$fix$stime - t_start
+      eye$gaze$fix$etime <- eye$gaze$fix$etime - t_start
+      # blinks
+      eye$gaze$blink$stime <- eye$gaze$blink$stime - t_start
+      eye$gaze$blink$etime <- eye$gaze$blink$etime - t_start
+      #meta-data
+      eye$metadata$missing_measurements$start <- eye$metadata$missing_measurements$start - t_start
+      eye$metadata$missing_measurements$end <- eye$metadata$missing_measurements$end - t_start
+      eye$metadata$btw_tr_msg$time <- eye$metadata$btw_tr_msg$time - t_start
+
+
+
+    }, describe_text = dt)
+    return(eye)
+  }
+  ### 2.9 Shift timestamps to 0 start point
+  dt <- "- 2.9 Shift timestamps to 0 start point:"
+  eout <- shift_eye_timing(eout,dt)
+
+
+
   cat("\n")
   return(eout)
 }
 
 
 
+downsample_eye <- function(eye, downsample_factor=50,
+                           digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
+                           analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
+                           char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
+                           # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
+                           method = "mean" # mean, subsamp
+){
+  #### checks
+  stopifnot(inherits(eye, "ep.eye"))
+  # if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
+  if (is.null(eye$raw)) { stop("Cannot find $raw element in ep.eye object") }
+  assert_data_table(eye$raw) #for now, we are using data.table objects, so DT syntax applies
+  assert_count(downsample_factor)
+
+
+  t_cols <- "time" #hard code single time column for now, dont see how this would need to be different.
+  d_cols <- digital_channels
+  a_cols <- analog_channels
+  c_cols <- char_channels
+
+# browser()
+  #### Downsample time
+  tryCatch.ep({
+    if (length(t_cols) > 0L) {
+      time_data <- lapply(eye$raw[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
+      time_data <- data.frame(time_data$time) %>% rename(`time` = `time_data.time`) %>% data.table() # sometimes dplyr is just easier...
+    } else {
+      time_data <- NULL
+    }
+  }, describe_text = "-- 4.4.1 Downsample time column")
+
+  #### Downsample analog data
+  tryCatch.ep({
+  if (length(a_cols) > 0L) {
+    if(method == "mean"){
+      setkeyv(eye$raw, c("eventn", "time", "block_trial"))
+    }
+    analog_data <- subsample_dt(eye$raw[,..a_cols], dfac = downsample_factor, method = method)
+  } else {
+    message("unknown downsampling method: ", method)
+    analog_data <- NULL
+  }
+  }, describe_text = "-- 4.4.2 Downsample analogue channels")
+
+  #### Downsample digital data
+  tryCatch.ep({
+  if (length(d_cols) > 0L) {
+    #could support subsampling here -- doesn't seem like a great idea, though
+    digital_data <- data.table(do.call(cbind,lapply(eye$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
+  } else {
+    digital_data <- NULL
+  }
+}, describe_text = "-- 4.4.3 Downsample digital channels")
+
+  #### Downsample/combine character data
+  tryCatch.ep({
+  if(length(c_cols > 0L)){
+    char_data <- downsample_chars(eye$raw[,..c_cols], dfac = downsample_factor)
+  }
+  }, describe_text = "-- 4.4.4 Downsample/combine character channels")
+
+  if (is.null(analog_data)) {
+    ret <- digital_data
+  } else if (is.null(digital_data)) {
+    ret <- analog_data
+  } else {
+    stopifnot(nrow(analog_data) == nrow(digital_data)) # if this is violated, cbinding these will almost certainly be flawed.
+    ret <- cbind(as.data.frame(digital_data), as.data.frame(analog_data))
+    ret <- cbind(digital_data, analog_data)
+  }
+
+  if (!is.null(char_data)) {
+    stopifnot(nrow(ret) == nrow(char_data))
+    ret <- cbind(ret, char_data) }
+
+
+  if (!is.null(time_data)) {
+    stopifnot(nrow(ret) == nrow(time_data))
+    ret <- cbind(data.table(time_data), ret) }
+
+  # ret <- ret[,..orig_cols] #revert to original column order
+
+
+  ### assign back into ep.eye structure.
+  eye$gaze$preprocessed <- ret
+
+
+  eye$metadata$downsample_factor <- downsample_factor
+  eye$metadata$downsample_method <- method
+
+  return(eye)
+}
+
+
+## adapted function originally written by MNH to downsample using subsampling (keep every n sample) or mean (average within-bin)
+subsample_dt <- function(dt, keys=key(dt), dfac=1L, method="subsamp") {
+
+  checkmate::assert_data_table(dt)
+  if (method=="subsamp") {
+    dt <- data.table(do.call(cbind,lapply(dt, function(col) {col[seq(1, length(col), dfac)] })))
+  } else if (method=="mean") {
+    downsamp <- function(col, dfac=1L) { col[seq(1, length(col), dfac)] }
+
+    dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N), by=keys]
+    dt <- dt[, lapply(.SD, mean), by=c(keys, "chunk")] #compute mean of every k samples
+    dt[, chunk := NULL]
+    # dt[, time := time - (dfac-1)/2]
+  }
+  return(dt)
+}
+
+downsample_chars <- function(dt, dfac=1L){
+  # dt <- eye$raw[, ..c_cols]
+  dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N)]#, by=keys]
+  setkeyv(dt, "chunk")
+  dt <- dt[, lapply(.SD, function(x) paste(unique(x), collapse = " | ")), by = chunk]
+  dt[, et.msg := gsub(" | .", "", et.msg, fixed = TRUE)]
+  dt[, et.msg := gsub(". | ", "", et.msg, fixed = TRUE)]
+  dt[, chunk := NULL]
+}
+
+
+
+
+
+
+### scratch below.
 
 
 #' Tidy timeseries
@@ -319,6 +478,24 @@ tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:")
 
 
   ### 4.3 Downsample eye data
+  dt <- "- 4.3 Downsample Eye :"
+  if("downsample_factor" %in% names(c.ts)){
+    if("downsample_method" %in% names(c.ts)){
+      tryCatch.ep({
+        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor, method = c.ts$downsample_method)
+      },describe_text = dt)
+    } else { # fallback on default method ("mean")
+      tryCatch.ep({
+        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor)
+      },describe_text = dt)
+    }
+  } else{ # fallback on downsampling rate of 50 (at 1000Hz this would downsample to 20Hz, or 1 measurement every .05 sec), and "mean" method
+    tryCatch.ep({
+      eye <- downsample_eye(eye)
+    },describe_text = dt)
+  }
+
+  ### 4.4 Interpolation
   dt <- "- 4.3 Downsample Gaze:"
   if("downsample_factor" %in% names(c.ts)){
     if("downsample_method" %in% names(c.ts)){
@@ -337,120 +514,6 @@ tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:")
   }
 
 
-  return(eye)
-}
-
-
-
-
-
-downsample_eye <- function(eye, downsample_factor=50,
-                           digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
-                           analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
-                           char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
-                           # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
-                           method = "mean" # mean, subsamp
-){
-
-  stopifnot(inherits(eye, "ep.eye"))
-  # if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
-  if (is.null(eye$raw)) { stop("Cannot find $raw element in ep.eye object") }
-  assert_data_table(eye$raw) #for now, we are using data.table objects, so DT syntax applies
-  assert_count(downsample_factor)
-
-  orig_cols <- names(eye$raw)
-  t_cols <- "time" #hard code single time column for now, dont see how this would need to be different.
-  d_cols <- digital_channels
-  a_cols <- analog_channels
-  c_cols <- char_channels
-
-
-  if (length(t_cols) > 0L) {
-    time_data <- lapply(eye$raw[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
-    time_data <- data.frame(time_data$time) %>% rename(`time` = `time_data.time`) %>% data.table() # sometimes dplyr is just easier...
-  } else {
-    time_data <- NULL
-  }
-
-  ## adapted function originally written by MNH to downsample using subsampling (k every n sample) or mean (average within-bin)
-  subsample_dt <- function(dt, keys=key(dt), dfac=1L, method="subsamp") {
-
-    checkmate::assert_data_table(dt)
-    if (method=="subsamp") {
-      dt <- data.table(do.call(cbind,lapply(dt, function(col) {col[seq(1, length(col), dfac)] })))
-    } else if (method=="mean") {
-      downsamp <- function(col, dfac=1L) { col[seq(1, length(col), dfac)] }
-
-      dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N), by=keys]
-      dt <- dt[, lapply(.SD, mean), by=c(keys, "chunk")] #compute mean of every k samples
-      dt[, chunk := NULL]
-      # dt[, time := time - (dfac-1)/2]
-    }
-    return(dt)
-  }
-
-  downsample_chars <- function(dt){
-      # dt <- eye$raw[, ..c_cols]
-      dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N)]#, by=keys]
-      setkeyv(dt, "chunk")
-      dt <- dt[, lapply(.SD, function(x) paste(unique(x), collapse = " | ")), by = chunk]
-      dt[, et.msg := gsub(" | .", "", et.msg, fixed = TRUE)]
-      dt[, et.msg := gsub(". | ", "", et.msg, fixed = TRUE)]
-      dt[, chunk := NULL]
-  }
-
-  #### Downsample analog data
-  if (length(at_cols) > 0L) {
-    if(method == "mean"){
-      setkeyv(eye$raw, c("eventn", "time", "block_trial"))
-    }
-    analog_data <- subsample_dt(eye$raw[,..a_cols], dfac = downsample_factor, method = method)
-  } else {
-    message("unknown downsampling method: ", method)
-    analog_data <- NULL
-  }
-
-  #### Downsample digital data
-  if (length(d_cols) > 0L) {
-    #could support subsampling here -- doesn't seem like a great idea, though
-    digital_data <- data.table(do.call(cbind,lapply(eye$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
-  } else {
-    digital_data <- NULL
-  }
-
-  #### Downsample character data
-  if(length(c_cols > 0L)){
-    char_data <- downsample_chars(eye$raw[,..c_cols])
-  }
-
-  if (is.null(analog_data)) {
-    ret <- digital_data
-  } else if (is.null(digital_data)) {
-    ret <- analog_data
-  } else {
-    stopifnot(nrow(analog_data) == nrow(digital_data)) # if this is violated, cbinding these will almost certainly be flawed.
-    ret <- cbind(as.data.frame(digital_data), as.data.frame(analog_data))
-    ret <- cbind(digital_data, analog_data)
-  }
-
-  if (!is.null(char_data)) {
-    stopifnot(nrow(ret) == nrow(char_data))
-    ret <- cbind(ret, char_data) }
-
-
-  if (!is.null(time_data)) {
-    stopifnot(nrow(ret) == nrow(time_data))
-    ret <- cbind(data.table(time_data), ret) }
-
-  ret <- ret[,..orig_cols] #revert to original column order
-
-
-  ### assign back into ep.eye structure.
-  eye$downsample <- ret
-
-
-  eye$metadata$downsample_factor <- downsample_factor
-  eye$metadata$downsample_method <- method
 
   return(eye)
 }
@@ -458,8 +521,6 @@ downsample_eye <- function(eye, downsample_factor=50,
 
 
 
-
-### scratch below.
 
 # downsample_gaze <- function(dataframe, bin.length = 50, timevar = "time", aggvars = c("subject", "condition", "target", "trial", "object", "timebins"), type="gaze"){
 #   if(type=="gaze") {

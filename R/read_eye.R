@@ -1,7 +1,7 @@
 #' general wrapper for reading eye data into the package and performing all QA and processing
 read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL, ...) {
   ######################## setup
-  tic("total time") #for internal speed checks
+  # tic("total time") #for internal speed checks
   stopifnot(file.exists(file))
   if (length(file) > 1L) { stop("At present, read_process_eye is designed for one file at a time") }
 
@@ -39,26 +39,40 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
     toc()
   }
 
+  #########
+  ### 4. Gaze preprocessing
+  #########
+    tic("4. gaze preproc time")
+    eye <- eye_gazePre <- preprocess_gaze(eye, config)
+    toc()
 
   ######
-  ### 4 "Tidy timeseries". Incl downsampling and interpolation of raw gaze and pupil data. Makes sure trial, block_trial tags, etc look right and appends indicator columns from specified messages (e.g. start_recording/ stimulus_on).
+  ### 5 Pupil preprocessing.
   ######
 
-  tic("4. downsamp/interp time")
-  eye <- eye_cleantime <- tidy_eye_timeseries(eye, config)#; inc(stepC)
+  tic("5. pupil time")
+  eye <- eye_pupil_preproc <- preprocess_pupil(eye, config)#; inc(stepC)
   toc()
 
-  #########
-  ### 5. Tag data with AOI information.
-  #########
-  if (!"aoi" %in% names(config$definitions$eye)) {
-    cat("No AOI configurations supplied. Skipping")
-  } else{
-    tic("5. aoi time")
-    eye <- eye_aoi <- add_aois(eye, config, use_raw = FALSE)#; inc(stepC)
-    toc()
-  }
-  toc(); beepr::beep()
+#   ######
+#   ### 4 "Tidy timeseries". Incl downsampling and interpolation of raw gaze and pupil data. Makes sure trial, block_trial tags, etc look right and appends indicator columns from specified messages (e.g. start_recording/ stimulus_on).
+#   ######
+#
+#   tic("4. downsamp/interp time")
+#   eye <- eye_cleantime <- tidy_eye_timeseries(eye, config)#; inc(stepC)
+#   toc()
+#
+#   #########
+#   ### 5. Tag data with AOI information.
+#   #########
+#   if (!"aoi" %in% names(config$definitions$eye)) {
+#     cat("No AOI configurations supplied. Skipping")
+#   } else{
+#     tic("5. aoi time")
+#     eye <- eye_aoi <- add_aois(eye, config, use_raw = FALSE)#; inc(stepC)
+#     toc()
+#   }
+  # toc(); beepr::beep()
 
   #########
   ### 5. Gaze QA
