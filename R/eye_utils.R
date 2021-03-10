@@ -20,7 +20,8 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
 
   ### 2.2 initialize basic eye object structure
   eout <- list(raw = eye$raw,
-               gaze = list(sacc = as.data.table(eye$sacc) %>% mutate(saccn = 1:nrow(.)),
+               gaze = list(preprocessed = data.table(),
+                           sacc = as.data.table(eye$sacc) %>% mutate(saccn = 1:nrow(.)),
                            fix = as.data.table(eye$fix) %>% mutate(fixn = 1:nrow(.)),
                            blink = as.data.table(eye$blinks) %>% mutate(blinkn = 1:nrow(.))),
                pupil = list(fix = data.table(),
@@ -45,9 +46,14 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
 
   cat("- 2.2 Initialize ep.eye list structure: COMPLETE\n")
 
+
+  ### 2.3 Shift timestamps to 0 start point
+  dt <- "- 2.3 Shift timestamps to 0 start point:"
+  eout <- shift_eye_timing(eout,dt)
+
   ### 2.3 document entire recording session length (if this is very different from BAU this should get flagged later)
-  mintime <- min(eye$raw$time)
-  maxtime <- max(eye$raw$time)
+  mintime <- min(eout$raw$time)
+  maxtime <- max(eout$raw$time)
   all_time <- seq(mintime,maxtime,1)
 
   # store overall time for later
@@ -61,11 +67,11 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
 
   # not sure what to do with the open gaps atm, but the fact that are for subsequent chunks of time makes me think this has to do with the structure fo the task rather than noise.
 
-  if(all(all_time %in%  eye$raw$time)){
+  if(all(all_time %in%  eout$raw$time)){
     missing_measurements <- 0 #if everything stricly accounted for (i.e. every sampling period from beginning to end has a measurement... in my experience this is unlikely, esp if between trials the eyetracker is told to stop/start sampling)
   } else{
     #store the gaps for later
-    mm <- eye$raw$time[which(!all_time %in% eye$raw$time)] # missing measurements
+    mm <- which(!all_time %in% eout$raw$time) - 1 # missing measurements. subtract 1 to offset 0 start point and indexing.
 
     ###### deprecated: too cumbersome to store all missing measurements, and have instead elected to summarise in a compact DT below. Given how these missing events are generated, we know that they are consecutive events of missing data.
     # eout$metadata[["missing_measurements"]][["raw_events"]] <- mms <- split(mm, cumsum(c(1, diff(mm) != 1))) #contains all timestamps in between session start and end time that are missing blocked by consecutive timestamps. will likely want to dump before returning output
@@ -80,13 +86,33 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
     eout$metadata[["missing_measurements"]] <-  data.table("start" = lapply(mms, function(x) {min(x)}) %>% do.call(c,.),
                                                            "end" = lapply(mms, function(x) {max(x)}) %>% do.call(c,.),
                                                            "length" = mmls)
+
+    head(eout$raw$time)
+
     #abandon time_limits argument for now.
     # # convert to expected measurement range based on sampling rate
     # samp_range <- c(time_limits[1]*eout$metadata$sample.rate - time_limits[2]*eout$metadata$sample.rate,
     #                 time_limits[1]*eout$metadata$sample.rate + time_limits[2]*eout$metadata$sample.rate)
   }
 
-  cat("- 2.4 Document missing measurements: COMPLETE\n")
+  cat("- 2.4 Document missing measurements and pad missing measurements: COMPLETE\n")
+
+
+  # ### for large chunks of missing data, (e.g. if tracker turned off between trials), important to flag "recording chunks" of complete data
+  # gen_run_num <- function(x){
+  #   rl <- rle(is.na(x))
+  #   lst <- split(x, rep(cumsum(c(TRUE, rl$values[-length(rl$values)])), rl$lengths))
+  #   runvec <- c()
+  #   for(i in 1:length(lst)){
+  #     runvec <- c(runvec, rep(i, length(lst[[i]])))
+  #   }
+  #
+  #   runvec <- ifelse(is.na(x), NA, runvec)
+  #   return(runvec)
+  # }
+  # eout$raw
+
+
 
   ### 5. check for continuity in events
 
@@ -271,50 +297,21 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
     cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: WARNING: errors in this step have not been fully vetted. \n", sep = "")
   }
 
-  shift_eye_timing <- function(eye, dt){
-    tryCatch.ep({
-      t_start <- eye$raw$time[1]
-      eye$metadata$t_start <- t_start
-
-      # raw
-      eye$raw$time <- eye$raw$time - t_start
-      # saccades
-      eye$gaze$sacc$stime <- eye$gaze$sacc$stime - t_start
-      eye$gaze$sacc$etime <- eye$gaze$sacc$etime - t_start
-      # fixations
-      eye$gaze$fix$stime <- eye$gaze$fix$stime - t_start
-      eye$gaze$fix$etime <- eye$gaze$fix$etime - t_start
-      # blinks
-      eye$gaze$blink$stime <- eye$gaze$blink$stime - t_start
-      eye$gaze$blink$etime <- eye$gaze$blink$etime - t_start
-      #meta-data
-      eye$metadata$missing_measurements$start <- eye$metadata$missing_measurements$start - t_start
-      eye$metadata$missing_measurements$end <- eye$metadata$missing_measurements$end - t_start
-      eye$metadata$btw_tr_msg$time <- eye$metadata$btw_tr_msg$time - t_start
-
-
-
-    }, describe_text = dt)
-    return(eye)
-  }
-  ### 2.9 Shift timestamps to 0 start point
-  dt <- "- 2.9 Shift timestamps to 0 start point:"
-  eout <- shift_eye_timing(eout,dt)
-
 
 
   cat("\n")
   return(eout)
 }
 
-
+# downsampling functions --------------------------------------------------
 
 downsample_eye <- function(eye, downsample_factor=50,
                            digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
                            analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
                            char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
                            # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
-                           method = "mean" # mean, subsamp
+                           method = "mean", # mean, subsamp
+                           df = "preproces"
 ){
   #### checks
   stopifnot(inherits(eye, "ep.eye"))
@@ -329,7 +326,7 @@ downsample_eye <- function(eye, downsample_factor=50,
   a_cols <- analog_channels
   c_cols <- char_channels
 
-# browser()
+  # browser()
   #### Downsample time
   tryCatch.ep({
     if (length(t_cols) > 0L) {
@@ -342,32 +339,32 @@ downsample_eye <- function(eye, downsample_factor=50,
 
   #### Downsample analog data
   tryCatch.ep({
-  if (length(a_cols) > 0L) {
-    if(method == "mean"){
-      setkeyv(eye$raw, c("eventn", "time", "block_trial"))
+    if (length(a_cols) > 0L) {
+      if(method == "mean"){
+        setkeyv(eye$raw, c("eventn", "time", "block_trial"))
+      }
+      analog_data <- subsample_dt(eye$raw[,..a_cols], dfac = downsample_factor, method = method)
+    } else {
+      message("unknown downsampling method: ", method)
+      analog_data <- NULL
     }
-    analog_data <- subsample_dt(eye$raw[,..a_cols], dfac = downsample_factor, method = method)
-  } else {
-    message("unknown downsampling method: ", method)
-    analog_data <- NULL
-  }
   }, describe_text = "-- 4.4.2 Downsample analogue channels")
 
   #### Downsample digital data
   tryCatch.ep({
-  if (length(d_cols) > 0L) {
-    #could support subsampling here -- doesn't seem like a great idea, though
-    digital_data <- data.table(do.call(cbind,lapply(eye$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
-  } else {
-    digital_data <- NULL
-  }
-}, describe_text = "-- 4.4.3 Downsample digital channels")
+    if (length(d_cols) > 0L) {
+      #could support subsampling here -- doesn't seem like a great idea, though
+      digital_data <- data.table(do.call(cbind,lapply(eye$raw[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
+    } else {
+      digital_data <- NULL
+    }
+  }, describe_text = "-- 4.4.3 Downsample digital channels")
 
   #### Downsample/combine character data
   tryCatch.ep({
-  if(length(c_cols > 0L)){
-    char_data <- downsample_chars(eye$raw[,..c_cols], dfac = downsample_factor)
-  }
+    if(length(c_cols > 0L)){
+      char_data <- downsample_chars(eye$raw[,..c_cols], dfac = downsample_factor)
+    }
   }, describe_text = "-- 4.4.4 Downsample/combine character channels")
 
   if (is.null(analog_data)) {
@@ -419,7 +416,6 @@ subsample_dt <- function(dt, keys=key(dt), dfac=1L, method="subsamp") {
   }
   return(dt)
 }
-
 downsample_chars <- function(dt, dfac=1L){
   # dt <- eye$raw[, ..c_cols]
   dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N)]#, by=keys]
@@ -430,28 +426,189 @@ downsample_chars <- function(dt, dfac=1L){
   dt[, chunk := NULL]
 }
 
+# interpolation -----------------------------------------------------------
+
+#
+#  interpolate_eye <- function(eye_dt, algor = "linear", maxgap = 1000){
+#
+#    c.interp <- config$definitions$eye[[signal]]$interpolate
+#
+#    if(!"algor" %in% c.interp){
+#      c.interp$algor <- "linear"
+#    }
+#
+#    ### Convert ms maxgap to ntimepoints
+#    sr <- sample.rate
+#    ds <- config$definitions$eye[[signal]]$downsample$factor
+#    mg <- config$definitions$eye[[signal]]$interpolate$maxgap
+#
+#    if(sr != 1000){
+#      conv_ms <- 1000/sr
+#      ds <- ds*conv_ms
+#      mg <- mg/conv_ms
+#    }
+#
+#    ds_ntime <- ceiling(mg/(1000/ds))
+#
+#    if(df == "raw"){
+#      eye[[signal]]$preprocessed <- na_interpolation(eye$raw, option = c.interp$algor, maxgap = mg)
+#    } else {
+#      eye[[signal]]$preprocessed <- na_interpolation(eye[[signal]][["preprocessed"]], option = c.interp$algor, maxgap = mg)
+#    }
+#
+#
+#    if(signal == "gaze"){
+#      eye[[signal]]$preprocessed[,ps:=NULL]
+#    } else if(signal == "pupil"){
+#      eye[[signal]]$preprocessed[,xp:=NULL]
+#      eye[[signal]]$preprocessed[,yp:=NULL]
+#    }
+#
+#    return(eye)
+#  }
 
 
+#### need to tweak for different sampling rates.
+all_t <- seq(0,max(eye$raw$time))
+paddf <- which(!all_t %in% eye$raw$time) -1
+temp <-
+  eye$pupil$preprocessed$ps_interp <- na_interpolation(eye$pupil$preprocessed$ps_smooth, option = c.pupil$interpolate$algor, maxgap = 500)
 
 
+# pupil -------------------------------------------------------------------
 
-### scratch below.
+extend_blinks <- function(eye, c.pupil){
+
+  ### extract pupil size from raw.
+  pup <- eye$raw
+
+  ### convert to ntimepoints depending on sampling rate if not 1000
+  sr <- eye$metadata$sample.rate
+  bf <- c.pupil$blink_corr$ms_before
+  af <- c.pupil$blink_corr$ms_after
+
+  if(sr != 1000){
+    conv_ms <- 1000/sr
+    bf <- bf/conv_ms
+    af <- af/conv_ms
+  }
 
 
-#' Tidy timeseries
-#'
+  blinks <- eye$gaze$blink %>% tibble() %>% mutate(stime_ex = stime - bf,
+                                                   etime_ex = etime + af)
 
-tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:"){
+  bl_rms <- c()
+  for(row in 1:nrow(blinks)){ #tried to avoid, this is just so much easier
+    rang <- blinks[row,] %>% select(stime_ex, etime_ex) %>% as.numeric()
+    bl_rms <- c(bl_rms, seq(rang[1], rang[2], 1))
+  }
 
-  log_chunk_header(header)
+  eye$pupil$preprocessed <- pup %>% select(-xp, -yp) %>% tibble() %>% mutate(ps_blinkex = ifelse(time %in% bl_rms, NA, ps))
 
-  ### 4.1 Extract timeseries configuration options
-  tryCatch.ep({
-    c.ts <- tidy_eye_config(config)[["ts"]]
-    # stopifnot(all(c("downsample_bins") %in% names(c.ts))) # if omitted, run defaults.
-  }, describe_text = "- 4.1 Extract TS config options:")
+  return(eye)
+}
 
-  ### 4.2 Reset timestamps to 0 at first recording
+smooth_pupil <- function(eye, c.pupil){
+
+  stopifnot(c.pupil$filter$method == "movingavg")
+
+  ### convert to ntimepoints depending on sampling rate if not 1000
+  sr <- eye$metadata$sample.rate
+  maw <- c.pupil$filter$window_length
+
+  if(sr != 1000){
+    conv_ms <- 1000/sr
+    maw <- maw/conv_ms
+  }
+
+  eye$pupil$preprocessed$ps_smooth <- movavg.ep(eye$pupil$preprocessed$ps_blinkex, c.pupil$filter$window_length, "s")
+
+
+  return(eye)
+}
+
+
+baseline_correct <- function(eye, center_on, dur_ms){
+
+  ret_bc <- data.table()
+
+for(ev in unique(eye$pupil$preprocessed$eventn)){
+
+  # st.msg <- eye$pupil$preprocessed %>% filter(eventn == ev & et.msg != ".") %>% tibble()
+  st <- eye$pupil$preprocessed %>% filter(eventn == ev) %>% tibble()
+
+
+  baset <- st[which(grepl(center_on, st$et.msg)),]$time
+  bpos <- which(st$time %in% seq(baset - 100, baset))
+  bl <- median(st$ps_interp[bpos])
+
+  st <- st %>% mutate(ps_bc = ps_interp - bl,
+                      time_bc = time -baset) %>% data.table()
+
+  ret_bc <- rbind(ret_bc, st)
+  ggplot(st, aes(x = time_bc, y = ps_bc, color = eventn)) + geom_line() + geom_vline(xintercept = 0, alpha = .5) + geom_hline(yintercept = 0, alpha = .5) + theme_bw()
+}
+
+eye$pupil$preprocessed <- ret_bc
+return(eye)
+}
+
+pdf("~/Desktop/p.pdf", width = 11, height = 8)
+ggplot(ret_bc, aes(x = time_bc, y = ps_bc)) +
+  geom_line(aes(color = as.factor(eventn))) + geom_smooth(method = "gam", color = "black") +
+  geom_vline(xintercept = 0, alpha = .5) + geom_hline(yintercept = 0, alpha = .5) +
+  theme_bw() + theme(legend.position = "none") + facet_wrap(event~block)
+dev.off()
+
+### this is taken from the pracma package with added na.rm
+movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r"))
+{
+  stopifnot(is.numeric(x), is.numeric(n), is.character(type))
+  if (length(n) != 1 || ceiling(n != floor(n)) || n <= 1)
+    stop("Window length 'n' must be a single integer greater 1.")
+  nx <- length(x)
+  if (n >= nx)
+    stop("Window length 'n' cannot be greater then length of time series.")
+  y <- numeric(nx)
+  if (type == "s") {
+    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
+    for (k in n:nx) y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)
+  }
+  else if (type == "t") {
+    n <- ceiling((n + 1)/2)
+    s <- movavg(x, n, "s")
+    y <- movavg(s, n, "s")
+  }
+  else if (type == "w") {
+    for (k in 1:(n - 1)) y[k] <- 2 * sum((k:1) * x[k:1],na.rm = TRUE)/(k *
+                                                                         (k + 1))
+    for (k in n:nx) y[k] <- 2 * sum((n:1) * x[k:(k - n +
+                                                   1)], na.rm= TRUE)/(n * (n + 1))
+  }
+  else if (type == "m") {
+    y[1] <- x[1]
+    for (k in 2:nx) y[k] <- y[k - 1] + (x[k] - y[k - 1])/n
+  }
+  else if (type == "e") {
+    a <- 2/(n + 1)
+    y[1] <- x[1]
+    for (k in 2:nx) y[k] <- a * x[k] + (1 - a) * y[k - 1]
+  }
+  else if (type == "r") {
+    a <- 1/n
+    y[1] <- x[1]
+    for (k in 2:nx) y[k] <- a * x[k] + (1 - a) * y[k - 1]
+  }
+  else stop("The type must be one of 's', 't', 'w', 'm', 'e', or 'r'.")
+  return(y)
+}
+
+
+sum()
+# shift timestamps --------------------------------------------------------
+
+
+shift_eye_timing <- function(eye, dt){
   tryCatch.ep({
     t_start <- eye$raw$time[1]
     eye$metadata$t_start <- t_start
@@ -474,89 +631,8 @@ tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:")
 
 
 
-  }, describe_text = "- 4.2 Shift timestamps to 0 start point:")
-
-
-  ### 4.3 Downsample eye data
-  dt <- "- 4.3 Downsample Eye :"
-  if("downsample_factor" %in% names(c.ts)){
-    if("downsample_method" %in% names(c.ts)){
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor, method = c.ts$downsample_method)
-      },describe_text = dt)
-    } else { # fallback on default method ("mean")
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor)
-      },describe_text = dt)
-    }
-  } else{ # fallback on downsampling rate of 50 (at 1000Hz this would downsample to 20Hz, or 1 measurement every .05 sec), and "mean" method
-    tryCatch.ep({
-      eye <- downsample_eye(eye)
-    },describe_text = dt)
-  }
-
-  ### 4.4 Interpolation
-  dt <- "- 4.3 Downsample Gaze:"
-  if("downsample_factor" %in% names(c.ts)){
-    if("downsample_method" %in% names(c.ts)){
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor, method = c.ts$downsample_method)
-      },describe_text = dt)
-    } else { # fallback on default method ("mean")
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor)
-      },describe_text = dt)
-    }
-  } else{ # fallback on downsampling rate of 50 (at 1000Hz this would downsample to 20Hz, or 1 measurement every .05 sec), and "mean" method
-    tryCatch.ep({
-      eye <- downsample_eye(eye)
-    },describe_text = dt)
-  }
-
-
-
+  }, describe_text = dt)
   return(eye)
 }
 
 
-
-
-
-# downsample_gaze <- function(dataframe, bin.length = 50, timevar = "time", aggvars = c("subject", "condition", "target", "trial", "object", "timebins"), type="gaze"){
-#   if(type=="gaze") {
-#     browser()
-#     downsample <- dataframe %>%
-#       mutate(timebins = round(!!sym(timevar)/bin.length)*bin.length)
-#     # if there are aggregation variables, then aggregate
-#     if(length(aggvars > 0)){
-#       downsample <- downsample %>%
-#         dplyr::group_by_(.dots = aggvars) %>%
-#         dplyr::summarize(acc = unique(acc), rt = unique(rt),
-#                          Fix = mean(Fix) > 0.5) %>%
-#         dplyr::ungroup()
-#     }
-#     return(downsample)
-#   }
-#   # if (type=="pupil") {
-#   #   downsample <- dataframe %>%
-#   #     mutate(timebins = round(!!sym(timevar)/bin.length)*bin.length)
-#   #   # if there are aggregation variables, then aggregate
-#   #   if(length(aggvars > 0)){
-#   #     downsample <- downsample %>%
-#   #       dplyr::group_by(.dots = aggvars) %>%
-#   #       dplyr::summarize(aggbaseline=mean(baselinecorrectedp)) %>%
-#   #       dplyr::ungroup()
-#   #   }
-#   # }
-#   return(downsample)
-# }
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#

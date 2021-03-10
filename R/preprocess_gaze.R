@@ -21,9 +21,23 @@ preprocess_gaze <- function(eye, config, header = "4. Additional gaze-specific p
   dt <- "- 4.3 Collapse timestamps with more than one row:"
   eye <- collapse_time(eye, dt)
 
+
+  ### N.B. 3/8/21 Interpolating eye data, even in a simplistic manner, is a bad idea given that gaze data is very non-smooth. Better to just rely on the good readings and remove trials with too much data missing, rather than trying to save missing samples.
+  ### If the user disagrees the function is still available to use on the preprocessed data, but this should not be included in the standard pipeline.
+  # ### 4.4 Interpolate
+  # if (!"interpolate" %in% names(c.gaze)) {
+  #   cat("- 4.4 Interpolate gaze data: SKIP")
+  # } else{
+  #   dt <- "- 4.4 Interpolate gaze data:"
+  #   tryCatch.ep({
+  #     eye <- interpolate_eye(eye, config, signal = "gaze")
+  #   },describe_text = dt)
+  # }
+
   ### 4.4 Downsample gaze
   if (!"downsample" %in% names(c.gaze)) {
-    cat("No gaze downsampling configurations supplied. Defaulting to downsampling factor of 50, and method 'mean'")
+    cat("- 4.4 Downsample gaze: No gaze downsampling configurations supplied. Defaulting to downsampling factor of 50, and method 'mean'")
+    eye <- downsample_eye(eye, analog_channels = c("xp", "yp"))
   } else{
     cat("- 4.4 Downsample gaze:\n")
     eye <- downsample_eye(eye,
@@ -31,6 +45,14 @@ preprocess_gaze <- function(eye, config, header = "4. Additional gaze-specific p
                           analog_channels = c("xp", "yp"),
                           method = c.gaze[["downsample"]][["method"]])
   }
+
+  ### 4.5 Remove impossible values (outside of screen dim)
+  cat("- 4.5 Remove impossible values")
+  eye$gaze$preprocessed <- eye$gaze$preprocessed %>% mutate(xp = ifelse(xp >= eye$metadata$screen.x | xp <= 0, NA, xp),
+                                        yp = ifelse(yp >= eye$metadata$screen.y | yp <= 0, NA, yp),
+                                        xp = ifelse(is.na(yp), NA, xp),
+                                        yp = ifelse(is.na(xp), NA, yp),
+                                        )
 
   return(eye)
 }
@@ -62,89 +84,4 @@ collapse_time <- function(eye, dt){
 
 
 # ignore below ------------------------------------------------------------
-
-
-
-
-
-#' Tidy timeseries
-#'
-
-tidy_eye_timeseries <- function(eye, config, header = "4. Tidy raw timeseries:"){
-
-  log_chunk_header(header)
-
-  ### 4.1 Extract timeseries configuration options
-  tryCatch.ep({
-    c.ts <- tidy_eye_config(config)[["ts"]]
-    # stopifnot(all(c("downsample_bins") %in% names(c.ts))) # if omitted, run defaults.
-  }, describe_text = "- 4.1 Extract TS config options:")
-
-  # ### 4.2 Reset timestamps to 0 at first recording
-  # tryCatch.ep({
-  #   t_start <- eye$raw$time[1]
-  #   eye$metadata$t_start <- t_start
-  #
-  #   # raw
-  #   eye$raw$time <- eye$raw$time - t_start
-  #   # saccades
-  #   eye$gaze$sacc$stime <- eye$gaze$sacc$stime - t_start
-  #   eye$gaze$sacc$etime <- eye$gaze$sacc$etime - t_start
-  #   # fixations
-  #   eye$gaze$fix$stime <- eye$gaze$fix$stime - t_start
-  #   eye$gaze$fix$etime <- eye$gaze$fix$etime - t_start
-  #   # blinks
-  #   eye$gaze$blink$stime <- eye$gaze$blink$stime - t_start
-  #   eye$gaze$blink$etime <- eye$gaze$blink$etime - t_start
-  #   #meta-data
-  #   eye$metadata$missing_measurements$start <- eye$metadata$missing_measurements$start - t_start
-  #   eye$metadata$missing_measurements$end <- eye$metadata$missing_measurements$end - t_start
-  #   eye$metadata$btw_tr_msg$time <- eye$metadata$btw_tr_msg$time - t_start
-  #
-  #
-  #
-  # }, describe_text = "- 4.2 Shift timestamps to 0 start point:")
-
-
-  ### 4.3 Downsample eye data
-  dt <- "- 4.3 Downsample Eye :"
-  if("downsample_factor" %in% names(c.ts)){
-    if("downsample_method" %in% names(c.ts)){
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor, method = c.ts$downsample_method)
-      },describe_text = dt)
-    } else { # fallback on default method ("mean")
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor)
-      },describe_text = dt)
-    }
-  } else{ # fallback on downsampling rate of 50 (at 1000Hz this would downsample to 20Hz, or 1 measurement every .05 sec), and "mean" method
-    tryCatch.ep({
-      eye <- downsample_eye(eye)
-    },describe_text = dt)
-  }
-
-  ### 4.4 Interpolation
-  dt <- "- 4.3 Downsample Gaze:"
-  if("downsample_factor" %in% names(c.ts)){
-    if("downsample_method" %in% names(c.ts)){
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor, method = c.ts$downsample_method)
-      },describe_text = dt)
-    } else { # fallback on default method ("mean")
-      tryCatch.ep({
-        eye <- downsample_eye(eye, downsample_factor = c.ts$downsample_factor)
-      },describe_text = dt)
-    }
-  } else{ # fallback on downsampling rate of 50 (at 1000Hz this would downsample to 20Hz, or 1 measurement every .05 sec), and "mean" method
-    tryCatch.ep({
-      eye <- downsample_eye(eye)
-    },describe_text = dt)
-  }
-
-
-
-  return(eye)
-}
-
 
