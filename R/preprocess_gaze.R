@@ -1,5 +1,5 @@
 
-preprocess_gaze <- function(eye, config, header = "4. Additional gaze-specific preprocessing:"){
+preprocess_gaze <- function(eye, config, header = "4. Gaze preprocessing:"){
 
   log_chunk_header(header)
 
@@ -40,19 +40,19 @@ preprocess_gaze <- function(eye, config, header = "4. Additional gaze-specific p
     eye <- downsample_eye(eye, analog_channels = c("xp", "yp"))
   } else{
     cat("- 4.4 Downsample gaze:\n")
-    eye <- downsample_eye(eye,
-                          downsample_factor = c.gaze[["downsample"]][["factor"]],
-                          analog_channels = c("xp", "yp"),
-                          method = c.gaze[["downsample"]][["method"]])
+    eye$gaze$downsample <- downsample_eye(eye$raw,
+                                          downsample_factor = c.gaze[["downsample"]][["factor"]],
+                                          analog_channels = c("xp", "yp"),
+                                          method = c.gaze[["downsample"]][["method"]])
   }
 
   ### 4.5 Remove impossible values (outside of screen dim)
   cat("- 4.5 Remove impossible values")
-  eye$gaze$preprocessed <- eye$gaze$preprocessed %>% mutate(xp = ifelse(xp >= eye$metadata$screen.x | xp <= 0, NA, xp),
-                                        yp = ifelse(yp >= eye$metadata$screen.y | yp <= 0, NA, yp),
-                                        xp = ifelse(is.na(yp), NA, xp),
-                                        yp = ifelse(is.na(xp), NA, yp),
-                                        )
+  eye$gaze$downsample <- eye$gaze$downsample %>% mutate(xp = ifelse(xp >= eye$metadata$screen.x | xp <= 0, NA, xp),
+                                                        yp = ifelse(yp >= eye$metadata$screen.y | yp <= 0, NA, yp),
+                                                        xp = ifelse(is.na(yp), NA, xp),
+                                                        yp = ifelse(is.na(xp), NA, yp),
+  )
 
   return(eye)
 }

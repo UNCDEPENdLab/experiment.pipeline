@@ -25,7 +25,7 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
   ### 2. Perform basic initial validation checks and compute new variables
   ######
   tic("2. init time")
-  eye <- eye_init <- initialize_eye(eye_orig)#, c. = stepC); inc(stepC)
+  eye <- eye_init <- initialize_eye(eye_orig, config)#, c. = stepC); inc(stepC)
   toc()
 
   #########
@@ -49,27 +49,23 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
   ######
   ### 5 Pupil preprocessing.
   ######
-
   tic("5. pupil time")
-  eye <- pupil_preproc <- preprocess_pupil(eye, config)#; inc(stepC)
+  eye <- pupil_preproc <- preprocess_pupil(eye, config)
   toc()
 
+  ######
+  ### 6. Remove raw data to cut the size of returned object considerably.
+  ######
+  if(!config$definitions$eye$return_raw){
+    log_chunk_header("6. Remove raw data")
+    eye$raw <- NULL
+  }
 
+  #close .elog
+  sink()
 
-  #########
-  ### 5. Gaze QA
-  #########
-
-
-
-
-  #########
-  ### 6. Pupil QA
-  #########
-
-  #########
-  ### 7. Diagnostic Plots
-  #########
+  # to signal that preprocessing finished without issue (though make sure to check .elog for missteps along the way)
+  class(eye) <- c(class(eye), "ep.eye.preproc")
 
   return(eye)
 }

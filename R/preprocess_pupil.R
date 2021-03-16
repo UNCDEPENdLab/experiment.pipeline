@@ -1,4 +1,4 @@
-preprocess_gaze <- function(eye, config, header = "5. Additional pupil-specific preprocessing:"){
+preprocess_pupil <- function(eye, config, header = "5. Pupil preprocessing:"){
 
   log_chunk_header(header)
 
@@ -22,38 +22,24 @@ preprocess_gaze <- function(eye, config, header = "5. Additional pupil-specific 
 
   ### 5.4 Interpolate
   tryCatch.ep({
-
-    #### need to tweak for different sampling rates.
-    all_t <- seq(0,max(eye$raw$time))
-    paddf <- data.table(eventn = NA,
-                        time = which(!all_t %in% eye$raw$time) -1,
-                        ps = NA,
-                        saccn = NA,
-                        fixn = NA,
-                        blinkn = NA,
-                        block = NA,
-                        block_trial = NA,
-                        event = NA,
-                        et.msg = NA,
-                        ps_blinkex = NA,
-                        ps_smooth = NA
-    )
-    temp <- rbind(eye$pupil$preprocessed, paddf) %>% arrange(time)
-
-    temp$ps_interp <- na_interpolation(temp$ps_smooth, option = "linear", maxgap = 750)
-
-    eye$pupil$preprocessed <- temp %>% filter(!is.na(eventn)) %>% data.table()
-
+    eye <- interp_pupil(eye, maxgap = c.pupil$interpolate$maxgap)
   }, describe_text = "- 5.4 Interpolating pupil data:")
 
   ### 5.5 Baseline Correction
   tryCatch.ep({
-
-
-
-
+    eye <- baseline_correct(eye, center_on = c.pupil$baseline_correction$center_on, dur_ms = c.pupil$baseline_correction$dur_ms)
   }, describe_text = "- 5.5 Baseline correction:")
 
+  ## 5.6 Downsample pupil
+  if("downsample" %in% names(c.pupil)){
+    tryCatch.ep({
+      eye$pupil$downsample <- downsample_eye(eye[["pupil"]][["preprocessed"]],
+                                             downsample_factor = c.pupil[["downsample"]][["factor"]],
+                                             analog_channels = c("ps", "ps_blinkex", "ps_smooth", "ps_interp", "ps_bc", "time_bc"),
+                                             method = c.pupil[["downsample"]][["method"]])
+    }, describe_text = "- 5.6 Downsample pupil:")
+
+  }
 
   return(eye)
 }
