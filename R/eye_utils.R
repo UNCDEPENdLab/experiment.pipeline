@@ -26,15 +26,16 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
                            blink = as.data.table(eye$blinks) %>% mutate(blinkn = 1:nrow(.))),
                pupil = list(
                  downsample = data.table(),
-                 fix = data.table(),
-                 trial = data.table(),
-                 event = data.table()),
-               summary = list(counts = data.table(),
-                              sacc = data.table(),
-                              fix = data.table(),
-                              blink = data.table(),
-                              pupil = data.table()
-               ),
+                 # fix = data.table(),
+                 # trial = data.table(),
+                 # event = data.table(),
+                 preprocessed = data.table()),
+               # summary = list(counts = data.table(),
+               #                sacc = data.table(),
+               #                fix = data.table(),
+               #                blink = data.table(),
+               #                pupil = data.table()
+               #),
                metadata = suppress_warnings(split(t(eye$info),f = colnames(eye$info)) %>% lapply(., function(x) {
                  if (x %in% c("TRUE", "FALSE")){
                    as.logical(x)} else if(!is.na(as.numeric(x))){
@@ -311,128 +312,6 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
   return(eout)
 }
 
-# downsampling functions --------------------------------------------------
-
-downsample_eye <- function(df, downsample_factor=50,
-                           digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
-                           analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
-                           char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
-                           # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
-                           method = "mean" # mean, subsamp
-){
-
-  # browser()
-
-  # stopifnot(inherits(eye, "ep.eye"))
-  # # if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
-  # if (is.null(eye$raw)) { stop("Cannot find $raw element in ep.eye object") }
-
-  #### checks
-  assert_data_table(df) #for now, we are using data.table objects, so DT syntax applies
-  assert_count(downsample_factor)
-
-
-  t_cols <- "time" #hard code single time column for now, dont see how this would need to be different.
-  d_cols <- digital_channels
-  a_cols <- analog_channels
-  c_cols <- char_channels
-
-  #### Downsample time
-  tryCatch.ep({
-    if (length(t_cols) > 0L) {
-      time_data <- lapply(df[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] })
-      time_data <- data.frame(time_data$time) %>% rename(`time` = `time_data.time`) %>% data.table() # sometimes dplyr is just easier...
-    } else {
-      time_data <- NULL
-    }
-  }, describe_text = "-- 4.4.1 Downsample time column")
-
-  #### Downsample analog data
-  tryCatch.ep({
-    if (length(a_cols) > 0L) {
-      if(method == "mean"){
-        setkeyv(df, c("eventn", "time", "block_trial"))
-      }
-      analog_data <- subsample_dt(df[,..a_cols], dfac = downsample_factor, method = method)
-    } else {
-      message("unknown downsampling method: ", method)
-      analog_data <- NULL
-    }
-  }, describe_text = "-- 4.4.2 Downsample analogue channels")
-
-  #### Downsample digital data
-  tryCatch.ep({
-    if (length(d_cols) > 0L) {
-      #could support subsampling here -- doesn't seem like a great idea, though
-      digital_data <- data.table(do.call(cbind,lapply(df[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
-    } else {
-      digital_data <- NULL
-    }
-  }, describe_text = "-- 4.4.3 Downsample digital channels")
-
-  #### Downsample/combine character data
-  tryCatch.ep({
-    if(length(c_cols > 0L)){
-      char_data <- downsample_chars(df[,..c_cols], dfac = downsample_factor)
-    }
-  }, describe_text = "-- 4.4.4 Downsample/combine character channels")
-
-  if (is.null(analog_data)) {
-    ret <- digital_data
-  } else if (is.null(digital_data)) {
-    ret <- analog_data
-  } else {
-    stopifnot(nrow(analog_data) == nrow(digital_data)) # if this is violated, cbinding these will almost certainly be flawed.
-    ret <- cbind(as.data.frame(digital_data), as.data.frame(analog_data))
-    ret <- cbind(digital_data, analog_data)
-  }
-
-  if (!is.null(char_data)) {
-    stopifnot(nrow(ret) == nrow(char_data))
-    ret <- cbind(ret, char_data) }
-
-
-  if (!is.null(time_data)) {
-    stopifnot(nrow(ret) == nrow(time_data))
-    ret <- cbind(data.table(time_data), ret) }
-
-
-  # ### assign back into ep.eye structure.
-  # if(all(c("xp", "yp") %in% analog_channels)){
-  #   eye$gaze$downsample <- ret
-  # } else {
-  #   eye$pupil$downsample <- ret
-  # }
-
-  return(ret)
-}
-
-
-## adapted function originally written by MNH to downsample using subsampling (keep every n sample) or mean (average within-bin)
-subsample_dt <- function(dt, keys=key(dt), dfac=1L, method="subsamp") {
-
-  checkmate::assert_data_table(dt)
-  if (method=="subsamp") {
-    dt <- data.table(do.call(cbind,lapply(dt, function(col) {col[seq(1, length(col), dfac)] })))
-  } else if (method=="mean") {
-    downsamp <- function(col, dfac=1L) { col[seq(1, length(col), dfac)] }
-
-    dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N), by=keys]
-    dt <- dt[, lapply(.SD, mean), by=c(keys, "chunk")] #compute mean of every k samples
-    dt[, chunk := NULL]
-    # dt[, time := time - (dfac-1)/2]
-  }
-  return(dt)
-}
-downsample_chars <- function(dt, dfac=1L){
-  # dt <- eye$raw[, ..c_cols]
-  dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N)]#, by=keys]
-  setkeyv(dt, "chunk")
-  dt <- dt[, lapply(.SD, function(x) paste(unique(x), collapse = " | ")), by = chunk]
-  dt[, et.msg := gsub(" | .", "", et.msg, fixed = TRUE)]
-  dt[, et.msg := gsub(". | ", "", et.msg, fixed = TRUE)]
-  dt[, chunk := NULL]
-}
 
 # interpolation -----------------------------------------------------------
 
@@ -477,7 +356,7 @@ downsample_chars <- function(dt, dfac=1L){
 
 
 #### need to tweak for different sampling rates.
-interp_pupil <- function(eye, maxgap){
+interp_pupil <- function(eye, maxgap, option = "linear"){
   all_t <- seq(0,max(eye$raw$time))
 
   ##### if there are missing timepoints, they need to be included so we dont interpolate over periods where the tracker is off.
@@ -497,7 +376,7 @@ interp_pupil <- function(eye, maxgap){
 
   temp <- rbind(eye$pupil$preprocessed, paddf) %>% arrange(time)
 
-  temp$ps_interp <- na_interpolation(temp$ps_smooth, option = "linear", maxgap = maxgap)
+  temp$ps_interp <- na_interpolation(temp$ps_smooth, option = option, maxgap = maxgap)
 
   eye$pupil$preprocessed <- temp %>% filter(!is.na(eventn)) %>% data.table()
 
@@ -552,6 +431,9 @@ smooth_pupil <- function(eye, c.pupil){
 
   eye$pupil$preprocessed$ps_smooth <- movavg.ep(eye$pupil$preprocessed$ps_blinkex, c.pupil$filter$window_length, "s")
 
+  ## average will run through the deblinked trials. Ensure these remain NA'ed
+  eye$pupil$preprocessed <-  eye$pupil$preprocessed %>% mutate(ps_smooth = ifelse(is.na(ps_blinkex), NA, ps_smooth))
+
 
   return(eye)
 }
@@ -569,7 +451,7 @@ baseline_correct <- function(eye, center_on, dur_ms){
 
     baset <- st[which(grepl(center_on, st$et.msg)),]$time
     bpos <- which(st$time %in% seq(baset - 100, baset))
-    bl <- median(st$ps_interp[bpos])
+    bl <- median(st$ps_interp[bpos], na.rm = TRUE)
 
     st <- st %>% mutate(ps_bc = ps_interp - bl,
                         time_bc = time -baset) %>% data.table()
@@ -581,9 +463,6 @@ baseline_correct <- function(eye, center_on, dur_ms){
   eye$pupil$preprocessed <- ret_bc
   return(eye)
 }
-
-
-
 
 # moving average ----------------------------------------------------------
 
@@ -671,4 +550,79 @@ shift_eye_timing <- function(eye, dt){
   return(eye)
 }
 
+''
 
+# provide ev-locked time --------------------------------------------------
+
+
+tag_event_time <- function(eye){
+
+  ################
+  ######## RAW
+  ################
+  try({
+    raw_estimes <- eye$raw  %>% group_by(eventn) %>%
+      summarise(stime_ev = min(time),
+                etime_ev = max(time))
+
+    eye$raw <- raw_estimes %>% right_join(eye$raw, by = "eventn") %>%
+      mutate(time_ev = (time - stime_ev)) %>%
+      select(block, block_trial, event, eventn, time, time_ev, xp,yp,ps,saccn,fixn,blinkn,et.msg)
+  })
+
+  ################
+  ######## DOWNSAMPLED: compute separately on downsampled data to preserve blocking structure.
+  ################
+  try({eye$gaze$downsample <- eye$gaze$downsample %>% group_by(eventn) %>%
+    summarise(stime_ev = min(time),
+              etime_ev = max(time)) %>%
+    right_join(eye$gaze$downsample, by = "eventn") %>% mutate(time_ev = (time - stime_ev)) %>%
+    select(block, block_trial, event, eventn, time, time_ev, xp,yp, saccn, fixn,blinkn,et.msg)
+  })
+
+  try({eye$pupil$downsample <- eye$pupil$downsample %>% group_by(eventn) %>%
+    summarise(stime_ev = min(time),
+              etime_ev = max(time)) %>%
+    right_join(eye$pupil$downsample, by = "eventn") %>% mutate(time_ev = (time - stime_ev)) %>%
+    select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn,blinkn,et.msg)
+  })
+
+
+  ################
+  ######## GAZE EVENTS: use raw_estimes
+  ################
+
+  try({
+
+    ##saccades
+    eye$gaze$sacc <- raw_estimes %>% right_join(eye$gaze$sacc, by = "eventn") %>%
+      mutate(etime_ev = (etime - stime_ev),
+             stime_ev = (stime - stime_ev)) %>%
+      select(block, block_trial, event, eventn, saccn, stime, stime_ev,etime, etime_ev,  aoi_start, aoi_end, dur, sxp,syp, exp, eyp, ampl, pv)
+
+    ##fixations
+    eye$gaze$fix <- raw_estimes %>% right_join(eye$gaze$fix, by = "eventn") %>%
+      mutate(etime_ev = (etime - stime_ev),
+             stime_ev = (stime - stime_ev)) %>%
+      select(block, block_trial, event, eventn, fixn, stime, stime_ev,etime, etime_ev,  aoi_look, dur, axp, ayp, aps)
+
+    ##blinks
+    eye$gaze$blink <- raw_estimes %>% right_join(eye$gaze$blink, by = "eventn") %>%
+      mutate(etime_ev = (etime - stime_ev),
+             stime_ev = (stime - stime_ev)) %>%
+      select(block, block_trial, event, eventn, blinkn, stime, stime_ev,etime, etime_ev,dur)
+
+  })
+
+  ################
+  ######## PREPROCESSED (NO DOWNSAMPLING) PUPIL: use raw_estimes
+  ################
+
+  try({
+    eye$pupil$preprocessed <- raw_estimes %>% right_join(eye$pupil$preprocessed, by = "eventn") %>%
+      mutate(time_ev = (time - stime_ev)) %>%
+      select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn, blinkn, et.msg)
+  })
+
+  return(eye)
+}

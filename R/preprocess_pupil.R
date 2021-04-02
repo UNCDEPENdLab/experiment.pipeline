@@ -32,11 +32,12 @@ preprocess_pupil <- function(eye, config, header = "5. Pupil preprocessing:"){
 
   ## 5.6 Downsample pupil
   if("downsample" %in% names(c.pupil)){
-    cat("- 5.6 Downsample pupil:\n")
+
       eye$pupil$downsample <- downsample_eye(eye[["pupil"]][["preprocessed"]],
                                              downsample_factor = c.pupil[["downsample"]][["factor"]],
                                              analog_channels = c("ps", "ps_blinkex", "ps_smooth", "ps_interp", "ps_bc", "time_bc"),
                                              method = c.pupil[["downsample"]][["method"]])
+      cat("- 5.6 Downsample pupil: COMPLETE\n")
   }
 
   return(eye)

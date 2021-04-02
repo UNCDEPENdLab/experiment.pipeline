@@ -84,12 +84,12 @@ definitions: #shared key mapping for behavior across blocks
     qa:
       gaze:
         na:
-          check: ["raw", "preproc"]
+          check: ["raw", "downsample"]
           perc: 30
           cols: ["xp", "yp"]
       pupil:
         na:
-          check: ["preproc"]
+          check: ["downsample"]
           perc: 30
           cols: ["ps_bc"]
 
