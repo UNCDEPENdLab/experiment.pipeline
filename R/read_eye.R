@@ -53,11 +53,20 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
   eye <- pupil_preproc <- preprocess_pupil(eye, config)
   toc()
 
+
   ######
-  ### 6. Remove raw data to cut the size of returned object considerably.
+  ### 6 Generate timing by event and trial.
+  ######
+  log_chunk_header("6. Generate event lock timings")
+  eye <- eye_evtag<- tag_event_time(eye)
+
+
+
+  ######
+  ### 7. Remove raw data to cut the size of returned object considerably.
   ######
   if(!config$definitions$eye$return_raw){
-    log_chunk_header("6. Remove raw data")
+    log_chunk_header("7. Remove raw data")
     eye$raw <- NULL
   }
 
