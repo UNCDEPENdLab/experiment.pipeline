@@ -67,6 +67,10 @@ preprocess_gaze <- function(eye, config, header = "4. Gaze preprocessing:"){
 
 
 
+
+
+
+
 #' collapse timing to one row per time (paste multiple messages in a single et.msg)
 #'
 #'

@@ -41,8 +41,8 @@ gen_aoi_look <- function(eye, aoi_ref, dt = NULL, use_raw = FALSE){
         print(i)
         evn <- eye$raw[[i,"eventn"]]
 
-        ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% mutate(aoi_look = ifelse(eye$raw[[i,"xp"]] >= min(x1,x2) & eye$raw[[i,"xp"]] <= max(x1,x2) &
-                                                                                           eye$raw[[i,"yp"]] >= min(y1,y2) & eye$raw[[i,"yp"]] <= max(y1,y2), TRUE, FALSE))
+        ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(aoi_look = ifelse(eye$raw[[i,"xp"]] >= min(x1,x2) & eye$raw[[i,"xp"]] <= max(x1,x2) &
+                                                                                           eye$raw[[i,"yp"]] >= min(y1,y2) & eye$raw[[i,"yp"]] <= max(y1,y2), TRUE, FALSE)) %>% ungroup()
 
         if(any(ev_aois$aoi_look)){
           eye$raw[i,"aoi_look"] <- ev_aois %>% dplyr::filter(aoi_look) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
@@ -61,14 +61,14 @@ gen_aoi_look <- function(eye, aoi_ref, dt = NULL, use_raw = FALSE){
       eye$gaze$sacc$aoi_end <- "."
       for (i in 1:nrow(eye$gaze$sacc)) {
         # print(i)
-        # i <- 1
+        i <- 1
 
         evn <- eye$gaze$sacc[[i,"eventn"]]
 
-        ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% mutate(aoi_start = ifelse(eye$gaze$sacc[[i,"sxp"]] >= min(x1,x2) & eye$gaze$sacc[[i,"sxp"]] <= max(x1,x2) &
-                                                                                            eye$gaze$sacc[[i,"syp"]] >= min(y1,y2) & eye$gaze$sacc[[i,"syp"]] <= max(y1,y2), TRUE, FALSE),
-                                                                       aoi_end = ifelse(eye$gaze$sacc[[i,"exp"]] >= min(x1,x2) & eye$gaze$sacc[[i,"exp"]] <= max(x1,x2) &
-                                                                                          eye$gaze$sacc[[i,"eyp"]] >= min(y1,y2) & eye$gaze$sacc[[i,"eyp"]] <= max(y1,y2), TRUE, FALSE))
+        ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(aoi_start = ifelse(eye$gaze$sacc[[i,"sxp"]] >= min(x1,x2) & eye$gaze$sacc[[i,"sxp"]] <= max(x1,x2) &
+                                                                                                                  eye$gaze$sacc[[i,"syp"]] >= min(y1,y2) & eye$gaze$sacc[[i,"syp"]] <= max(y1,y2), TRUE, FALSE),
+                                                                                             aoi_end = ifelse(eye$gaze$sacc[[i,"exp"]] >= min(x1,x2) & eye$gaze$sacc[[i,"exp"]] <= max(x1,x2) &
+                                                                                                                eye$gaze$sacc[[i,"eyp"]] >= min(y1,y2) & eye$gaze$sacc[[i,"eyp"]] <= max(y1,y2), TRUE, FALSE)) %>% ungroup()
 
         # NAs denote missing measurements at the beginning or end of saccade. These may need to be dumped ultimately. For now, it's easiest to code them as "no aoi" and let later scripts handle this.
         if(all(is.na(ev_aois$aoi_start))) {ev_aois$aoi_start <- FALSE}
@@ -95,8 +95,8 @@ gen_aoi_look <- function(eye, aoi_ref, dt = NULL, use_raw = FALSE){
 
       evn <- eye$gaze$fix[[i,"eventn"]]
 
-      ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% mutate(aoi_look = ifelse(eye$gaze$fix[[i,"axp"]] >= min(x1,x2) & eye$gaze$fix[[i,"axp"]] <= max(x1,x2) &
-                                                                                         eye$gaze$fix[[i,"ayp"]] >= min(y1,y2) & eye$gaze$fix[[i,"ayp"]] <= max(y1,y2), TRUE, FALSE))
+      ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(aoi_look = ifelse(eye$gaze$fix[[i,"axp"]] >= min(x1,x2) & eye$gaze$fix[[i,"axp"]] <= max(x1,x2) &
+                                                                                         eye$gaze$fix[[i,"ayp"]] >= min(y1,y2) & eye$gaze$fix[[i,"ayp"]] <= max(y1,y2), TRUE, FALSE)) %>% ungroup()
 
       # NAs denote missing measurements
       if(all(is.na(ev_aois$aoi_look))) {ev_aois$aoi_look <- FALSE}
