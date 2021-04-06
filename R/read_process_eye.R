@@ -5,10 +5,12 @@ read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE,
   stopifnot(file.exists(file))
   if (length(file) > 1L) { stop("At present, read_process_eye is designed for one file at a time") }
 
+  # config <- validate_exp_yaml(yaml_file)
+
   # initialize log file if requested. Otherwise will print feedback while running checks.
   ## N.B. right now this will overwrite existing files, can come back to later.
   if(is.null(prefix)) prefix <- str_extract(file, "\\d{3}_[[:lower:]]+")
-  if(gen_log){init_eyelog(log_dir)}
+  if(gen_log){init_eyelog(log_dir, prefix, file)}
 
   ######################## Begin processing
 
@@ -26,7 +28,7 @@ read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE,
   ### 2. Perform basic initial validation checks and compute new variables
   ######
   tic("2. init time")
-  eye <- eye_init <- initialize_eye(eye_orig, config)#, c. = stepC); inc(stepC)
+  eye <- eye_init <- initialize_eye(eye_orig)#, c. = stepC); inc(stepC)
   toc()
 
   #########
@@ -58,33 +60,42 @@ read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE,
   ######
   ### 6 Generate timing by event and trial.
   ######
-  log_chunk_header("6. Generate event lock timings")
-  eye <- eye_evtag<- tag_event_time(eye)
+  log_chunk_header("6. Generating event-locked timings")
+  eye <- eye_evtag<- tag_event_time(eye); cat("- 6.1 time_ev column generated: COMPLETE\n")
 
 
+  # to signal that preprocessing finished without issue (though make sure to check .elog for missteps along the way)
+  class(eye) <- c(class(eye), "ep.eye.preproc")
 
   ######
   ### 7. Remove raw data to cut the size of returned object considerably.
   ######
   if(!config$definitions$eye$return_raw){
-    log_chunk_header("7. Remove raw data")
+    log_chunk_header("7. Removing raw data")
     eye$raw <- NULL
+    cat("- 7.1 Removing raw data: COMPLETE\n")
+  } else{
+    log_chunk_header("7. Removing raw data: SKIPPED")
   }
 
-  #close .elog
-  sink()
-
-  # to signal that preprocessing finished without issue (though make sure to check .elog for missteps along the way)
-  class(eye) <- c(class(eye), "ep.eye.preproc")
-
-  if(save_preprox)
+  ######
+  ### 8. Saving preprocessed data
+  ######
+  if(save_preproc){
+    log_chunk_header("8. Saving preprocessed data")
     if(is.null(out_dir)) {
-      save(eye, file = paste0(prefix, "_ep.eye.preproc.RData"))
+      spath <- paste0(prefix, "_ep.eye.preproc.RData")
     } else{
-      if(!dir.exists(out_dir)) dir.create(outdir)
-      save(eye, file = file.path(out_dir, paste0(prefix, "_ep.eye.preproc.RData")))
-      }
+      if(!dir.exists(out_dir)) dir.create(out_dir)
+      spath <- file.path(out_dir, paste0(prefix, "_ep.eye.preproc.RData"))
+    }
+    save(eye, file = spath); cat(paste0("- 8.1 Preprocessed data saved to ", spath, ": COMPLETE\n"))
+  }
 
+
+
+  #close .elog
+  sink(); sink()
 
   return(eye)
 }

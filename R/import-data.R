@@ -73,47 +73,53 @@ find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') 
 ##' }
 ##' @export
 read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRUE, samples=TRUE, ...) {#c. = 1, ...) {
+  log_chunk_header("1. Read EDF file:")
+  # browser()
+  tryCatch.ep({
+    stopifnot(all(file.exists(edf_files))) #require that files are present
+    if (!keep_asc) {
+      asc_output_dir <- tempdir() #output ascs to temporary directory
+    } else {
+      if (!is.null(asc_output_dir) && !dir.exists(asc_output_dir)) { dir.create(asc_output_dir) } #create output directory for ASC files if requested
+    }
 
-  stopifnot(all(file.exists(edf_files))) #require that files are present
-  if (!keep_asc) {
-    asc_output_dir <- tempdir() #output ascs to temporary directory
-  } else {
-    if (!is.null(asc_output_dir) && !dir.exists(asc_output_dir)) { dir.create(asc_output_dir) } #create output directory for ASC files if requested
-  }
+    #convert all files to asc
+    asc_files <- pkgcond::suppress_warnings(edf2asc(edf_files, asc_output_dir=asc_output_dir, gzip_asc=gzip_asc))
 
-  #convert all files to asc
-  asc_files <- edf2asc(edf_files, asc_output_dir=asc_output_dir, gzip_asc=gzip_asc)
+    #pass additional arguments such as parse_all to read.asc
+    res <- lapply(asc_files, function(fname) {
 
-  #pass additional arguments such as parse_all to read.asc
-  res <- lapply(asc_files, function(fname) {
-
-    eye_data <- pkgcond::suppress_warnings(read.asc(fname=fname, samples=samples,...), pattern = "had status 255", fixed =TRUE)
-    eye_data$asc_file <- fname
-    class(eye_data) <-
-      return(eye_data)
-  })
-
-  if (!keep_asc) { file.remove(asc_files) } #cleanup asc files if requested
-
-  names(res) <- basename(edf_files)
-
-  # tag with initial .edf name
-  for(i in 1:length(res)){res[[i]][["edf_file"]] <- edf_files[i]}
-
-  # to avoid confusion, re-label .edf "block" column with the more useful title "event" to fit with ep conventions.
-  res <- lapply(res, function(x){ # over subjects
-    lapply(x, function(y){ # over elements in ep.subject
-      if("block" %in% names(y)){
-        y <- y %>% rename(`eventn` = `block`)
-      }
-      return(y)
+      eye_data <- pkgcond::suppress_warnings(read.asc(fname=fname, samples=samples,...), pattern = "had status 255", fixed =TRUE)
+      eye_data$asc_file <- fname
+      class(eye_data) <-
+        return(eye_data)
     })
-  })
+
+    if (!keep_asc) { file.remove(asc_files) } #cleanup asc files if requested
+
+    names(res) <- basename(edf_files)
+
+    # tag with initial .edf name
+    for(i in 1:length(res)){res[[i]][["edf_file"]] <- edf_files[i]}
+
+    # to avoid confusion, re-label .edf "block" column with the more useful title "event" to fit with ep conventions.
+    res <- lapply(res, function(x){ # over subjects
+      lapply(x, function(y){ # over elements in ep.subject
+        if("block" %in% names(y)){
+          y <- y %>% rename(`eventn` = `block`)
+        }
+        return(y)
+      })
+    })
 
 
-  cat("\n--------------\n1. Read EDF file: COMPLETE\n--------------\n")
+    }, "- 1.1 Read EDF file:")
+
+  if(!exists("res")) res <- "Something went wrong"
+
   return(res)
 }
+
 
 
 

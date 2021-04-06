@@ -4,7 +4,7 @@
 #'  A report can then be generated to either verify folks that look fine or to draw attention to problematic data.
 #'
 
-init_eyelog <- function(log_dir = NULL, prefix = NULL){
+init_eyelog <- function(log_dir = NULL, prefix = NULL, file){
 
   if(is.null(log_dir)){log_dir <- getwd(); message("Generating .elog file in current directory: ", getwd())} else{
     message("Generating .elog file in: ", log_dir)

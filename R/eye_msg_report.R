@@ -3,7 +3,7 @@ eye_msg_report <- function(eye, report_path = NULL, events = "all", return_eye =
   #for a quick look at ET message flow by event. Allows for user to quickly look for messaging conventions that can be specified in YAML config file.
 
   if(is.character(eye)){ # if string provided, attempt to read it.
-    eye <- read_edf(file, keep_asc=FALSE, parse_all=TRUE, samples = FALSE)[[1]] #samples = FALSE removes read-in of raw data
+    eye <- read_edf(eye, keep_asc=FALSE, parse_all=TRUE, samples = FALSE)[[1]] #samples = FALSE removes read-in of raw data
   }
 
   stopifnot(exists("eye")) # must be input as argument or an edf must supply it. Can be read internally, supplied as the output of read_edf, or as an already initialized ep.eye object.
@@ -12,6 +12,7 @@ eye_msg_report <- function(eye, report_path = NULL, events = "all", return_eye =
   if(is.null(report_path)){
     sink(file = "eye_message_format.txt")
   } else{
+    if(!dir.exists(str_extract(report_path, ".*/"))) dir.create(str_extract(report_path, ".*/"))
     sink(file = report_path)
   }
 
