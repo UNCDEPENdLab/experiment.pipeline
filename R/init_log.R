@@ -4,7 +4,7 @@
 #'  A report can then be generated to either verify folks that look fine or to draw attention to problematic data.
 #'
 
-init_eyelog <- function(log_dir = NULL){
+init_eyelog <- function(log_dir = NULL, prefix = NULL){
 
   if(is.null(log_dir)){log_dir <- getwd(); message("Generating .elog file in current directory: ", getwd())} else{
     message("Generating .elog file in: ", log_dir)
@@ -13,12 +13,11 @@ init_eyelog <- function(log_dir = NULL){
     }
   }
 
-
-  fname <- sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\2", file) # strips ascending path and replaces file extension
-  log_fname <- file.path(log_dir, paste0(fname, ".elog"))
+  if(is.null(prefix)) prefix <- sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\2", file) # strips ascending path and replaces file extension
+  log_fname <- file.path(log_dir, paste0(prefix, ".elog"))
 
   if(file.exists(log_fname)){
-    message("elog already exists for: ", fname, ". Overwriting.") #can entertain other options, but this is fine for now.
+    message("elog already exists for: ", log_fname, ". Overwriting.") #can entertain other options, but this is fine for now.
   }
 
   sink(log_fname) # open sink

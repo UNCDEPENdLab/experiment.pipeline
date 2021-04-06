@@ -1,5 +1,5 @@
 #' general wrapper for reading eye data into the package and performing all QA and processing
-read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL, ...) {
+read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, ...) {
   ######################## setup
   # tic("total time") #for internal speed checks
   stopifnot(file.exists(file))
@@ -7,6 +7,7 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
 
   # initialize log file if requested. Otherwise will print feedback while running checks.
   ## N.B. right now this will overwrite existing files, can come back to later.
+  if(is.null(prefix)) prefix <- str_extract(file, "\\d{3}_[[:lower:]]+")
   if(gen_log){init_eyelog(log_dir)}
 
   ######################## Begin processing
@@ -75,6 +76,15 @@ read_process_eye <- function(file, config = NULL, gen_log = TRUE, log_dir = NULL
 
   # to signal that preprocessing finished without issue (though make sure to check .elog for missteps along the way)
   class(eye) <- c(class(eye), "ep.eye.preproc")
+
+  if(save_preprox)
+    if(is.null(out_dir)) {
+      save(eye, file = paste0(prefix, "_ep.eye.preproc.RData"))
+    } else{
+      if(!dir.exists(out_dir)) dir.create(outdir)
+      save(eye, file = file.path(out_dir, paste0(prefix, "_ep.eye.preproc.RData")))
+      }
+
 
   return(eye)
 }
