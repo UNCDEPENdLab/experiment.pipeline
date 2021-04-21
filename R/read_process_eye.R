@@ -1,5 +1,5 @@
 #' general wrapper for reading eye data into the package and performing all QA and processing
-read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, ...) {
+read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, event_csv = NULL, ...) {
   ######################## setup
   # tic("total time") #for internal speed checks
   stopifnot(file.exists(file))
@@ -38,7 +38,7 @@ read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE,
     cat("Only generic read/validation of ep.eye object applied. No user-specified message parsing.")
   } else{
     tic("3. parse time")
-    eye <- eye_parsed <- parse_config_eye(eye_init, config)#; inc(stepC)
+    eye <- eye_parsed <- parse_config_eye(eye_init, config, event_csv = event_csv)#; inc(stepC)
     toc()
   }
 

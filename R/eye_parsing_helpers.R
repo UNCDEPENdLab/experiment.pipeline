@@ -3,7 +3,7 @@
 #' split off function for checking message sequence.
 #'
 check_msg_seq <- function(c.e, eye, dt){
-
+# browser()
   tryCatch.ep({
 
     ## N.B. by looping over block any errors at any point will stop the script. May be better if this turns into an issue to instead store everything in one large df across blocks as we loop over and check this at the very end. Can return to this later.
@@ -21,7 +21,7 @@ check_msg_seq <- function(c.e, eye, dt){
           arrange(time) # arrange at the end ensures that extracted messages are stored in the order they appear in continuous time rather than the order they were requested (i.e. the j iterator)
       }
 
-      extracted_msgs <- extracted_msgs$et.msg
+      extracted_msgs <- unique(extracted_msgs$et.msg)
 
 
       # if(length(extracted_msgs) != length(check_these)){
@@ -40,8 +40,11 @@ check_msg_seq <- function(c.e, eye, dt){
       # do this by utilizing the initial vector of extracted messages.
       if(c.e$event_info$msg_seq$ordered){
         # this is almost certainly error-prone, can come back to this later. on first glance it seems like it could work in the mean time.
-        df <- df %>% left_join(data.frame(extracted = extracted_msgs,
-                                          order_check = extracted_msgs == na.omit(df$extracted)), by = "extracted")
+        ord_df <- data.frame(extracted = extracted_msgs,
+                   order_check = extracted_msgs == na.omit(df$extracted))
+
+
+        df <- df %>% left_join(ord_df, by = "extracted")
 
       } else {
         df <- df %>% mutate(order_check = TRUE) # don't cause any trouble.
@@ -61,6 +64,9 @@ check_msg_seq <- function(c.e, eye, dt){
     # store imperfect seq matches and print warning. Update to include empty list if all successful and just print warning if there is an issue.
     eye$metadata[["msg_seq_errs"]] <- seq_errs
 
+    eye$metadata[["msg_seq_errs"]] <- do.call(rbind, eye$metadata[["msg_seq_errs"]]) %>% data.table()
+
+
     if(length(seq_errs) != 0){
       warning("IMPERFECT MESSAGE SEQUENCES FOUND IN: 'ep.eye$metadata$msg_seq_errs'")
     }
@@ -74,70 +80,116 @@ check_msg_seq <- function(c.e, eye, dt){
 
 #' split off function for extracting event info
 #'
-get_event_info <- function(c.e, eye, dt){
+get_event_info <- function(c.e, eye, dt, event_csv = NULL){
   cat(dt)
-  # browser()
-  tryCatch.ep({
-    # N.B. right now we minimally need an event ID string to search for.
-    # If this is not provided, we will not be able to glean any useful about which messages contain information about what is happening in the task and this will painfully need to be recreated on the backend or information from the behavior data will need to be used.
-    stopifnot("msg" %in% names(c.e$event_info))
 
-    # as of the initial draft of this function, only regex functions are used to extract information. Could allow user to specify a separate csv with important information as another option, for example.
-    if(!"extraction_method" %in% names(c.e$event_info)) {
-      c.e$event_info$extaction_method <- "regex"
-      cat("\n- 3.4 MESSAGE: No extraction method listed in config, setting to regex\n")
-    }
 
-    ### 3.4.1 ensure all events have a message with the expected msg string
-    dt1 <-  "-- 3.4.1 Ensure all events have a message with the expected msg string:"
+  #### EXTRACTION METHOD: regexp
+  ######## If each event starts with a predictable event/trial indicator followed by separated information about experimental block, block_trial, eventn, and event the package can easily parse this and populate the data with relevant info to be used later.
 
-    info_msgs <- eye$raw %>% dplyr::filter(grepl(c.e$event_info$msg, et.msg))
-    info_match <- info_msgs$eventn == unique(eye$raw$eventn)
+  if(is.null(event_csv)){
+    tryCatch.ep({
+      # N.B. right now we minimally need an event ID string to search for.
+      # If this is not provided, we will not be able to glean any useful about which messages contain information about what is happening in the task and this will painfully need to be recreated on the backend or information from the behavior data will need to be used.
+      stopifnot("msg" %in% names(c.e$event_info))
 
-    #if not every event has an event info message, log in meta data and move on.
-    if(!all(info_msgs$eventn == unique(eye$raw$eventn))){
-      eye$metadata[["miss_ev_info_msg"]] <- info_msgs$eventn[which(!info_match)]
-      stop("Not all events have corresponding event information message")
-    }
-  }, describe_text = dt1)
+      # as of the initial draft of this function, only regex functions are used to extract information. Could allow user to specify a separate csv with important information as another option, for example.
+      if(!"extraction_method" %in% names(c.e$event_info)) {
+        c.e$event_info$extaction_method <- "regex"
+        cat("\n- 3.4 MESSAGE: No extraction method listed in config, setting to regex\n")
+      }
 
-  ### 3.4.2 populate raw data with event info
-  dt2 <-  "-- 3.4.2 Populate raw data with event info:"
-  tryCatch.ep({
+      ### 3.4.1 ensure all events have a message with the expected msg string
+      dt1 <-  "-- 3.4.1 Ensure all events have a message with the expected msg string:"
 
-    tomerge <- info_msgs %>% rename(`event_info` = `et.msg`) %>% dplyr::select(eventn, event_info)
+      info_msgs <- eye$raw %>% dplyr::filter(grepl(c.e$event_info$msg, et.msg))
+      info_match <- info_msgs$eventn == unique(eye$raw$eventn)
 
-    if(!"msg_extract" %in% names(c.e$event_info)){
-      # msg extract is a regex that tells ep what portion of the event info message needs to be extracted and used to convey information about what is happening on the screen.
-      # if blank, just plug the whole string into an event_info column.
-      cat("- 3.4.2 MESSAGE: No instructions on what specific event info extract, placing the entire message in a single column (eye$raw$event_info)\n")
+      #if not every event has an event info message, log in meta data and move on.
+      if(!all(info_msgs$eventn == unique(eye$raw$eventn))){
+        eye$metadata[["miss_ev_info_msg"]] <- info_msgs$eventn[which(!info_match)]
+        stop("Not all events have corresponding event information message")
+      }
+    }, describe_text = dt1)
 
-    } else{
-      # pairs down to just  what is requested in msg.extract
-      tomerge$event_info <- str_extract(tomerge$event_info, c.e$event_info$msg_extract)
-      if("split_by" %in% names(c.e$event_info)){ # if information is spliced via a designated seperator.
-        if("msg_parts" %in% names(c.e$event_info)){ # parts of messages are designated with column names
-          tomerge <- tomerge %>% separate(event_info, c.e$event_info$msg_parts, sep = c.e$event_info$split_by,)
-        } else{ # non-descriptive letters
-          tomerge <- tomerge %>% separate(event_info, letters[1:length(str_split(tomerge$event_info, pattern = c.e$event_info$split_by)[[1]])], sep = c.e$event_info$split_by,)
+    ### 3.4.2 populate raw data with event info
+    dt2 <-  "-- 3.4.2 Populate raw data with event info:"
+    tryCatch.ep({
+
+      tomerge <- info_msgs %>% rename(`event_info` = `et.msg`) %>% dplyr::select(eventn, event_info)
+
+      if(!"msg_extract" %in% names(c.e$event_info)){
+        # msg extract is a regex that tells ep what portion of the event info message needs to be extracted and used to convey information about what is happening on the screen.
+        # if blank, just plug the whole string into an event_info column.
+        cat("- 3.4.2 MESSAGE: No instructions on what specific event info to extract, placing the entire message in a single column (eye$raw$event_info)\n")
+
+      } else{
+        # pairs down to just  what is requested in msg.extract
+        tomerge$event_info <- str_extract(tomerge$event_info, c.e$event_info$msg_extract)
+        if("split_by" %in% names(c.e$event_info)){ # if information is spliced via a designated seperator.
+          if("msg_parts" %in% names(c.e$event_info)){ # parts of messages are designated with column names
+            tomerge <- tomerge %>% separate(event_info, c.e$event_info$msg_parts, sep = c.e$event_info$split_by,)
+          } else{ # non-descriptive letters
+            tomerge <- tomerge %>% separate(event_info, letters[1:length(str_split(tomerge$event_info, pattern = c.e$event_info$split_by)[[1]])], sep = c.e$event_info$split_by,)
+          }
         }
       }
-    }
 
 
-    # convert columns to numeric if possible. ARobertson: https://stackoverflow.com/questions/22772279/converting-multiple-columns-from-character-to-numeric-format-in-r
-    is_all_numeric <- function(x) {
-      !any(is.na(suppressWarnings(as.numeric(na.omit(x))))) & is.character(x)
-    }
-    tomerge <- tomerge %>% mutate_if(is_all_numeric,as.numeric)
+      # convert columns to numeric if possible. ARobertson: https://stackoverflow.com/questions/22772279/converting-multiple-columns-from-character-to-numeric-format-in-r
+      is_all_numeric <- function(x) {
+        !any(is.na(suppressWarnings(as.numeric(na.omit(x))))) & is.character(x)
+      }
+      tomerge <- tomerge %>% mutate_if(is_all_numeric,as.numeric)
 
-    # final merge to raw, and gev dfs
-    eye$raw <- eye$raw %>% left_join(tomerge, by = "eventn")
-    eye$gaze$sacc <- eye$gaze$sacc %>% left_join(tomerge, by = "eventn")
-    eye$gaze$fix <- eye$gaze$fix %>% left_join(tomerge, by = "eventn")
-    eye$gaze$blink <- eye$gaze$blink %>% left_join(tomerge, by = "eventn")
+      # final merge to raw, and gev dfs
+      eye$raw <- eye$raw %>% left_join(tomerge, by = "eventn")
+      eye$gaze$sacc <- eye$gaze$sacc %>% left_join(tomerge, by = "eventn")
+      eye$gaze$fix <- eye$gaze$fix %>% left_join(tomerge, by = "eventn")
+      eye$gaze$blink <- eye$gaze$blink %>% left_join(tomerge, by = "eventn")
 
-  }, describe_text = dt2)
+    }, describe_text = dt2)
+  } else{
+    ### EXTRACTION METHOD: event_csv
+    ######## Sometimes it is simply easier to generate a .csv file linking specific messages to important trial related information that can be easily merged into the eye data in order to be compliant with ep.eye naming conventsion
+    ######## N.B. event csvs must minimally contain columns "block", "block_trial", "event", "eventn", "time", and "et.msg". At time of writing (4/20/21), I dont see a reason why additional columns couldnt be included but I havent thought deeply about this.
+
+    ### check that all times from event_csv are contained within raw data
+
+    tryCatch.ep({
+      dt1 <- "-- 3.4.1 Confirm timing match between event_csv and data and merge:"
+      info_msgs <- read.csv(event_csv)
+      info_msgs$time <- info_msgs$time - eye$metadata$t_start
+      stopifnot(all(info_msgs$time %in% eye$raw$time))
+    }, describe_text = dt1)
+
+    tryCatch.ep({
+    if(exists("info_msgs")){
+      dt2 <- "-- 3.4.2 Merge trial info to eye data:"
+      non_join_colnames <- colnames(info_msgs)[which(!colnames(info_msgs) %in% c("eventn", "et.msg", "time"))]
+
+      eye$raw <- eye$raw %>% left_join(info_msgs, by = c("time", "et.msg", "eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+      eye$gaze$sacc <- eye$gaze$sacc %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+      eye$gaze$fix <- eye$gaze$fix %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+      eye$gaze$blink <- eye$gaze$blink %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+
+      }
+    }, describe_text = dt2)
+
+
+  }
 
 
   return(eye)
@@ -261,7 +313,7 @@ tidy_eye_config <- function(config, dt = NULL){
           # check first for an eye field in each event type in a block.
           for(j in names(config$blocks[[i]]$events)){
             ev_m <- config$blocks[[i]]$events[[j]]$eye
-            if(c.e$event_info$msg_seq$ordered){
+            if(c.e$event_info$msg_seq$eval_middle){
               msg_vec <- c(c.e$event_info$msg_seq$msg_start, ev_m$mid_msg, c.e$event_info$msg_seq$msg_end)
               c.e$event_info$msg_seq[[i]][[j]] <- msg_vec
             }
