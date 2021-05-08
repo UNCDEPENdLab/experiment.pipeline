@@ -48,6 +48,22 @@ gen_heatmaps <- function(df, event_na){
   # browser()
   bad_trials <- event_na %>% filter(exclude == 1) %>% pull(eventn)
 
+  #### average per block and event
+  sumdf <- df %>% group_by(block, event, time_ev) %>% summarise(mx = mean(xp,na.rm = TRUE), my = mean(yp, na.rm = TRUE))
+
+  pp_total <- ggplot(sumdf, aes(x = mx, y = my))  +
+    stat_density2d(geom = "raster", aes(fill = after_stat(density)), contour = FALSE) +
+    annotate("rect", xmin = aoi_info$x1, xmax = aoi_info$x2,
+             ymin = aoi_info$y1, ymax = aoi_info$y2, alpha = 1, fill = NA,
+             color = "white", cex = .1)+
+    geom_point(color = "white", alpha = .005) + scale_fill_viridis(option = "A",direction = 1) +
+    xlim(0, eye$metadata$screen.x) + ylim(0, eye$metadata$screen.y) +
+    theme_classic() + theme(legend.position = "none") + facet_nested(block ~ event)
+    # labs(title = paste0("Block: ", unique(event$block), ". Trial: ", unique(event$block_trial)),
+    #      subtitle = paste0(unique(event$event), " (", unique(event$eventn), ")")) +
+
+
+
   for(ev in unique(df$eventn)){
 
     missperc <- event_na %>% dplyr::filter(eventn == ev) %>% pull(xp)
@@ -82,9 +98,6 @@ gen_heatmaps <- function(df, event_na){
   return(heatmaps)
 
 }
-
-
-
 fix_plots <- function(df, event_na){
 
   require(see)

@@ -355,6 +355,10 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
 #  }
 
 
+
+# pupil funcs -------------------------------------------------------------
+
+
 #### need to tweak for different sampling rates.
 interp_pupil <- function(eye, maxgap, option = "linear"){
   all_t <- seq(0,max(eye$raw$time))
@@ -383,18 +387,17 @@ interp_pupil <- function(eye, maxgap, option = "linear"){
   return(eye)
 }
 
-# pupil -------------------------------------------------------------------
 
 extend_blinks <- function(eye, c.pupil){
 
   ### extract pupil size from raw.
   pup <- eye$raw
 
-  ### convert to ntimepoints depending on sampling rate if not 1000
   sr <- eye$metadata$sample.rate
   bf <- c.pupil$blink_corr$ms_before
   af <- c.pupil$blink_corr$ms_after
 
+  ### convert to ntimepoints depending on sampling rate if not 1000
   if(sr != 1000){
     conv_ms <- 1000/sr
     bf <- bf/conv_ms
@@ -441,6 +444,11 @@ smooth_pupil <- function(eye, c.pupil){
 
 baseline_correct <- function(eye, center_on, dur_ms){
 
+  # if this is populated, the metadata will have information stored on the timestamp discrepancies and a warning that asks the user to check. Ideally, only one message is passed that marks the start of the trial/stimulus onset/etc
+  mult_bldf <- data.table()
+  # if this is populated, the trial in question does not have the specified center_on message and will use the first measurement alone as a baseline assessment
+  missing_baseline <- c()
+
   ret_bc <- data.table()
 
   for(ev in unique(eye$pupil$preprocessed$eventn)){
@@ -450,17 +458,49 @@ baseline_correct <- function(eye, center_on, dur_ms){
 
 
     baset <- st[which(grepl(center_on, st$et.msg)),]$time
-    bpos <- which(st$time %in% seq(baset - 100, baset))
-    bl <- median(st$ps_interp[bpos], na.rm = TRUE)
 
-    st <- st %>% mutate(ps_bc = ps_interp - bl,
-                        time_bc = time -baset) %>% data.table()
+    #### if there are more than one instance where message is passed, take first position, but log discrepancies and pass error at the end to look through these. This should be rare
+    if(length(baset) > 1){
+      mult_bldf <- rbind(mult_bldf, data.table(eventn = ev,
+                                               time = baset,
+                                               et.msg = st %>% dplyr::filter(time %in% baset) %>% pull(et.msg)))
+      baset <- baset[1] # this could be considered for an argument to put in config file.
+    }
+
+    #### if no baseline message passed on this event, set baseline measurement to the first in the event
+    if(length(baset) == 0){
+      bl <- st$ps_interp[1]
+      baset <- st$time[1]
+      missing_baseline <- c(missing_baseline, ev)
+    } else{
+      bpos <- which(st$time %in% seq(baset - 100, baset))
+      bl <- median(st$ps_interp[bpos], na.rm = TRUE)
+    }
+
+    ### perform baseline correction
+    if(c.pupil$baseline_correction$method == "subtract"){
+      st <- st %>% mutate(ps_bc = ps_interp - bl,
+                          time_bc = time -baset) %>% data.table()
+    } else{
+      message("Currently only subtrative ('subtract') baseline correction supported")
+    }
 
     ret_bc <- rbind(ret_bc, st)
     # ggplot(st, aes(x = time_bc, y = ps_bc, color = eventn)) + geom_line() + geom_vline(xintercept = 0, alpha = .5) + geom_hline(yintercept = 0, alpha = .5) + theme_bw()
   }
 
   eye$pupil$preprocessed <- ret_bc
+
+  if(nrow(mult_bldf) != 0){
+    eye$metadata$pupil_multiple_baseline_msgs <- mult_bldf
+    cat("For at least one trial, multiple baseline/center_on messages passed. First instance selected by default but see eye$metadata$pupil_multiple_baselines for large discrepancies\n")
+  }
+
+  if(length(missing_baseline) != 0){
+    eye$metadata$pupil_missing_baseline_msg <- missing_baseline
+    cat("\nFor at least one trial, no baseline/center_on messages passed. First measurement in trial used as baseline.\n")
+  }
+
   return(eye)
 }
 
@@ -563,7 +603,7 @@ tag_event_time <- function(eye){
   try({
     raw_estimes <- eye$raw  %>% group_by(eventn) %>%
       summarise(stime_ev = min(time),
-                etime_ev = max(time))
+                etime_ev = max(time), .groups = "drop")
 
     eye$raw <- raw_estimes %>% right_join(eye$raw, by = "eventn") %>%
       mutate(time_ev = (time - stime_ev)) %>%
@@ -575,14 +615,14 @@ tag_event_time <- function(eye){
   ################
   try({eye$gaze$downsample <- eye$gaze$downsample %>% group_by(eventn) %>%
     summarise(stime_ev = min(time),
-              etime_ev = max(time)) %>%
+              etime_ev = max(time), .groups = "drop") %>%
     right_join(eye$gaze$downsample, by = "eventn") %>% mutate(time_ev = (time - stime_ev)) %>%
     select(block, block_trial, event, eventn, time, time_ev, xp,yp, saccn, fixn,blinkn,et.msg)
   })
 
   try({eye$pupil$downsample <- eye$pupil$downsample %>% group_by(eventn) %>%
     summarise(stime_ev = min(time),
-              etime_ev = max(time)) %>%
+              etime_ev = max(time), .groups = "drop") %>%
     right_join(eye$pupil$downsample, by = "eventn") %>% mutate(time_ev = (time - stime_ev)) %>%
     select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn,blinkn,et.msg)
   })

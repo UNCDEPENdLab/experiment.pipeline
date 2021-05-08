@@ -40,6 +40,12 @@ process_eye_dir <- function(dir, # directory with all edf files. Should be label
   proc_edfs <- foreach(sub = edf_paths, .packages = names(sessionInfo()$otherPkgs)) %dopar% {
     id <- str_extract(sub, "\\d{3}")
 
+    # if(config$definitions$eye$event_info$extraction_method %in% c("csv", "data.frame")){
+    #   stopifnot(is.null(event_info)) # need to point to function or .csv file
+    #   if
+    # }
+
+
     out <- read_process_eye(file = sub, config = config, prefix = id,
                             gen_log = gen_log, log_dir = log_dir,
                             save_preproc = save_preproc, out_dir = out_dir)

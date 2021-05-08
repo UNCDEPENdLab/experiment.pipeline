@@ -1,6 +1,7 @@
 preprocess_pupil <- function(eye, config, header = "5. Pupil preprocessing:"){
 
   log_chunk_header(header)
+  eye <- eye_gazePre
 
   ### 5.1 Extract pupil configuration options
   tryCatch.ep({

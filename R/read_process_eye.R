@@ -46,14 +46,14 @@ read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE,
   ### 4. Gaze preprocessing
   #########
   tic("4. gaze preproc time")
-  eye <- eye_gazePre <- preprocess_gaze(eye, config)
+  eye <- eye_gazePre <- preprocess_gaze(eye_parsed, config)
   toc()
 
   ######
   ### 5 Pupil preprocessing.
   ######
   tic("5. pupil time")
-  eye <- pupil_preproc <- preprocess_pupil(eye, config)
+  eye <- eye_gaze_pupilPre <- preprocess_pupil(eye_gazePre, config)
   toc()
 
 
@@ -91,8 +91,6 @@ read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE,
     }
     save(eye, file = spath); cat(paste0("- 8.1 Preprocessed data saved to ", spath, ": COMPLETE\n"))
   }
-
-
 
   #close .elog
   sink(); sink()
