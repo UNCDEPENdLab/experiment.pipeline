@@ -85,9 +85,10 @@
 ##' fout <- edf2asc(fin)
 ##' fout
 ##' }
-edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=TRUE) {
+edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=TRUE, running = "mac") {
   # detect operating system
   info <- sessionInfo()
+  if(is.null(info$running)) info$running <- running
 
   #override internal use of -p flag in edf2asc to allow for internal R move commands
   has_p <- grepl("-p\\b", edf2asc_opts, perl=TRUE) #look for hyphen p followed by a word boundary
@@ -119,8 +120,11 @@ edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=
   } else if (grepl('win', info$running, ignore.case = TRUE)) {
     edf2asc_dir <- system2("where", "edf2asc.exe", stdout = TRUE)
     exe <- edf2asc_dir[1]
+  } else if(grepl('linux', info$running, ignore.case = TRUE)){
+    edf2asc_dir <- system2("which", "edf2asc", stdout = TRUE)
+    exe <- edf2asc_dir[1]
   } else {
-    stop("Only Mac OSX and Windows are supported currently.")
+    stop("Only Mac OSX, Linux, and Windows are supported currently.")
   }
 
   if(!grepl("edf2asc", exe)){
@@ -146,7 +150,7 @@ edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=
   }
 
   for (ff in edf_files) {
-    if (grepl('mac|win', info$running, ignore.case = TRUE)) {
+    if (grepl('mac|win|linux', info$running, ignore.case = TRUE)) {
       ## see R function shQuote() for help building the command line string.
       log <- system2(exe,
                      args = shQuote(paste(edf2asc_opts, ff), type = "cmd2"),
