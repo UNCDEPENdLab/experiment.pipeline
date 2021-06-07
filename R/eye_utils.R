@@ -20,6 +20,7 @@ initialize_eye <- function(eye, config) {#, c. = 2) {
 
   ### 2.2 initialize basic eye object structure
   eout <- list(raw = eye$raw,
+               msg = eye$msg,
                gaze = list(downsample = data.table(),
                            sacc = as.data.table(eye$sacc) %>% mutate(saccn = 1:nrow(.)),
                            fix = as.data.table(eye$fix) %>% mutate(fixn = 1:nrow(.)),
