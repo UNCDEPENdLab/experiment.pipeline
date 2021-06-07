@@ -9,7 +9,7 @@ init_eyelog <- function(log_dir = NULL, prefix = NULL, file){
   if(is.null(log_dir)){log_dir <- getwd(); message("Generating .elog file in current directory: ", getwd())} else{
     message("Generating .elog file in: ", log_dir)
     if(!dir.exists(log_dir)){
-      dir.create(log_dir)
+      dir.create(log_dir, recursive = TRUE)
     }
   }
 
