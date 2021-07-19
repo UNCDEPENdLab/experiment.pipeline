@@ -120,7 +120,7 @@ shift_peaks <- function(sig, peak_inds, search_radius=20, peak_up=TRUE) {
     ind = peak_inds[i]
     local_sig = sig[max(1, ind - search_radius):min(ind + search_radius, sig_len)]
     if (isTRUE(peak_up)) {
-      tryCatch(shift_inds[i] <- which.max(local_sig), error=function(e) { browser() })
+      shift_inds[i] <- which.max(local_sig)
     } else {
       shift_inds[i] = which.min(local_sig)
     }
@@ -139,7 +139,10 @@ shift_peaks <- function(sig, peak_inds, search_radius=20, peak_up=TRUE) {
   }
 
   #shift to 1-based indexing in R, so when shift_inds - 1 == search_radius, the resulting shift is zero.
-  shifted_peak_inds = peak_inds + (shift_inds - 1) - search_radius
+  #shifted_peak_inds = peak_inds + (shift_inds - 1) - search_radius
+  
+  #on further testing, I think the -1 is likely wrong since it can lead to indices of 0 (when which.max is the first sample)
+  shifted_peak_inds = peak_inds + shift_inds - search_radius
 
   return(shifted_peak_inds)
 }
