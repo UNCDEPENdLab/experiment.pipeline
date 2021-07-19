@@ -5,7 +5,7 @@
 #'
 
 
-parse_config_eye <- function(eye, config, header = "3. Parse config file for ep.eye:", event_csv = NULL){#, .c = 3){
+parse_config_eye <- function(eye, config, header = "3. Parse config file for ep.eye:") { #}, event_csv = NULL){#, .c = 3){
   # browser()
   tictoc::tic();
   # eye <- eye_init
@@ -36,7 +36,7 @@ parse_config_eye <- function(eye, config, header = "3. Parse config file for ep.
   ### 3.4 Extract event info
   dt <- "- 3.4 Parsing event information:\n"
   if("event_info" %in% names(c.e)){
-    eye <- get_event_info(c.e, eye, dt, event_info)
+    eye <- get_event_info(c.e, eye, dt)#, event_info)
   } else{
     cat(paste0(dt, " SKIP\n"))
   }

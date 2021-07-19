@@ -580,6 +580,9 @@ shift_eye_timing <- function(eye, dt){
     # blinks
     eye$gaze$blink$stime <- eye$gaze$blink$stime - t_start
     eye$gaze$blink$etime <- eye$gaze$blink$etime - t_start
+    # messages
+    eye$msg$time <-  eye$msg$time - t_start
+
     #meta-data
     # eye$metadata$missing_measurements$start <- eye$metadata$missing_measurements$start - t_start
     # eye$metadata$missing_measurements$end <- eye$metadata$missing_measurements$end - t_start

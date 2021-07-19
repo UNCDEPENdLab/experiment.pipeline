@@ -1,18 +1,16 @@
 #' general wrapper for reading eye data into the package and performing all QA and processing
-read_process_eye <- function(file, config = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, event_csv = NULL, ...) {
-  ######################## setup
-  # tic("total time") #for internal speed checks
-  stopifnot(file.exists(file))
-  if (length(file) > 1L) { stop("At present, read_process_eye is designed for one file at a time") }
+read_process_eye <- function(file, config_path) {# = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, event_csv = NULL, ...) { # 6/7: move all of these options into the config file for one-stop shopping. 
+  ######################### load files for debugging. comment when running full.
+ source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R")
+ # Neighborhood - PSU
+ file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/002_HS_Neighborhood_Eye.edf"
+ config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+ # Neighborhood - UNC
 
-  # config <- validate_exp_yaml(yaml_file)
+ ######################## setup
+  config <- setup_proc_configs(file, config_path)
 
-  # initialize log file if requested. Otherwise will print feedback while running checks.
-  ## N.B. right now this will overwrite existing files, can come back to later.
-  if(is.null(prefix)) prefix <- str_extract(file, "\\d{3}_[[:lower:]]+")
-  if(gen_log){init_eyelog(log_dir, prefix, file)}
-
-  ######################## Begin processing
+ ######################## Begin processing
 
   # # initialize step counter
   # stepC <- 1

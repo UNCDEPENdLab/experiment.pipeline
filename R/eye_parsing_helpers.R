@@ -83,11 +83,12 @@ check_msg_seq <- function(c.e, eye, dt){
 get_event_info <- function(c.e, eye, dt, event_csv = NULL){
   cat(dt)
 
+  ev_inf <- c.e$event_info
 
   #### EXTRACTION METHOD: regexp
   ######## If each event starts with a predictable event/trial indicator followed by separated information about experimental block, block_trial, eventn, and event the package can easily parse this and populate the data with relevant info to be used later.
 
-  if(is.null(event_csv)){
+  if(ev_inf$extraction_method == "regexp"){
     tryCatch.ep({
       # N.B. right now we minimally need an event ID string to search for.
       # If this is not provided, we will not be able to glean any useful about which messages contain information about what is happening in the task and this will painfully need to be recreated on the backend or information from the behavior data will need to be used.
@@ -149,16 +150,16 @@ get_event_info <- function(c.e, eye, dt, event_csv = NULL){
       eye$gaze$blink <- eye$gaze$blink %>% left_join(tomerge, by = "eventn")
 
     }, describe_text = dt2)
-  } else{
-    ### EXTRACTION METHOD: event_csv
-    ######## Sometimes it is simply easier to generate a .csv file linking specific messages to important trial related information that can be easily merged into the eye data in order to be compliant with ep.eye naming conventsion
+  } else if(ev_inf$extraction_method == "csv"){
+    ### EXTRACTION METHOD: csv
+    ######## Sometimes it is simply easier to generate a .csv file linking specific messages to important trial related information that can be easily merged into the eye data in order to be compliant with ep.eye naming conventions
     ######## N.B. event csvs must minimally contain columns "block", "block_trial", "event", "eventn", "time", and "et.msg". At time of writing (4/20/21), I dont see a reason why additional columns couldnt be included but I havent thought deeply about this.
 
     ### check that all times from event_csv are contained within raw data
 
     tryCatch.ep({
-      dt1 <- "-- 3.4.1 Confirm timing match between event_csv and data and merge:"
-      info_msgs <- read.csv(event_csv)
+      dt1 <- "-- 3.4.1 Confirm timing match between csv_path and data and merge:"
+      info_msgs <- read.csv(ev_inf$csv_path)
       info_msgs$time <- info_msgs$time - eye$metadata$t_start
       stopifnot(all(info_msgs$time %in% eye$raw$time))
     }, describe_text = dt1)
@@ -171,6 +172,55 @@ get_event_info <- function(c.e, eye, dt, event_csv = NULL){
       eye$raw <- eye$raw %>% left_join(info_msgs, by = c("time", "et.msg", "eventn")) %>% group_by(eventn) %>%
         tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
         ungroup() %>% data.table()
+
+      eye$gaze$sacc <- eye$gaze$sacc %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+      eye$gaze$fix <- eye$gaze$fix %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+      eye$gaze$blink <- eye$gaze$blink %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table()
+
+
+      }
+    }, describe_text = dt2)
+
+
+  } else if(ev_inf$extraction_method == "function"){
+
+  tryCatch.ep({
+   dt1 <- paste0("-- 3.4.1 Extracting eye events from user-supplied function (",basename(ev_inf$extract_event_func_path) ,"):")
+    if(exists("ev_inf")){
+     ev_f <- source(ev_inf$extract_event_func_path)$value
+     # if csv_path is specified, save the outputs of function into this directory as csvs, otherwise, just read. As a sanity check it is good idea to write and review a couple csvs to see how the event extraction and renaming is working internally. If you are confident the extraction works in your function, go ahead and skip the write.  
+     if("csv_path" %in% names(ev_inf)){
+      if(!dir.exists(ev_inf$csv_path)) dir.create(ev_inf$csv_path, recursive = TRUE)
+
+      info_msgs <- ev_f(eye, csv_path = file.path(ev_inf$csv_path, prefix))
+      }
+    } else {
+      info_msgs <- ev_f(eye)
+    }
+   },describe_text = dt1)
+    
+    tryCatch.ep({
+    if(exists("info_msgs")){
+      dt2 <- "-- 3.4.2 Merge trial info to eye data:"
+      non_join_colnames <- colnames(info_msgs)[which(!colnames(info_msgs) %in% c("eventn", "et.msg", "time"))]
+
+     #  in some cases, user functions will add messages where they do not appear in the standard messages. E.g. padding a trial ID from a between-trial message that contains important information. Take care of this here
+  
+  
+     #probably not the most efficient but gets the job done.
+     eye$raw <- eye$raw %>% left_join(select(info_msgs, time, et.msg) %>% rename(`msg.update` = `et.msg`), by = "time") %>% mutate(et.msg = ifelse(is.na(msg.update), et.msg, msg.update)) %>% select(-msg.update) 
+     
+      eye$raw <- eye$raw %>% left_join(info_msgs, by = c("time", "eventn", "et.msg")) %>% group_by(eventn) %>%
+        tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
+        ungroup() %>% data.table() #%>% filter(eventn == 4)
 
       eye$gaze$sacc <- eye$gaze$sacc %>% left_join(dplyr::select(info_msgs, -time, -et.msg), by = c("eventn")) %>% group_by(eventn) %>%
         tidyr::fill(all_of(non_join_colnames), .direction = "updown") %>%
