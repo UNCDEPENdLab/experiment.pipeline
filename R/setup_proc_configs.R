@@ -34,7 +34,9 @@ setup_proc_configs <- function(file,config_path){
   ## N.B. right now this will overwrite existing files, can come back to later.
   if(exists("gen_log")) {
       if(gen_log){
-      log_dir <- config$definitions$eye$process_opts$log_dir
+      if(exists("log_dir")) {
+        log_dir <- config$definitions$eye$process_opts$log_dir
+      } else{log_dir <- getwd()}
       init_eyelog(log_dir, prefix, file)   
      }
   }
