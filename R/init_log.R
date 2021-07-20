@@ -16,7 +16,7 @@ init_eyelog <- function(file, log_dir = NULL, prefix = NULL){
     }
   }
 
-  if(is.null(prefix)) prefix <- sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\2", file) # strips ascending path and replaces file extension
+  if(is.null(prefix)) prefix <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(file)) # strips ascending path and replaces file extension
   log_fname <- file.path(log_dir, paste0(prefix, ".elog"))
 
   if(file.exists(log_fname)){

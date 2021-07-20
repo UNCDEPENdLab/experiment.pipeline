@@ -22,7 +22,7 @@ read_process_eye <- function(file, config_path, ...) {
  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
  # Neighborhood - UNC
 
- ######################## setup
+ ######################## setup processing configuration variables.
   config <- setup_proc_configs(file, config_path)
 
  ######################## Begin processing
@@ -83,7 +83,7 @@ read_process_eye <- function(file, config_path, ...) {
   ######
   ### 7. Remove raw data to cut the size of returned object considerably.
   ######
-  if(!config$definitions$eye$process_opts$return_raw){
+  if(return_raw){
     log_chunk_header("7. Removing raw data")
     eye$raw <- NULL
     cat("- 7.1 Removing raw data: COMPLETE\n")

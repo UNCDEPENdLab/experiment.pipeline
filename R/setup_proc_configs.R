@@ -10,6 +10,8 @@
 #'  }
 #' @author Nate Hall
 #' 
+#' importFrom stringr str_extract
+#' 
 #' @export
 
 setup_proc_configs <- function(file,config_path){
@@ -19,14 +21,35 @@ setup_proc_configs <- function(file,config_path){
   config <- validate_exp_yaml(config_path)
   
   ################### read processing options from config into environment
-  opts <- config$definitions$eye$process_opts
+  proc_opt_names <- c("prefix", "gen_log", "log_dir", "preproc_out", "return_raw")
+  
+  if("process_opts" %in% names(config$definitions$eye)){
+    opts <- config$definitions$eye$process_opts
+  } else{ # if processing options are not specified, revert to default options.
+    opts <- list()
+    opts[["prefix"]] <- NULL
+    opts[["gen_log"]] <- TRUE
+    opts[["log_dir"]] <- NULL
+    opts[["save_preproc"]] <- TRUE
+    opts[["preproc_out"]] <- NULL
+    opts[["return_raw"]] <- FALSE
+  }
+  
   invisible(list2env(opts,  envir = environment()))
 
-  ### Set prefix string
+
+  ###################
+
+  ### Set prefix string. If a regex string is provided, extract from file name otherwise set to the base file name. 
   if(exists("prefix")){
-    if(is.null(prefix)) prefix <- str_extract(basename(file), "\\d{3}_[[:upper:]]+")  ## N.B. make more flexible if null
+    if(!is.null(prefix)) {
+      # prefix <- "\\d{3}_[[:upper:]]+"
+      prefix <- str_extract(basename(file), prefix)  
+    } else {
+      prefix <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(file))
+    }
   } else {
-    prefix <- str_extract(basename(file), "\\d{3}_[[:upper:]]+")  ## N.B. make more flexible if null 
+    prefix <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(file))
   }
   opts[["prefix"]] <- prefix
 
@@ -37,7 +60,7 @@ setup_proc_configs <- function(file,config_path){
       if(exists("log_dir")) {
         log_dir <- config$definitions$eye$process_opts$log_dir
       } else{log_dir <- getwd()}
-      init_eyelog(log_dir, prefix, file)   
+      init_eyelog(file, log_dir, prefix)   
      }
   }
   
@@ -55,11 +78,13 @@ setup_proc_configs <- function(file,config_path){
      preproc_out <- "preproc"
   }
 
-opts[["preproc_out"]] <- preproc_out
+  opts[["preproc_out"]] <- preproc_out
+
+  ### Return raw data?
+  if(!exists("return_raw")) opts[["return_raw"]] <- FALSE
 
 ## assign updated options into parent environment.
 invisible(list2env(opts, envir = parent.frame()))
-
 
 return(config)
 }
