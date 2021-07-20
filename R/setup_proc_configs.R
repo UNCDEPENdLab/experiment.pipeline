@@ -1,6 +1,16 @@
-#' Setup high-level ep.eye processing configuration options passed in config.yaml.
+#' @title Read and setup processing configuration
+#' @description Validates and imports processing configuration options into the environment for later use.
+#' @param file Path to the .edf file to process.
+#' @param config_path Path to corresponding .yml configuration file with processing instructions. Instructions on how to effectively set up a configuration file can be found [HERE]. 
+#' @return Nested list with processing options pulled from .yml configuration file.
+#' @details  Also generates new log file using \code{sink()}, and sets  up a new directory for preprocessed output if it does not already exist.
+#' @examples
+#'  \dontrun{
+#'    config <- setup_proc_configs("/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/002_HS_Neighborhood_Eye.edf", "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml")
+#'  }
+#' @author Nate Hall
 #' 
-#' 
+#' @export
 
 setup_proc_configs <- function(file,config_path){
   stopifnot(file.exists(file))
