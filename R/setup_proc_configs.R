@@ -23,8 +23,8 @@ setup_proc_configs <- function(file,config_path){
   ################### read processing options from config into environment
   proc_opt_names <- c("prefix", "gen_log", "log_dir", "preproc_out", "return_raw")
   
-  if("process_opts" %in% names(config$definitions$eye)){
-    opts <- config$definitions$eye$process_opts
+  if("global_opts" %in% names(config$definitions$eye)){
+    opts <- config$definitions$eye$global_opts
   } else{ # if processing options are not specified, revert to default options.
     opts <- list()
     opts[["prefix"]] <- NULL
@@ -58,7 +58,7 @@ setup_proc_configs <- function(file,config_path){
   if(exists("gen_log")) {
       if(gen_log){
       if(exists("log_dir")) {
-        log_dir <- config$definitions$eye$process_opts$log_dir
+        log_dir <- config$definitions$eye$global_opts$log_dir
       } else{log_dir <- getwd()}
       init_eyelog(file, log_dir, prefix)   
      }
