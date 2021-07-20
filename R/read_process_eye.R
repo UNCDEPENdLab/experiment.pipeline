@@ -14,7 +14,7 @@
 #' @importFrom tictoc tic toc
 #' 
 #' @export
-read_process_eye <- function(file, config_path, ...) {# = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, event_csv = NULL, ...) { # 6/7: move all of these options into the config file for one-stop shopping. 
+read_process_eye <- function(file, config_path, ...) {
   ######################### load files for debugging. comment when running full.
  source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
  # Neighborhood - PSU
