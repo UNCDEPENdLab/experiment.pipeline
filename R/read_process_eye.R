@@ -1,7 +1,22 @@
-#' general wrapper for reading eye data into the package and performing all QA and processing
-read_process_eye <- function(file, config_path) {# = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, event_csv = NULL, ...) { # 6/7: move all of these options into the config file for one-stop shopping. 
+#' @title Read and process a single .edf file.
+#' @description This is the main worker function that processes a single subject through the ep.eye preprocessing pipeline. It takes as arguments the paths to an .edf file and corresponding configuration YAML file and exports a preprocessed ep.eye object for a single subject.
+#' @param file Path to the .edf file to process.
+#' @param config_path Path to corresponding .yml configuration file with processing instructions. Instructions on how to effectively set up a configuration file can be found [HERE]. 
+#' @param ... Optional arguments to pass to \code{read_edf.R} function.
+#' @return A fully processed ep.eye object. [DETAILS HERE]
+#' @details This function is ideally used within the \code{ep_batch_process_eye.R}
+#' @examples
+#'  \dontrun{
+#'    ep.eye <- read_process_eye("/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/002_HS_Neighborhood_Eye.edf", "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml")
+#'  }
+#' @author Nate Hall
+#' 
+#' @importFrom tictoc tic toc
+#' 
+#' @export
+read_process_eye <- function(file, config_path, ...) {# = NULL, prefix = NULL, gen_log = TRUE, log_dir = NULL, save_preproc = FALSE, out_dir = NULL, event_csv = NULL, ...) { # 6/7: move all of these options into the config file for one-stop shopping. 
   ######################### load files for debugging. comment when running full.
- source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R")
+ source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
  # Neighborhood - PSU
  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/002_HS_Neighborhood_Eye.edf"
  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
@@ -59,7 +74,7 @@ read_process_eye <- function(file, config_path) {# = NULL, prefix = NULL, gen_lo
   ### 6 Generate timing by event and trial.
   ######
   log_chunk_header("6. Generating event-locked timings")
-  eye <- eye_evtag<- tag_event_time(eye); cat("- 6.1 time_ev column generated: COMPLETE\n")
+  eye <- eye_evtag <- tag_event_time(eye); cat("- 6.1 time_ev column generated: COMPLETE\n")
 
 
   # to signal that preprocessing finished without issue (though make sure to check .elog for missteps along the way)
@@ -68,7 +83,7 @@ read_process_eye <- function(file, config_path) {# = NULL, prefix = NULL, gen_lo
   ######
   ### 7. Remove raw data to cut the size of returned object considerably.
   ######
-  if(!config$definitions$eye$return_raw){
+  if(!config$definitions$eye$process_opts$return_raw){
     log_chunk_header("7. Removing raw data")
     eye$raw <- NULL
     cat("- 7.1 Removing raw data: COMPLETE\n")
@@ -77,7 +92,7 @@ read_process_eye <- function(file, config_path) {# = NULL, prefix = NULL, gen_lo
   }
 
   ######
-  ### 8. Saving preprocessed data
+  ### 8. Save preprocessed data
   ######
   if(save_preproc){
     log_chunk_header("8. Saving preprocessed data")
