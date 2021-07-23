@@ -47,7 +47,7 @@ ep.eye_setup_proc_config <- function(file, config_path, header = NULL){
   
 
   #### Build block and event-specific message sequences.
-  config <- config %>% ep.eye_build_msg_seq()
+  config[["definitions"]][["eye"]] <- config %>% ep.eye_build_msg_seq()
 
 return(config)
 }
@@ -227,4 +227,39 @@ else if (is.character(struct) && len > 0 && maxlen > 0)
             else paste(front, "A ", sep = ""), fill, attribnames[i], 
             size = FALSE)
     invisible()
+}
+
+
+#' @title Build out expected message sequences within config file. 
+#' 
+#' @description When a message sequence check is requested, the user specifies event-general start and end message sequences, with the message sent during the event being unique to the block and event. This function attempts to combine the general and specific into the msg_seq field of msg_parse options, which gives block/event-level specificity on the exact expected sequence of messages to check.
+#' @param config Named list of configuration options read in by \code{validate_exp_yaml} 
+#' @param dt Descriptive text to print after running. Defaults to NULL (silent).
+#' 
+#' @return Nested list with configuration options. 
+#' 
+#' @author Nate Hall
+#' 
+#' @export
+ep.eye_build_msg_seq <- function(config, dt = NULL){
+  tryCatch.ep({
+    c.e <- config[["definitions"]][["eye"]]
+    event_info <- c.e[["msg_parse"]][["event_info"]]
+
+    if("msg_seq" %in% names(event_info)){
+      if("eval_middle" %in% names(event_info[["msg_seq"]])){
+        for(i in names(config[["blocks"]])){
+          # check first for an eye field in each event type in a block.
+          for(j in names(config[["blocks"]][[i]][["events"]])){
+            ev_m <- config[["blocks"]][[i]][["events"]][[j]][["eye"]]
+            if(event_info[["msg_seq"]][["eval_middle"]]){
+              msg_vec <- c(event_info[["msg_seq"]][["msg_start"]], ev_m[["mid_msg"]], event_info[["msg_seq"]][["msg_end"]])
+              c.e[["msg_parse"]][["event_info"]][["msg_seq"]][[i]][[j]] <- msg_vec
+            }
+          }
+        }
+      }
+    }
+  }, describe_text = dt)
+  return(c.e)
 }

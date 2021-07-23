@@ -1,4 +1,5 @@
 #' @title Validate experimental config file
+#' @param yaml_file path to YAML config file (see vignette on how to set up your ep.eye config file).
 #' @importFrom yaml read_yaml
 #' @importFrom checkmate assert_int assert_count assert_subset
 #' @author Michael Hallquist
