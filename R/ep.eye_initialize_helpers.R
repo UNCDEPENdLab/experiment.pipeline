@@ -126,7 +126,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
   substep <- 0 
   for(i in gaze_events){
     substep <- substep + 1
-    step <- paste0("2.6.", substep)
+    step <- paste0("3.6.", substep)
     cat("-- ",step, " ", i, ":\n", sep = "")
     step <- paste0(step, ".1")
     issues[[i]] <- list()
@@ -151,7 +151,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
     # This essentially checks that correspondence between raw and extracted gaze events are exactly as expected.
     # in an ideal world these all run without issue, though even very minuscule mismatches will get flagged here. If there becomes some consistency in mismatches, perhaps it's worth doing some investigating.
 
-    step_26i2 <- paste0("2.6.", which(gaze_events == i), ".2")
+    step_26i2 <- paste0("3.6.", which(gaze_events == i), ".2")
 
     counts_26i2 <- list()#  "etime_mismatch" , "event_mismatch")
     # since this loops over typically thousands of gaze events, this is the most computationally intensive part of the initialization script.
@@ -217,9 +217,81 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
 
       stopifnot(all(rawtag %in% gaze_eventnums))
     }
-  }, describe_text = paste0("- 2.7.", substep, " Confirm accurate tagging of raw data with gaze event numbers:"))
+  }, describe_text = paste0("-- 3.6.", substep, " Confirm accurate tagging of raw data with gaze event numbers:"))
   
   return(ep.eye)
+}
+
+
+
+#' @title Extract messages that are passed between recording events.
+#' 
+#' @description Some task/quality-relevant messages may (depending on how the experiment is setup) be passed to the .edf file in between times where the tracker is actively recording data (e.g. prior to a screen flip or during calibration and validation). This function extracts such messages in ep.eye[["metadata"]]. These "between event messages", are denoted with a eventn ending in .5. For example, messages passed in "eventn" 1.5 are passed between recording events 1 and 2 and may contain information about the previous or following event. 
+#' 
+#' @param ep.eye An ep.eye object. 
+#' 
+#' @return ep.eye Returns the same ep.eye object, with between-event messages stored in metadata.
+ep.eye_store_between_event_messages <- function(ep.eye){
+  #Store messages with no timestamp match in raw data (collected between trials with no corresponding measurements).
+  btw_ev <- ep.eye$msg %>% anti_join(ep.eye$raw, by = "time") %>% data.table()
+  ep.eye[["metadata"]][["btw_ev_msg"]] <- btw_ev
+  return(ep.eye)
+}
+
+
+#' @description Remove useless cr.info column.
+#' @param ep.eye An ep.eye object. 
+#' @return ep.eye 
+ep.eye_rm_crinfo <- function(ep.eye){
+  cr <- unique(ep.eye$raw$cr.info)
+  if(length(cr) == 1 & cr == "..."){
+    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
+  } else{ 
+    stop(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))    
+  }
+  return(ep.eye)
+}
+
+
+
+#' @description Remove useless cr.info column.
+#' @param ep.eye An ep.eye object. 
+#' @return ep.eye 
+ep.eye_unify_raw_msg <- function(ep.eye){
+  
+  ep.eye$raw <- ep.eye$raw %>% left_join(dplyr::filter(ep.eye$msg, !text %in% unique(ep.eye[["metadata"]][["btw_ev_msg"]])), by = c("eventn", "time")) %>% rename(`et.msg` = `text`)  %>% mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
+
+  # important to back-translate to original messages due to the use of left_join.
+  umsg <- unique(ep.eye$raw$et.msg)[which(unique(ep.eye$raw$et.msg) != ".")] #unique messages in the final output.
+
+  if(nrow(ep.eye[["metadata"]][["btw_ev_msg"]]) != 0){
+    umsg_edf <- unique(ep.eye$msg$text) # unadulterated, right off the eyetracker.
+    umsg_orig <- umsg_edf[which(!umsg_edf %in% unique(ep.eye[["metadata"]][["btw_ev_msg"]]$text))] # make sure to eliminate between-trial messages and just grab messages that are passed while recording.
+  } else{
+    umsg_orig <- eye$msg$text # no btwn-trial messages to filter out.
+  }
+
+  if(!all(umsg %in% umsg_orig)){
+    stop("Backtranslate message merge issue. Errors in this step have not been fully vetted.")
+  }
+
+  return(ep.eye)
+  ## vestigial from an earlier version. Not sure if we'll need to revive. 
+
+  # if(all(umsg %in% umsg_orig)){
+  #   cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: COMPLETE\n", sep = "")
+  # } else{ # if any mismatch between what is contained in raw data and original message structure, print error and do some digging.
+
+  #   miss_msgs <- umsg[!umsg %in% umsg_orig]
+  #   eout$metadata[["missing_messages_raw"]] <- miss_msgs
+  #   mmsgs_stamped <- eye$msg[which(eye$msg$text %in% miss_msgs), ]
+  #   for(i in 1:nrow(mmsgs_stamped)){
+  #     mstamp <- mmsgs_stamped[i,2] #grab missing timestamp.
+  #     mstamp %in% mm
+  #     mm
+  #   }
+  #   cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: WARNING: errors in this step have not been fully vetted. \n", sep = "")
+  # }
 }
 
 
@@ -227,3 +299,18 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
 
 
 
+  
+
+
+
+
+  # 8.1 store messages with no timestamp match in raw data (collected between trials with no corresponding measurements).
+  # In my (neighborhood) checks these have to do with calibration parameters, display coords, etc. For most users this will not be very helpful.
+  # N.B. however, if the user passes important information before turning the tracker on (as in the sorting mushrooms data), it will be important to allow for users to move messages in the interstitial spaces between recordings to the beginning of a trial/event. Later will include this in the YAML parsing framework.
+ 
+
+ 
+
+  # 8.3 merge messages to raw data.
+  # N.B. the left_join means that between trial messages will not be copied over but rather are stored in metadata if between trial messages are of interest. Since there is no corresponding measurements of gaze/pupil in the raw data there is nowhere in the raw time series to place these relatively unhelpful messages.
+  # N.B. Under the current set-up this operation will increase the number of rows if multiple messages are passed simultaneously. At a later point, one could change this format with the yaml config file under $definitions$eye$coincident_msg.

@@ -40,12 +40,15 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   toc()
 
   ######
-  ### 2. Perform basic initial validation checks and compute new variables
+  ### 3. Perform basic initial validation checks and compute new variables
   ######
-  tic("2. init time")
+  tic("3. init time")
   eye_init <- ep.eye_initialize(eye_orig, 
                                 expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
-                                task = config$task)
+                                task = config$task,
+                                gaze_events = config$definitions$eye$initialize$unify_gaze_events,
+                                meta_check = config$definitions$eye$initialize$meta_check,
+                                header = "3. Initialize eye object:")
   toc()
 
   #########
