@@ -352,28 +352,6 @@ meta_check <-  function(c.e, eye, dt){
   describe_text = dt2)
 
 }
-#' split off function for cleaning up standard config setup.
-#'
-tidy_eye_config <- function(config, dt = NULL){
-  tryCatch.ep({
-    c.e <- config[["definitions"]][["eye"]]
-    if("msg_seq" %in% names(c.e$event_info)){
-      if("eval_middle" %in% names(c.e$event_info$msg_seq)){
-        for(i in names(config$blocks)){
-          # check first for an eye field in each event type in a block.
-          for(j in names(config$blocks[[i]]$events)){
-            ev_m <- config$blocks[[i]]$events[[j]]$eye
-            if(c.e$event_info$msg_seq$eval_middle){
-              msg_vec <- c(c.e$event_info$msg_seq$msg_start, ev_m$mid_msg, c.e$event_info$msg_seq$msg_end)
-              c.e$event_info$msg_seq[[i]][[j]] <- msg_vec
-            }
-          }
-        }
-      }
-    }
-  }, describe_text = dt)
-  return(c.e)
-}
 
 
 

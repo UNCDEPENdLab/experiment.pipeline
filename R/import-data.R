@@ -72,8 +72,12 @@ find.unprocessed <- function(dir.raw, dir.processed, input.file.extension = '') 
 #'       "~/Box/s3_behav_data/neighborhood/eye/data/raw/N_004_az.edf"), keep_asc=FALSE, parse_all=TRUE)
 #' }
 #' @export
-read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRUE, samples=TRUE, ...) {#c. = 1, ...) {
-  log_chunk_header("1. Read EDF file:")
+read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRUE, samples=TRUE, header = NULL, ...) {#c. = 1, ...) {
+  if(!is.null(header)) {
+    log_chunk_header(header)
+    dt = paste0(str_extract(header, "\\d+\\."), "1 Read EDF file:")
+  } else(dt = NULL)
+
   tryCatch.ep({
     stopifnot(all(file.exists(edf_files))) #require that files are present
     if (!keep_asc) {
@@ -111,8 +115,7 @@ read_edf <- function(edf_files, asc_output_dir=NULL, keep_asc=TRUE, gzip_asc=TRU
       })
     })
 
-
-    }, "- 1.1 Read EDF file:")
+    }, dt)
 
   if(!exists("res")) res <- "Something went wrong"
 
