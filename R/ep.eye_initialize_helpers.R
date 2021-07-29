@@ -296,6 +296,67 @@ ep.eye_unify_raw_msg <- function(ep.eye){
 
 
 
+#' @title Check ep.eye metadata
+#' 
+#' @description When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.  
+#' 
+#' @param ep.eye An initialized ep.eye object
+#' @param gaze_events Character vector of gaze_events to unify with raw. Defaults to unifying sacc, fix, and blink but can be set to any subset of these.
+#' 
+#' @return ep.eye ep.eye structure that has been tagged with gaze event numbers and validated for correspondence between raw and gaze event fields.
+#' @author Nate Hall
+#' 
+#' @export
+ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt){
+  cat(dt,"\n")
+
+  ### 3.10.1 meta_vars and vals
+  dt1 <- "-- 3.10.1 Compare .edf info (session parameters) to expectations:"
+  tryCatch.ep({
+
+    stopifnot(!(is.null(meta_vars) | is.null(meta_vals))) # stop if either are null, need both.
+    stopifnot(length(meta_vars) == length(meta_vals))
+
+
+    meta_ref <- data.frame(meta_vars, meta_vals) %>% mutate_all(as.character)
+
+    mismatch <- c() # append if any discrepancies.
+    for(i in 1:nrow(meta_ref)){
+      # message(eye$metadata[[meta_ref[i,"meta_vars"]]], " ", meta_ref[i,"meta_vals"])
+      if(!ep.eye$metadata[[meta_ref[i,"meta_vars"]]] == meta_ref[i,"meta_vals"]){mismatch <- c(mismatch, i)}
+    }
+
+    if(!is.null(mismatch)){
+      warning(mismatch,call. = FALSE)
+      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismacth"]] <- mismatch
+    } else {
+      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- 0
+    }
+
+  },
+  describe_text = dt1)
+
+  ### 3.10.2 confirm acceptable session length
+  dt2 <- "-- 3.10.2 Compare recording time (session length) to expectations:"
+  tryCatch.ep({
+    stopifnot(!is.null(recording_time))
+
+    rt_range <- c(recording_time[1] - recording_time[2],
+                  recording_time[1] + recording_time[2])
+
+    if(!all((rt_range[1] <= ep.eye$metadata$recording_time) & (ep.eye$metadata$recording_time <= rt_range[2]))){
+      warning("session length (", ep.eye$metadata$recording_time,") outside of expected bounds: ", paste0(rt_range, collapse = ", "), call. = FALSE)
+      ep.eye[["metadata"]][["meta_check"]][["recording_length_violation"]] <- TRUE
+    } else{
+      ep.eye[["metadata"]][["meta_check"]][["recording_length_violation"]] <- FALSE
+    }
+  },
+  describe_text = dt2)
+
+  return(ep.eye)
+}
+
+
 
 
 

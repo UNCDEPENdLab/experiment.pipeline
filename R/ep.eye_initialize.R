@@ -55,7 +55,7 @@ ep.eye_initialize <- function(eye,
   ### 3.6 Unify gaze events.
   if(!is.null(gaze_events)){
     ### 6. check for matching between raw timestamps and saccades, fixations, blinks ("gaze events")
-    paste0("- 3.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:")
+    cat(paste0("- 3.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:"))
     ep.eye <- ep.eye_unify_gaze_events(ep.eye, gaze_events = gaze_events)
   } else {
     "- 3.6 Unify gaze events: SKIP"
@@ -76,21 +76,20 @@ ep.eye_initialize <- function(eye,
     ep.eye <- ep.eye_unify_raw_msg(ep.eye)
   }, "3.9 Unify et.msgs into raw data:")
 
-  
-
-
- ### 9 Check metadata
-  dt <- "- 2.9 Check metadata:"
-  if("meta_check" %in% names(c.e)){
-    meta_check(c.e, eye, dt)
+  ### 3.10 Check metadata
+  dt <- "- 3.10 Check ep.eye metadata:"
+  if("meta_check" %in% names(config$definitions$eye$initialize)){
+    ep.eye <- ep.eye_meta_check(ep.eye, 
+               meta_vars = config$definitions$eye$initialize$meta_check$meta_vars,
+               meta_vals = config$definitions$eye$initialize$meta_check$meta_vals,
+               recording_time = config$definitions$eye$initialize$meta_check$recording_time,
+               dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
   }
 
-  ### 10 Shift timestamps to 0 start point
-  dt <- "- 2.10 Shift timestamps to 0 start point:"
-  eout <- shift_eye_timing(eout,dt)
-
+  ### 3.11 Shift timestamps to 0 start point
+  ep.eye <- shift_eye_timing(ep.eye,"- 3.11 Shift timestamps to 0 start point:")
 
   cat("\n")
   return(eout)

@@ -131,7 +131,14 @@ ep.eye_set_config_definitions <- function(config, field){
     if("initialize" %in% names(config$definitions$eye)){
       opts <- config$definitions$eye$initialize
       if(!"expected_edf_fields" %in% names(opts)) {opts[["expected_edf_fields"]] <- c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file")}
-      if(!"meta_check" %in% names(opts)) {opts[["meta_check"]] <- NULL}
+      if(!"meta_check" %in% names(opts)) {
+        opts[["meta_check"]] <- NULL
+        } else{
+          ### if a specific meta_check field is missing, set to NULL
+          if(!"meta_vars" %in% names(opts$meta_check)) {opts$meta_check$meta_vars <- NULL}
+          if(!"meta_vals" %in% names(opts$meta_check)) {opts$meta_check$meta_vals <- NULL}
+          if(!"recording_time" %in% names(opts$meta_check)) {opts$meta_check$recording_time <- NULL}
+        }
       if(!"unify_gaze_events" %in% names(opts)) {opts[["unify_gaze_events"]] <- c("sacc", "fix", "blink")}
     } else{ 
       # if processing options are not specified, revert to default options.

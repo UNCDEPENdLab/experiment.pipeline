@@ -314,44 +314,7 @@ handle_between_trial <- function(c.e, eye, dt){
 }
 #' split off function for checking metadata
 #'
-meta_check <-  function(c.e, eye, dt){
-  cat(dt,"\n")
 
-  ### 3.2.1 meta_vars and vals
-  dt1 <- "-- 3.2.1 Compare .edf info (session parameters) to expectations:"
-  tryCatch.ep({
-    stopifnot(all(c("meta_vars", "meta_vals") %in% names(c.e$meta_check)) & length(c.e$meta_check$meta_vars) == length(c.e$meta_check$meta_vals))
-
-    meta_ref <- data.frame("meta_vars" = c.e$meta_check$meta_vars,
-                           "meta_vals" = c.e$meta_check$meta_vals) %>% mutate_all(as.character)
-
-    mismatch <- c() # append if any discrepancies.
-    for(i in 1:nrow(meta_ref)){
-      # message(eye$metadata[[meta_ref[i,"meta_vars"]]], " ", meta_ref[i,"meta_vals"])
-      if(!eye$metadata[[meta_ref[i,"meta_vars"]]] == meta_ref[i,"meta_vals"]){mismatch <- c(mismatch, i)}
-    }
-
-    if(!is.null(mismatch)){
-      warning(mismatch,call. = FALSE)
-    }
-  },
-  describe_text = dt1)
-
-  ### 3.2.2 confirm acceptable session length
-  dt2 <- "-- 3.2.2 Compare recording time (session length) to expectations:"
-  tryCatch.ep({
-    stopifnot("recording_time" %in% names(c.e$meta_check))
-
-    rt_range <- c(c.e$meta_check$recording_time[1] - c.e$meta_check$recording_time[2],
-                  c.e$meta_check$recording_time[1] + c.e$meta_check$recording_time[2])
-
-    if(!all((rt_range[1] <= eye$metadata$recording_time) & (eye$metadata$recording_time <= rt_range[2]))){
-      warning("session length (", eye$metadata$recording_time,") outside of expected bounds: ", paste0(rt_range, collapse = ", "), call. = FALSE)
-    }
-  },
-  describe_text = dt2)
-
-}
 
 
 
