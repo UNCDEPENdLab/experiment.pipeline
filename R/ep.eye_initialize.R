@@ -92,6 +92,6 @@ ep.eye_initialize <- function(eye,
   ep.eye <- shift_eye_timing(ep.eye,"- 3.11 Shift timestamps to 0 start point:")
 
   cat("\n")
-  return(eout)
+  return(ep.eye)
 }
 
