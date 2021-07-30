@@ -258,7 +258,7 @@ ep.eye_handle_between_event_msgs <- function(ep.eye,
   if("calibration_check" %in% names(inherit_btw_ev)){
     cat("-- 4.1.1 Calibration/validation checks:\n")
     
-    dt1 <- "--- 3.3.1.1 Calibration:"
+    dt1 <- "--- 4.1.1.1 Calibration:"
     tryCatch.ep({
       c.check <- inherit_btw_ev$calibration_check$cal
       cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
@@ -271,7 +271,7 @@ ep.eye_handle_between_event_msgs <- function(ep.eye,
     },
     describe_text = dt1)
 
-    dt2 <- "--- 3.3.1.2 Validation:"
+    dt2 <- "--- 4.1.1.2 Validation:"
     tryCatch.ep({
       v.check <- inherit_btw_ev$calibration_check$val
       val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
@@ -287,7 +287,7 @@ ep.eye_handle_between_event_msgs <- function(ep.eye,
      cat("-- 4.1.1 Calibration/validation checks: SKIP\n")
   }
 
-  ### 3.3.2 Move requested messages to following event block
+  ### 4.1.2 Move requested messages to following event block
   dt3 <- "-- 3.3.2 Pull requested messages into measured data:"
   if("move_to_within" %in% names(c.e$inherit_btw_tr)){
     tryCatch.ep({
