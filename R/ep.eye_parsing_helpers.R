@@ -1,3 +1,88 @@
+############################
+##### List of subsidiary functions utilized in `ep.eye_parse_events()`
+############################
+
+#' split off function for conversion of between trial messages to within
+#'
+ep.eye_handle_between_event_msgs <- function(ep.eye, 
+                                             inherit_btw_ev,
+                                             dt){
+  # browser()
+  cat(dt)
+
+  ### 4.1.1 Calibration/validation check
+  if("calibration_check" %in% names(inherit_btw_ev)){
+    cat("-- 4.1.1 Calibration/validation checks:\n")
+    
+    dt1 <- "--- 4.1.1.1 Calibration:"
+    tryCatch.ep({
+      c.check <- inherit_btw_ev$calibration_check$cal
+      cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
+      if(!all(grepl("GOOD", cal.msg$text))){
+        ep.eye$metadata$cal_check <- "warning"
+        warning("cal check message does not contain GOOD", call. = FALSE)
+        } else{
+          ep.eye$metadata$cal_check <- "success"
+        }
+    },
+    describe_text = dt1)
+
+    dt2 <- "--- 4.1.1.2 Validation:"
+    tryCatch.ep({
+      v.check <- inherit_btw_ev$calibration_check$val
+      val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
+      if(!all(grepl("GOOD", val.msg$text))){
+        ep.eye$metadata$val_check <- "warning"
+        warning("val check message does not contain GOOD", call. = FALSE)
+        } else{
+          ep.eye$metadata$val_check <- "success"
+        }
+    },
+    describe_text = dt2)
+  } else{
+     cat("-- 4.1.1 Calibration/validation checks: SKIP\n")
+  }
+
+  ### 4.1.2 Move requested messages to following event block
+  dt3 <- "-- 4.1.2 Pull requested messages into measured data:"
+  if("move_to_within" %in% names(c.e$inherit_btw_tr)){
+    tryCatch.ep({
+      mtw <- c.e$inherit_btw_tr$move_to_within
+      stopifnot(all.equal(length(mtw$str), length(mtw$align_msg), length(mtw$pre_post)))
+      for(m in 1:length(mtw$str)){
+        ms <- mtw$str[m]
+
+        raw_align <- eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], eye$raw$et.msg))
+        instances <- eye$metadata$btw_tr_msg %>% dplyr::filter(grepl(ms, text)) %>%
+          group_by(eventn) %>% mutate(eventn = ifelse(!eventn%%1==0, # update 11/12/20: only update eventn if value is not divisible by 0
+                                                      ifelse(mtw$pre_post[m] == "pre", # update event depending on pre-post designation
+                                                             (eventn + .5),
+                                                             eventn - .5),
+                                                      eventn)) %>% data.table()
+
+        # every instance of the message in question must have an alignment target.
+        stopifnot(nrow(raw_align) == nrow(instances))
+        # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
+        for(i in 1:nrow(raw_align)){
+          t1 <- as.numeric(raw_align[i, "time"])
+          msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+          while (msg != "."){ # search down until hitting first "."
+            t1 <- t1 + 1
+            msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+          }
+          instances[i,"time"] <- t1
+        }
+        eye$raw <- eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
+      }
+
+
+    },
+    describe_text = dt3)
+
+  } else{}
+
+  return(eye)
+}
 
 
 #' split off function for checking message sequence.
@@ -246,110 +331,4 @@ get_event_info <- function(c.e, eye, dt, event_csv = NULL){
 }
 
 
-#' split off function for conversion of between trial messages to within
-#'
-ep.eye_handle_between_event_msgs <- function(ep.eye, 
-                                             inherit_btw_ev,
-                                             dt){
-  browser()
-  cat(dt)
 
-  ### 4.1.1 Calibration/validation check
-  if("calibration_check" %in% names(inherit_btw_ev)){
-    cat("-- 4.1.1 Calibration/validation checks:\n")
-    
-    dt1 <- "--- 4.1.1.1 Calibration:"
-    tryCatch.ep({
-      c.check <- inherit_btw_ev$calibration_check$cal
-      cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
-      if(!all(grepl("GOOD", cal.msg$text))){
-        warning("cal check message does not contain GOOD", call. = FALSE)
-        ep.eye$metadata$cal_check <- "warning"
-        } else{
-          ep.eye$metadata$cal_check <- "success"
-        }
-    },
-    describe_text = dt1)
-
-    dt2 <- "--- 4.1.1.2 Validation:"
-    tryCatch.ep({
-      v.check <- inherit_btw_ev$calibration_check$val
-      val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
-      if(!all(grepl("GOOD", val.msg$text))){
-        warning("val check message does not contain GOOD", call. = FALSE)
-        ep.eye$metadata$val_check <- "warning"
-        } else{
-          ep.eye$metadata$val_check <- "success"
-        }
-    },
-    describe_text = dt2)
-  } else{
-     cat("-- 4.1.1 Calibration/validation checks: SKIP\n")
-  }
-
-  ### 4.1.2 Move requested messages to following event block
-  dt3 <- "-- 3.3.2 Pull requested messages into measured data:"
-  if("move_to_within" %in% names(c.e$inherit_btw_tr)){
-    tryCatch.ep({
-      mtw <- c.e$inherit_btw_tr$move_to_within
-      stopifnot(all.equal(length(mtw$str), length(mtw$align_msg), length(mtw$pre_post)))
-      for(m in 1:length(mtw$str)){
-        ms <- mtw$str[m]
-
-        raw_align <- eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], eye$raw$et.msg))
-        instances <- eye$metadata$btw_tr_msg %>% dplyr::filter(grepl(ms, text)) %>%
-          group_by(eventn) %>% mutate(eventn = ifelse(!eventn%%1==0, # update 11/12/20: only update eventn if value is not divisible by 0
-                                                      ifelse(mtw$pre_post[m] == "pre", # update event depending on pre-post designation
-                                                             (eventn + .5),
-                                                             eventn - .5),
-                                                      eventn)) %>% data.table()
-
-        # every instance of the message in question must have an alignment target.
-        stopifnot(nrow(raw_align) == nrow(instances))
-        # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
-        for(i in 1:nrow(raw_align)){
-          t1 <- as.numeric(raw_align[i, "time"])
-          msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
-          while (msg != "."){ # search down until hitting first "."
-            t1 <- t1 + 1
-            msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
-          }
-          instances[i,"time"] <- t1
-        }
-        eye$raw <- eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
-      }
-
-
-    },
-    describe_text = dt3)
-
-  } else{}
-
-  return(eye)
-}
-#' split off function for checking metadata
-#'
-
-
-
-
-# Run these for testing: --------------------------------------------------
-
-
-# config <- validate_exp_yaml(yaml_file = yaml_file) #testing neighborhood
-# eye <- eye_init
-#
-# config <- validate_exp_yaml(yaml_file = "~/github_repos/experiment.pipeline/inst/examples/yaml_config/shrooms.yaml")
-# dt <- "- 3.1 Extract eye definitions for processing:"
-# c.e <- tidy_eye_config(config, dt)
-
-# eye_msg_report(eye)
-#######
-
-# eye_msg_report(ep.eye = eye)
-# eye$raw <- eye$raw %>% rename(`eventn` = `event`)
-# eye$gaze$sacc <- eye$gaze$sacc %>% rename(`eventn` = `event`)
-# eye$gaze$fix <- eye$gaze$fix %>% rename(`eventn` = `event`)
-# eye$gaze$blink <- eye$gaze$blink %>% rename(`eventn` = `event`)
-# eye$metadata$btw_tr_msg <- eye$metadata$btw_tr_msg %>% rename(`eventn` = `event`)
-#
