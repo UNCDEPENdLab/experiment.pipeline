@@ -1,5 +1,22 @@
+#' @title Generate a report of all eyetracker messages for user review.
+#' 
+#' @param eye
+#' @param report_path
+#' @param events
+#' @param return_eye
+#' 
+#' @examples
+#' #'  \dontrun{
+#'    ep.eye <- ep.eye_msg_report("/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/004_AZ_Neighborhood_Eye.edf", "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/message_reports", return_eye = TRUE)
+#'    ep.eye_msg_report(ep.eye, "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/message_reports_004_AZ.txt")
+#' 
+#'  }
+#' @author Nate Hall
+#' 
+#' @export
 
-eye_msg_report <- function(eye, report_path = NULL, events = "all", return_eye = FALSE){
+ep.eye_msg_report <- function(eye, report_path = NULL, events = "all", return_eye = FALSE){
+  # browser()
   #for a quick look at ET message flow by event. Allows for user to quickly look for messaging conventions that can be specified in YAML config file.
 
   if(is.character(eye)){ # if string provided, attempt to read it.
@@ -18,12 +35,22 @@ eye_msg_report <- function(eye, report_path = NULL, events = "all", return_eye =
 
   if("ep.eye" %in% class(eye)){
     cat("dropping msgs with '!V IMGLOAD CENTER'\n")
-    for(i in unique(eye$raw$eventn)){
-        y.w <- eye$raw  %>% dplyr::filter(eventn == i & et.msg != "." & !grepl("!V IMGLOAD CENTER", et.msg))
-        print(na.omit(y.w), n =Inf)
+
+    if(events %in% c("all", "within")){
+      for(i in unique(eye$raw$eventn)){
+          y.w <- eye$raw  %>% dplyr::filter(eventn == i & et.msg != "." & !grepl("!V IMGLOAD CENTER", et.msg))
+          print(na.omit(y.w), n =Inf)
+      }
     }
 
-    eye$metadata$btw_tr_msg %>% as_tibble() %>% dplyr::filter(eventn > 97 &eventn < 102)%>% print(n = Inf)
+    if(events %in% c("all", "between")){
+      for(i in unique(eye$metadata$btw_ev_msg$eventn)){
+          y.b <- eye$metadata$btw_ev_msg  %>% dplyr::filter(eventn == i & !grepl("!V IMGLOAD CENTER", text)) %>% as.data.frame() %>% data.table() 
+          print(na.omit(y.b), n =Inf)
+      }  
+    }
+
+    # eye$metadata$btw_ev_msg %>% as_tibble() %>% print(n = Inf)
 
 
   } else { #works from initial edf, either read in or input as arg.
