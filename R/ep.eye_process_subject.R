@@ -29,14 +29,20 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 1. Setup processing configuration variables and build block and event-specific message sequences.
   ######
   tic("1. setup config time")
-  config <- ep.eye_setup_proc_config(file, config_path, header = "1. Setup Processing Options:") 
+  config <- ep.eye_setup_proc_config(file, 
+                                     config_path,
+                                     header = "1. Setup Processing Options:") 
   toc()
 
   ######
   ### 2. Read EDF file
   ######
   tic("2. read time")
-  eye <- eye_orig <- read_edf(file, keep_asc=FALSE, parse_all=TRUE, samples = TRUE, header = "2. Read EDF file:")[[1]]
+  eye <- eye_orig <- read_edf(file, 
+                              keep_asc=FALSE, 
+                              parse_all=TRUE, 
+                              samples = TRUE, 
+                              header = "2. Read EDF file:")[[1]]
   toc()
 
   ######
@@ -52,13 +58,15 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   toc()
 
   #########
-  ### 3. Parse eye messages from experiment.pipeline config file, specified in task yaml.
+  ### 4. Parse eye messages from experiment.pipeline config file, specified in task yaml.
   #########
-  if (is.null(config)) {
-    cat("Only generic read/validation of ep.eye object applied. No user-specified message parsing.")
+  if (is.null(config$definitions$eye$msg_parse)) {
+    cat("4. Parse task messages: SKIP (Only generic read/validation of ep.eye object applied. No user-specified message parsing)")
   } else{
     tic("3. parse time")
-    eye <- eye_parsed <- ep.eye_parse_events(eye_init, config, event_csv = event_csv)
+    eye_parsed <- ep.eye_parse_messages(eye_init, 
+                                        inherit_btw_ev = config$definitions$eye$msg_parse$inherit_btw_ev,
+                                        event_csv = event_csv)
     toc()
   }
 

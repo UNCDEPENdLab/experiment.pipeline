@@ -248,28 +248,43 @@ get_event_info <- function(c.e, eye, dt, event_csv = NULL){
 
 #' split off function for conversion of between trial messages to within
 #'
-handle_between_trial <- function(c.e, eye, dt){
-  # browser()
+ep.eye_handle_between_event_msgs <- function(ep.eye, 
+                                             inherit_btw_ev,
+                                             dt){
+  browser()
   cat(dt)
 
-  ### 3.3.1 Calibration/validation check
-  cat("-- 3.3.1 Calibration/validation checks:\n")
-  if("calibration_check" %in% names(c.e$inherit_btw_tr)){
+  ### 4.1.1 Calibration/validation check
+  if("calibration_check" %in% names(inherit_btw_ev)){
+    cat("-- 4.1.1 Calibration/validation checks:\n")
+    
     dt1 <- "--- 3.3.1.1 Calibration:"
     tryCatch.ep({
-      c.check <- c.e$inherit_btw_tr$calibration_check$cal
-      cal.msg <- eye$metadata$btw_tr_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
-      if(!grepl("GOOD", cal.msg$text)){warning("cal check message does not contain GOOD", call. = FALSE)}
+      c.check <- inherit_btw_ev$calibration_check$cal
+      cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
+      if(!all(grepl("GOOD", cal.msg$text))){
+        warning("cal check message does not contain GOOD", call. = FALSE)
+        ep.eye$metadata$cal_check <- "warning"
+        } else{
+          ep.eye$metadata$cal_check <- "success"
+        }
     },
     describe_text = dt1)
 
     dt2 <- "--- 3.3.1.2 Validation:"
     tryCatch.ep({
-      v.check <- c.e$inherit_btw_tr$calibration_check$val
-      val.msg <- eye$metadata$btw_tr_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
-      if(!grepl("GOOD", val.msg$text)){warning("val check message does not contain GOOD", call. = FALSE)}
+      v.check <- inherit_btw_ev$calibration_check$val
+      val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
+      if(!all(grepl("GOOD", val.msg$text))){
+        warning("val check message does not contain GOOD", call. = FALSE)
+        ep.eye$metadata$val_check <- "warning"
+        } else{
+          ep.eye$metadata$val_check <- "success"
+        }
     },
     describe_text = dt2)
+  } else{
+     cat("-- 4.1.1 Calibration/validation checks: SKIP\n")
   }
 
   ### 3.3.2 Move requested messages to following event block

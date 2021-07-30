@@ -44,8 +44,6 @@ ep.eye_setup_proc_config <- function(file, config_path, header = NULL){
     
   }
 
-  
-
   #### Build block and event-specific message sequences.
   config[["definitions"]][["eye"]] <- config %>% ep.eye_build_msg_seq()
 
@@ -59,6 +57,7 @@ return(config)
 #' 
 
 ep.eye_set_config_definitions <- function(config, field){
+
   if(field == "global"){
     ################### GLOBAL
     ################### read processing options from config into environment. This is probably more complicated than it needs to be, but works fine for now.
@@ -146,6 +145,33 @@ ep.eye_set_config_definitions <- function(config, field){
       opts[["expected_edf_fields"]] <- c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file")
       opts[["meta_check"]] <- NULL
       opts[["unify_gaze_events"]] <- c("sacc", "fix", "blink")
+    }
+    config[["definitions"]][["eye"]][["initialize"]] <- opts
+  } else if(field == "msg_parse"){
+      ################### PARSE MESSAGES
+    if("msg_parse" %in% names(config$definitions$eye)){
+      opts <- config$definitions$eye$msg_parse
+      if(!"inherit_btw_ev" %in% names(opts)) {
+        opts$interit_btw_ev <- NULL
+      } else{
+        if(!"calibration_check" %in% names(opts$inherit_btw_ev)){
+          opts$interit_btw_ev$cal <- NULL
+          opts$interit_btw_ev$val <- NULL
+        } 
+      }
+      # if(!"meta_check" %in% names(opts)) {
+      #   opts[["meta_check"]] <- NULL
+      #   } else{
+      #     ### if a specific meta_check field is missing, set to NULL
+      #     if(!"meta_vars" %in% names(opts$meta_check)) {opts$meta_check$meta_vars <- NULL}
+      #     if(!"meta_vals" %in% names(opts$meta_check)) {opts$meta_check$meta_vals <- NULL}
+      #     if(!"recording_time" %in% names(opts$meta_check)) {opts$meta_check$recording_time <- NULL}
+      #   }
+      # if(!"unify_gaze_events" %in% names(opts)) {opts[["unify_gaze_events"]] <- c("sacc", "fix", "blink")}
+    } else{ 
+      # if processing options are not specified, revert to default options.
+      opts <- list()
+      opts$interit_btw_ev <- NULL
     }
     config[["definitions"]][["eye"]][["initialize"]] <- opts
   }

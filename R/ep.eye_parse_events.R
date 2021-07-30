@@ -1,32 +1,29 @@
-# Parse task config file, extracting essential task information
+#' @title Parse task config file, extracting essential task information
 
-#' @param eye ep.eye object that has been previously initialized and tidied
-#' @param config list that is generated from reading task.yaml
-#' @header 
+#' @param ep.eye ep.eye object that has been previously initialized and tidied
+#' @param header  String for section header. Defaults to "4. Parse task events:"
+#' 
+#' @return ep.eye appended with important event-level information included.
+#' 
+#' @author Nate Hall
+#' @expor`t
 
 
-ep.eye_parse_events <- function(eye, config, header = "3. Parse config file for ep.eye:") { 
+ep.eye_parse_events <- function(ep.eye, 
+                                inherit_btw_ev = NULL,
+                                config, 
+                                header = "4. Parse task messages:") { 
   
   if (!"ep.eye" %in% class(eye)) { stop("parse_config_eye expects a pre-initialized ep.eye object") }
 
   log_chunk_header(header)
 
-  ### 3.1 Extract eye definitions
-  dt <- "- 3.1 Extract eye definitions for processing:"
-  c.e <- tidy_eye_config(config, dt)
-
-  ### 3.2 Check metadata
-  dt <- "- 3.2 Check metadata:"
-  if("meta_check" %in% names(c.e)){
-    meta_check(c.e, eye, dt)
-  } else{
-    cat(paste0(dt, " SKIP\n"))
-  }
-
-  ### 3.3 Extract important between-trial messages if requested
-  dt <- "- 3.3 Extract important between-trial messages:\n"
-  if("inherit_btw_tr" %in% names(c.e)){
-    eye <-  handle_between_trial(c.e, eye, dt)
+  ### 4.1 Extract important between-event messages if requested
+  dt <- "- 4.1 Extract important between-event messages:\n"
+  if(!is.null(inherit_btw_tr)){
+    ep.eye <-  ep.eye_handle_between_event_msgs(ep.eye, 
+                                                inherit_btw_ev, 
+                                                dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
   }
@@ -46,12 +43,6 @@ ep.eye_parse_events <- function(eye, config, header = "3. Parse config file for 
   } else{
     cat(paste0(dt, " SKIP\n"))
   }
-
-
-
-  # ### 3.6 Collapse timestamps
-  # dt <- "- 3.6 Collapse timestamps with more than one row:"
-  # eye <- collapse_time(eye, dt)
 
   return(eye)
 }
