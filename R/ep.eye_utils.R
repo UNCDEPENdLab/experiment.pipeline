@@ -205,6 +205,8 @@ movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r"))
 
 # shift timestamps --------------------------------------------------------
 
+#' Shift timing of ep.eye files to 0 start point
+
 
 shift_eye_timing <- function(eye, dt){
   tryCatch.ep({
@@ -228,7 +230,7 @@ shift_eye_timing <- function(eye, dt){
     #meta-data
     # eye$metadata$missing_measurements$start <- eye$metadata$missing_measurements$start - t_start
     # eye$metadata$missing_measurements$end <- eye$metadata$missing_measurements$end - t_start
-    eye$metadata$btw_tr_msg$time <- eye$metadata$btw_tr_msg$time - t_start
+    eye$metadata$btw_ev_msg$time <- eye$metadata$btw_ev_msg$time - t_start
 
 
 
