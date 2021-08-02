@@ -10,8 +10,8 @@
 # - ep.eye_unify_raw_msg()
 # - ep.eye_meta_check()
 ############################
-#' Setup ep.eye structure
 
+#' Setup ep.eye structure
 #' 
 #' @param eye Loaded .edf file from \code{read_edf}
 #' @param task Task name (character)
