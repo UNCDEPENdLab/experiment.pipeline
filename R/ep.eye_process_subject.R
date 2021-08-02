@@ -16,11 +16,14 @@
 #' @export
 ep.eye_process_subject <- function(file, config_path, ...) {
  
- ######################### load files for debugging. comment when running full.
+ ######################### load example files for debugging. comment when running full.
  source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
  # Neighborhood - PSU
  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+ # Sorting Mushrooms 
+#  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
+#  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
  # Neighborhood - UNC
 
  ######################## 
@@ -64,9 +67,11 @@ ep.eye_process_subject <- function(file, config_path, ...) {
     cat("4. Parse task messages: SKIP (Only generic read/validation of ep.eye object applied. No user-specified message parsing)")
   } else{
     tic("3. parse time")
-    eye_parsed <- ep.eye_parse_messages(eye_init, 
-                                        inherit_btw_ev = config$definitions$eye$msg_parse$inherit_btw_ev,
-                                        event_csv = event_csv)
+    eye_parsed <- ep.eye_parse_events(eye_init, 
+                                      inherit_btw_ev = config$definitions$eye$msg_parse$inherit_btw_ev,
+                                      event_info = config$definitions$eye$msg_parse$event_info,
+                                      prefix = config$definitions$eye$global$prefix,
+                                      header = "4. Parse task events:")
     toc()
   }
 
