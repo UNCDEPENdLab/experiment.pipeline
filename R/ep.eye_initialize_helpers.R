@@ -154,7 +154,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
     if(!all(unique(ep.eye$raw$eventn) %in% unique(gaze_event$eventn))){
       cat("--- ",step, " Search for events without gaze events: WARNING (",length(issues[[i]][["event_without_ev"]]),")\n", sep = "")
     } else{
-      cat("---",step, " Search for events without gaze events: COMPLETE\n")
+      cat("---",step, " Search for events without gaze events: SUCCESS\n")
     }
 
 
@@ -200,7 +200,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
       issues[[i]][["raw_gaze_event_mismatches"]] <- counts_26i2
       cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: WARNING (look in metadata for timing issues)\n", sep = "")
     } else { #perfect match, and all gaze_event tagging worked just fine.
-      cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: COMPLETE\n", sep = "")
+      cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: SUCCESS\n", sep = "")
     }
 
   }
@@ -290,7 +290,7 @@ ep.eye_unify_raw_msg <- function(ep.eye){
   ## vestigial from an earlier version. Not sure if we'll need to revive. 
 
   # if(all(umsg %in% umsg_orig)){
-  #   cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: COMPLETE\n", sep = "")
+  #   cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: SUCCESS\n", sep = "")
   # } else{ # if any mismatch between what is contained in raw data and original message structure, print error and do some digging.
 
   #   miss_msgs <- umsg[!umsg %in% umsg_orig]

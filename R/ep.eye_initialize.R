@@ -55,7 +55,7 @@ ep.eye_initialize <- function(eye,
   ### 3.6 Unify gaze events.
   if(!is.null(gaze_events)){
     ### 6. check for matching between raw timestamps and saccades, fixations, blinks ("gaze events")
-    cat(paste0("- 3.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:"))
+    cat(paste0("- 3.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:\n"))
     ep.eye <- ep.eye_unify_gaze_events(ep.eye, gaze_events = gaze_events)
   } else {
     "- 3.6 Unify gaze events: SKIP"
