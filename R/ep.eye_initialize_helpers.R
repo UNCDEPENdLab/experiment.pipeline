@@ -1,3 +1,15 @@
+############################
+##### List of subsidiary functions utilized in `ep.eye_parse_events()`
+############################
+# - ep.eye_setup_structure()
+# - ep.eye_get_session_length()
+# - ep.eye_raw_sample_continuity_check()
+# - ep.eye_unify_gaze_events()
+# - ep.eye_store_between_event_messages()
+# - ep.eye_rm_crinfo()
+# - ep.eye_unify_raw_msg()
+# - ep.eye_meta_check()
+############################
 #' Setup ep.eye structure
 
 #' 
@@ -8,7 +20,6 @@
 #' @author Nate Hall
 #' 
 #' @export
-
 ep.eye_setup_structure <- function(eye, task = NULL){
     ep.eye <- list(raw = eye$raw,
                msg = eye$msg,

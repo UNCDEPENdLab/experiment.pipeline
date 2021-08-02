@@ -64,17 +64,17 @@ ep.eye_initialize <- function(eye,
   ### 3.7 Store between-event messages
   tryCatch.ep({
     ep.eye <- ep.eye_store_between_event_messages(ep.eye)
-  }, "3.7 Store between-event messages:")
+  }, "- 3.7 Store between-event messages:")
 
   ### 3.8 rm cr.info
   tryCatch.ep({
     ep.eye <- ep.eye_rm_crinfo(ep.eye)
-  }, "3.8 Remove cr.info column from raw data:")
+  }, "- 3.8 Remove cr.info column from raw data:")
 
   ### 3.9 Unify et.msgs into raw data.
   tryCatch.ep({
     ep.eye <- ep.eye_unify_raw_msg(ep.eye)
-  }, "3.9 Unify et.msgs into raw data:")
+  }, "- 3.9 Unify et.msgs into raw data:")
 
   ### 3.10 Check metadata
   dt <- "- 3.10 Check ep.eye metadata:"
