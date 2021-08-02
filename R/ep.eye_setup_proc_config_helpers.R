@@ -1,9 +1,15 @@
+############################
+##### List of subsidiary functions utilized in `ep.eye_setup_proc_config()`
+############################
+# - ep.eye_set_config_definitions()
+# - ep.eye_build_msg_seq()
+# - ep.list.tree()
+############################
 
 #' Implement Default Definitions
 #' 
 #' @param config
 #' 
-
 ep.eye_set_config_definitions <- function(config, field){
 
   if(field == "global"){
@@ -100,26 +106,21 @@ ep.eye_set_config_definitions <- function(config, field){
     if("msg_parse" %in% names(config$definitions$eye)){
       opts <- config$definitions$eye$msg_parse
       if(!"inherit_btw_ev" %in% names(opts)) {
-        opts$interit_btw_ev <- NULL
+        opts$inherit_btw_ev <- NULL
       } else{
         if(!"calibration_check" %in% names(opts$inherit_btw_ev)){
-          opts$interit_btw_ev$cal <- NULL
-          opts$interit_btw_ev$val <- NULL
+          opts$inherit_btw_ev$cal <- NULL
+          opts$inherit_btw_ev$val <- NULL
         } 
+        if(!"move_to_within" %in% names(opts$inherit_btw_ev)) opts$inherit_btw_ev$move_to_within <- NULL
       }
-      # if(!"meta_check" %in% names(opts)) {
-      #   opts[["meta_check"]] <- NULL
-      #   } else{
-      #     ### if a specific meta_check field is missing, set to NULL
-      #     if(!"meta_vars" %in% names(opts$meta_check)) {opts$meta_check$meta_vars <- NULL}
-      #     if(!"meta_vals" %in% names(opts$meta_check)) {opts$meta_check$meta_vals <- NULL}
-      #     if(!"recording_time" %in% names(opts$meta_check)) {opts$meta_check$recording_time <- NULL}
-      #   }
-      # if(!"unify_gaze_events" %in% names(opts)) {opts[["unify_gaze_events"]] <- c("sacc", "fix", "blink")}
+      if(!"event_info" %in% names(opts)) opts$event_info <- NULL
+ 
     } else{ 
       # if processing options are not specified, revert to default options.
       opts <- list()
-      opts$interit_btw_ev <- NULL
+      opts$inherit_btw_ev <- NULL
+      opts$event_info <- NULL
     }
     config[["definitions"]][["eye"]][["msg_parse"]] <- opts
   }
@@ -127,11 +128,43 @@ ep.eye_set_config_definitions <- function(config, field){
  return(config)
 }
 
+#' @title Build out expected message sequences within config file. 
+#' 
+#' @description When a message sequence check is requested, the user specifies event-general start and end message sequences, with the message sent during the event being unique to the block and event. This function attempts to combine the general and specific into the msg_seq field of msg_parse options, which gives block/event-level specificity on the exact expected sequence of messages to check.
+#' @param config Named list of configuration options read in by \code{validate_exp_yaml} 
+#' @param dt Descriptive text to print after running. Defaults to NULL (silent).
+#' 
+#' @return Nested list with configuration options. 
+#' 
+#' @author Nate Hall
+#' 
+#' @export
+ep.eye_build_msg_seq <- function(config, dt = NULL){
+  tryCatch.ep({
+    c.e <- config[["definitions"]][["eye"]]
+    event_info <- c.e[["msg_parse"]][["event_info"]]
 
+    if("msg_seq" %in% names(event_info)){
+      if("eval_middle" %in% names(event_info[["msg_seq"]])){
+        for(i in names(config[["blocks"]])){
+          # check first for an eye field in each event type in a block.
+          for(j in names(config[["blocks"]][[i]][["events"]])){
+            ev_m <- config[["blocks"]][[i]][["events"]][[j]][["eye"]]
+            if(event_info[["msg_seq"]][["eval_middle"]]){
+              msg_vec <- c(event_info[["msg_seq"]][["msg_start"]], ev_m[["mid_msg"]], event_info[["msg_seq"]][["msg_end"]])
+              c.e[["msg_parse"]][["event_info"]][["msg_seq"]][[i]][[j]] <- msg_vec
+            }
+          }
+        }
+      }
+    }
+  }, describe_text = dt)
+  return(c.e)
+}
 
 #' Print list structure 
 #' 
-#' @description this is a slight ammendment to the Hmisc package: http://math.furman.edu/~dcs/courses/math47/R/library/Hmisc/html/list.tree.html
+#' @description this is a very slight ammendment to the Hmisc package for easy display of lists: http://math.furman.edu/~dcs/courses/math47/R/library/Hmisc/html/list.tree.html
 #' 
 #' @importFrom Hmisc list.tree
 ep.list.tree <- function(struct, depth = -1, numbers = FALSE, maxlen = 10000, maxcomp = 30, 
@@ -208,39 +241,4 @@ else if (is.character(struct) && len > 0 && maxlen > 0)
             else paste(front, "A ", sep = ""), fill, attribnames[i], 
             size = FALSE)
     invisible()
-}
-
-
-#' @title Build out expected message sequences within config file. 
-#' 
-#' @description When a message sequence check is requested, the user specifies event-general start and end message sequences, with the message sent during the event being unique to the block and event. This function attempts to combine the general and specific into the msg_seq field of msg_parse options, which gives block/event-level specificity on the exact expected sequence of messages to check.
-#' @param config Named list of configuration options read in by \code{validate_exp_yaml} 
-#' @param dt Descriptive text to print after running. Defaults to NULL (silent).
-#' 
-#' @return Nested list with configuration options. 
-#' 
-#' @author Nate Hall
-#' 
-#' @export
-ep.eye_build_msg_seq <- function(config, dt = NULL){
-  tryCatch.ep({
-    c.e <- config[["definitions"]][["eye"]]
-    event_info <- c.e[["msg_parse"]][["event_info"]]
-
-    if("msg_seq" %in% names(event_info)){
-      if("eval_middle" %in% names(event_info[["msg_seq"]])){
-        for(i in names(config[["blocks"]])){
-          # check first for an eye field in each event type in a block.
-          for(j in names(config[["blocks"]][[i]][["events"]])){
-            ev_m <- config[["blocks"]][[i]][["events"]][[j]][["eye"]]
-            if(event_info[["msg_seq"]][["eval_middle"]]){
-              msg_vec <- c(event_info[["msg_seq"]][["msg_start"]], ev_m[["mid_msg"]], event_info[["msg_seq"]][["msg_end"]])
-              c.e[["msg_parse"]][["event_info"]][["msg_seq"]][[i]][[j]] <- msg_vec
-            }
-          }
-        }
-      }
-    }
-  }, describe_text = dt)
-  return(c.e)
 }
