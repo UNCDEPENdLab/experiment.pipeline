@@ -47,6 +47,20 @@ ep.eye_setup_structure <- function(eye, task = NULL){
                } ))
   )
 
+  # Tag msg with "btw_ev" column to denote whether a message is passed during a recording event or between events.
+  # procedure borrowed from: https://stackoverflow.com/questions/5173692/how-to-return-number-of-decimal-places-in-r
+  countDecimalPlaces <- function(x) {
+    if ((x %% 1) != 0) {
+      strs <- strsplit(as.character(format(x, scientific = F)), "\\.")
+      n <- nchar(strs[[1]][2])
+    } else {
+      n <- 0
+    }
+    return(n) 
+  }
+  ep.eye$msg$btw_ev <- sapply(ep.eye$msg$eventn, FUN = countDecimalPlaces)
+
+  # append edf filepath and task name to metadata
   ep.eye[["metadata"]][["edf_file"]] <- eye$edf_file
   if(!is.null(task)) ep.eye[["metadata"]][["task"]] <- task
 
@@ -103,19 +117,13 @@ ep.eye_raw_sample_continuity_check <- function(ep.eye){
                                                             "length" = mmls)    
   }
 
-  # ### for large chunks of missing data, (e.g. if tracker turned off between trials), important to flag "recording chunks" of complete data
-  # gen_run_num <- function(x){
-  #   rl <- rle(is.na(x))
-  #   lst <- split(x, rep(cumsum(c(TRUE, rl$values[-length(rl$values)])), rl$lengths))
-  #   runvec <- c()
-  #   for(i in 1:length(lst)){
-  #     runvec <- c(runvec, rep(i, length(lst[[i]])))
-  #   }
-  #
-  #   runvec <- ifelse(is.na(x), NA, runvec)
-  #   return(runvec)
-  # }
-    return(ep.eye)
+  ### Check for continuity in events (e.g. that events in time dont jump skip or go out of order)
+
+  # confirmed that unique sorts in order they appear in the array. E.g. y <- c(1,1,3,3,2,3); unique(y) : [1] 1 3 2.
+  # will therefor check for skipped events and the ordering.
+  stopifnot(all(unique(ep.eye$raw$eventn) == seq(min(unique(ep.eye$raw$eventn)), max(unique(ep.eye$raw$eventn)),1)))
+
+  return(ep.eye)
 }
 
 #' Unify gaze events with raw data
@@ -138,7 +146,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
   substep <- 0 
   for(i in gaze_events){
     substep <- substep + 1
-    step <- paste0("3.6.", substep)
+    step <- paste0("2.6.", substep)
     cat("-- ",step, " ", i, ":\n", sep = "")
     step <- paste0(step, ".1")
     issues[[i]] <- list()
@@ -163,7 +171,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
     # This essentially checks that correspondence between raw and extracted gaze events are exactly as expected.
     # in an ideal world these all run without issue, though even very minuscule mismatches will get flagged here. If there becomes some consistency in mismatches, perhaps it's worth doing some investigating.
 
-    step_26i2 <- paste0("3.6.", which(gaze_events == i), ".2")
+    step_26i2 <- paste0("2.6.", which(gaze_events == i), ".2")
 
     counts_26i2 <- list()#  "etime_mismatch" , "event_mismatch")
     # since this loops over typically thousands of gaze events, this is the most computationally intensive part of the initialization script.
@@ -229,7 +237,7 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
 
       stopifnot(all(rawtag %in% gaze_eventnums))
     }
-  }, describe_text = paste0("-- 3.6.", substep, " Confirm accurate tagging of raw data with gaze event numbers:"))
+  }, describe_text = paste0("-- 2.6.", substep, " Confirm accurate tagging of raw data with gaze event numbers:"))
   
   return(ep.eye)
 }
@@ -270,18 +278,18 @@ ep.eye_rm_crinfo <- function(ep.eye){
 #' @param ep.eye An ep.eye object. 
 #' @return ep.eye 
 ep.eye_unify_raw_msg <- function(ep.eye){
-  
-  ep.eye$raw <- ep.eye$raw %>% left_join(dplyr::filter(ep.eye$msg, !text %in% unique(ep.eye[["metadata"]][["btw_ev_msg"]])), by = c("eventn", "time")) %>% rename(`et.msg` = `text`)  %>% mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
 
-  # important to back-translate to original messages due to the use of left_join.
+  ep.eye$raw <- ep.eye$raw %>% 
+    left_join(dplyr::filter(ep.eye$msg, btw_ev == 0), by = c("eventn", "time")) %>% dplyr::select(-btw_ev) %>%
+    rename(`et.msg` = `text`) %>% 
+    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
+
+  # important to back-translate extracted messages to original messages due to the use of left_join. This should not fail.
   umsg <- unique(ep.eye$raw$et.msg)[which(unique(ep.eye$raw$et.msg) != ".")] #unique messages in the final output.
 
-  if(nrow(ep.eye[["metadata"]][["btw_ev_msg"]]) != 0){
-    umsg_edf <- unique(ep.eye$msg$text) # unadulterated, right off the eyetracker.
-    umsg_orig <- umsg_edf[which(!umsg_edf %in% unique(ep.eye[["metadata"]][["btw_ev_msg"]]$text))] # make sure to eliminate between-trial messages and just grab messages that are passed while recording.
-  } else{
-    umsg_orig <- eye$msg$text # no btwn-trial messages to filter out.
-  }
+  # make sure to eliminate between-trial messages and just grab messages that are passed while recording.
+  umsg_orig <- ep.eye$msg %>% dplyr::filter(btw_ev == 0) %>% pull(text) %>% unique() # unadulterated, right off the eyetracker.
+  
 
   if(!all(umsg %in% umsg_orig)){
     stop("Backtranslate message merge issue. Errors in this step have not been fully vetted.")
@@ -409,12 +417,12 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
   } else{
      cat("-- 3.12.1 Calibration/validation checks: SKIP\n")
   }
-
+browser()
   ### 3.12.2 Move requested messages to following event block
   if(!is.null(inherit_btw_ev$move_to_within)){
-  dt3 <- "-- 3.12.2 Pull requested messages into measured data: THIS HAS NOT BEEN FULLY VETTED"
+  dt3 <- "-- 3.12.2 Pull requested messages into measured data:"
     tryCatch.ep({
-      mtw <- c.e$inherit_btw_tr$move_to_within
+      mtw <- inherit_btw_ev$move_to_within
       stopifnot(all.equal(length(mtw$str), length(mtw$align_msg), length(mtw$pre_post)))
       for(m in 1:length(mtw$str)){
         ms <- mtw$str[m]

@@ -38,27 +38,16 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   toc()
 
   ######
-  ### 2. Read EDF file
+  ### 2. Perform basic initial validation checks and compute new variables
   ######
-  tic("2. read time")
-  eye <- eye_orig <- read_edf(file, 
-                              keep_asc=FALSE, 
-                              parse_all=TRUE, 
-                              samples = TRUE, 
-                              header = "2. Read EDF file:")[[1]]
-  toc()
-
-  ######
-  ### 3. Perform basic initial validation checks and compute new variables
-  ######
-  tic("3. init time")
-  eye_init <- ep.eye_initialize(eye_orig, 
+  tic("2. init time")
+  eye_init <- ep.eye_initialize(file, 
                                 expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
                                 task = config$task,
                                 gaze_events = config$definitions$eye$initialize$unify_gaze_events,
                                 meta_check = config$definitions$eye$initialize$meta_check,
                                 inherit_btw_ev = config$definitions$eye$intialize$inherit_btw_ev,
-                                header = "3. Initialize eye object:")
+                                header = "2. Initialize ep.eye object:")
   toc()
 
   #########

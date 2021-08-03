@@ -7,81 +7,75 @@
 #' @importFrom lubridate seconds_to_period
 
 
-ep.eye_initialize <- function(eye, 
+ep.eye_initialize <- function(file, 
                               expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file"), 
                               task = NULL,
                               gaze_events = c("sacc", "fix", "blink"),
                               meta_check = NULL, 
                               inherit_btw_ev = NULL,
-                              header = "3. Initialize eye object:",
+                              header = "2. Initialize eye object:",
                               ...){
 
-## debug
-# eye <- eye_orig
-# expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
-# task = config$task
-# gaze_events = config$definitions$eye$initialize$unify_gaze_events
-# meta_check = config$definitions$eye$initialize$meta_check
-inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
-# header = "3. Initialize eye object:"
-
-  if (class(eye) != "list") { stop("Something went wrong: initialize_eye requires list input.") }
+  ## debug
+  expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
+  task = config$task
+  gaze_events = config$definitions$eye$initialize$unify_gaze_events
+  meta_check = config$definitions$eye$initialize$meta_check
+  inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
+  header = "2. Initialize eye object:"
 
   log_chunk_header(header)
 
-  ### 3.1 make sure all names are present
+  ### 2.1 Read EDF file
+  tryCatch.ep({
+    eye <- read_edf(file, keep_asc=FALSE, parse_all=TRUE, samples = TRUE)[[1]]
+  }, describe_text = "- 2.1 Read EDF file:")
+
+  ### 2.2 make sure all names are present
   tryCatch.ep({
     stopifnot(all(expected_edf_fields %in% names(eye)))
-  }, describe_text = "- 3.1 Check expected fields:")
+  }, describe_text = "- 2.2 Check expected fields:")
 
-  ### 3.2 initialize basic eye object structure
+  ### 2.3 initialize basic eye object structure
   tryCatch.ep({
     ep.eye <- ep.eye_setup_structure(eye, task = task)
-  }, describe_text = "- 3.2 Initialize ep.eye list structure:")
+  }, describe_text = "- 2.3 Initialize ep.eye list structure:")
 
-  ### 3.3 document entire recording session length (if this is very different from BAU this should get flagged later)
+  ### 2.4 document entire recording session length (if this is very different from BAU this should get flagged later)
   tryCatch.ep({
     ep.eye <- ep.eye_get_session_length(ep.eye)
-  }, describe_text = paste0("- 3.3 Document recording session length (", seconds_to_period(round(ep.eye$metadata$recording_time)),"):", sep = ""))
+  }, describe_text = paste0("- 2.4 Document recording session length (", seconds_to_period(round(ep.eye$metadata$recording_time)),"):", sep = ""))
 
-  ### 3.4 check for continuity in timestamp on raw data
+  ### 2.5 check for continuity in timestamp on raw data
   tryCatch.ep({
     ep.eye <- ep.eye_raw_sample_continuity_check(ep.eye)
-  }, describe_text = "- 3.4 Check for continuity in raw data:")
+  }, describe_text = "- 2.5 Check for continuity in raw data:")
 
-  ### 3.5 check for continuity in events (e.g. that events in time dont jump skip or go out of order)
-  tryCatch.ep({
-    # confirmed that unique sorts in order they appear in the array. E.g. y <- c(1,1,3,3,2,3); unique(y) : [1] 1 3 2.
-    # will therefor check for skipped events and the ordering.
-    stopifnot(all(unique(ep.eye$raw$eventn) == seq(min(unique(ep.eye$raw$eventn)), max(unique(ep.eye$raw$eventn)),1)))
-  }, "- 3.5 Confirm raw event continuity:")
-
-  ### 3.6 Unify gaze events.
+  ### 2.6 Unify gaze events.
   if(!is.null(gaze_events)){
-    ### 6. check for matching between raw timestamps and saccades, fixations, blinks ("gaze events")
-    cat(paste0("- 3.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:\n"))
+    cat(paste0("- 2.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:\n"))
     ep.eye <- ep.eye_unify_gaze_events(ep.eye, gaze_events = gaze_events)
   } else {
-    "- 3.6 Unify gaze events: SKIP"
+    "- 2.6 Unify gaze events: SKIP"
   }
 
-  ### 3.7 Store between-event messages
+  ### 2.7 Store between-event messages
   tryCatch.ep({
     ep.eye <- ep.eye_store_between_event_messages(ep.eye)
-  }, "- 3.7 Store between-event messages:")
+  }, "- 2.7 Store between-event messages:")
 
-  ### 3.8 rm cr.info
+  ### 2.8 rm cr.info
   tryCatch.ep({
     ep.eye <- ep.eye_rm_crinfo(ep.eye)
-  }, "- 3.8 Remove cr.info column from raw data:")
+  }, "- 2.8 Remove cr.info column from raw data:")
 
-  ### 3.9 Unify et.msgs into raw data.
+  ### 2.9 Unify et.msgs into raw data.
   tryCatch.ep({
     ep.eye <- ep.eye_unify_raw_msg(ep.eye)
-  }, "- 3.9 Unify et.msgs into raw data:")
+  }, "- 2.9 Unify et.msgs into raw data:")
 
-  ### 3.10 Check metadata
-  dt <- "- 3.10 Check ep.eye metadata:"
+  ### 2.10 Check metadata
+  dt <- "- 2.10 Check ep.eye metadata:"
   if("meta_check" %in% names(config$definitions$eye$initialize)){
     ep.eye <- ep.eye_meta_check(ep.eye, 
                meta_vars = config$definitions$eye$initialize$meta_check$meta_vars,
@@ -92,11 +86,11 @@ inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
     cat(paste0(dt, " SKIP\n"))
   }
 
-  ### 3.11 Shift timestamps to 0 start point
-  ep.eye <- shift_eye_timing(ep.eye,"- 3.11 Shift timestamps to 0 start point:")
+  ### 2.11 Shift timestamps to 0 start point
+  ep.eye <- shift_eye_timing(ep.eye,"- 2.11 Shift timestamps to 0 start point:")
 
-  ### 3.12 Extract important between-event messages if requested. N.B. 4.1.2 move_to_within still needs work!!!
-  dt <- "- 3.12 Inherit between-event messages, calibration checks:\n"
+  ### 2.12 Extract important between-event messages if requested. N.B. 4.1.2 move_to_within still needs work!!!
+  dt <- "- 2.12 Inherit between-event messages, calibration checks:\n"
   if(!is.null(inherit_btw_ev)){
     ep.eye <-  ep.eye_inherit_btw_ev(ep.eye, 
                                      inherit_btw_ev, 
