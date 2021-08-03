@@ -12,14 +12,18 @@ ep.eye_initialize <- function(eye,
                               task = NULL,
                               gaze_events = c("sacc", "fix", "blink"),
                               meta_check = NULL, 
+                              inherit_btw_ev = NULL,
                               header = "3. Initialize eye object:",
                               ...){
 
 ## debug
-# expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file")
-# task = "neighborhood"
-# gaze_events = c("sacc", "fix", "blink")
-# meta_check = config$initialize_opts$meta_check
+# eye <- eye_orig
+# expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
+# task = config$task
+# gaze_events = config$definitions$eye$initialize$unify_gaze_events
+# meta_check = config$definitions$eye$initialize$meta_check
+inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
+# header = "3. Initialize eye object:"
 
   if (class(eye) != "list") { stop("Something went wrong: initialize_eye requires list input.") }
 
@@ -90,6 +94,16 @@ ep.eye_initialize <- function(eye,
 
   ### 3.11 Shift timestamps to 0 start point
   ep.eye <- shift_eye_timing(ep.eye,"- 3.11 Shift timestamps to 0 start point:")
+
+  ### 3.12 Extract important between-event messages if requested. N.B. 4.1.2 move_to_within still needs work!!!
+  dt <- "- 3.12 Inherit between-event messages, calibration checks:\n"
+  if(!is.null(inherit_btw_ev)){
+    ep.eye <-  ep.eye_inherit_btw_ev(ep.eye, 
+                                     inherit_btw_ev, 
+                                     dt)
+  } else{
+    cat(paste0(dt, " SKIP\n"))
+  }
 
   cat("\n")
   return(ep.eye)

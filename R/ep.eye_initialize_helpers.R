@@ -9,6 +9,7 @@
 # - ep.eye_rm_crinfo()
 # - ep.eye_unify_raw_msg()
 # - ep.eye_meta_check()
+# - ep.eye_inherit_btw_ev()
 ############################
 
 #' Setup ep.eye structure
@@ -368,21 +369,84 @@ ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt)
 }
 
 
-
-
-
+#' split off function for conversion of between trial messages to within
+#'
+ep.eye_inherit_btw_ev <- function(ep.eye, 
+                                  inherit_btw_ev,
+                                  dt){
   
+  cat(dt)
+
+  ### 3.12.1 Calibration/validation check
+  if(!is.null(inherit_btw_ev$calibration_check)){
+    cat("-- 3.12.1 Calibration/validation checks:\n")
+    
+    dt1 <- "--- 3.12.1.1 Calibration:"
+    tryCatch.ep({
+      c.check <- inherit_btw_ev$calibration_check$cal
+      cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
+      if(!all(grepl("GOOD", cal.msg$text))){
+        ep.eye$metadata$cal_check <- "warning"
+        warning("cal check message does not contain GOOD", call. = FALSE)
+        } else{
+          ep.eye$metadata$cal_check <- "success"
+        }
+    },
+    describe_text = dt1)
+
+    dt2 <- "--- 3.12.1.2 Validation:"
+    tryCatch.ep({
+      v.check <- inherit_btw_ev$calibration_check$val
+      val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
+      if(!all(grepl("GOOD", val.msg$text))){
+        ep.eye$metadata$val_check <- "warning"
+        warning("val check message does not contain GOOD", call. = FALSE)
+        } else{
+          ep.eye$metadata$val_check <- "success"
+        }
+    },
+    describe_text = dt2)
+  } else{
+     cat("-- 3.12.1 Calibration/validation checks: SKIP\n")
+  }
+
+  ### 3.12.2 Move requested messages to following event block
+  if(!is.null(inherit_btw_ev$move_to_within)){
+  dt3 <- "-- 3.12.2 Pull requested messages into measured data: THIS HAS NOT BEEN FULLY VETTED"
+    tryCatch.ep({
+      mtw <- c.e$inherit_btw_tr$move_to_within
+      stopifnot(all.equal(length(mtw$str), length(mtw$align_msg), length(mtw$pre_post)))
+      for(m in 1:length(mtw$str)){
+        ms <- mtw$str[m]
+
+        raw_align <- eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], eye$raw$et.msg))
+        instances <- eye$metadata$btw_tr_msg %>% dplyr::filter(grepl(ms, text)) %>%
+          group_by(eventn) %>% mutate(eventn = ifelse(!eventn%%1==0, # update 11/12/20: only update eventn if value is not divisible by 0
+                                                      ifelse(mtw$pre_post[m] == "pre", # update event depending on pre-post designation
+                                                             (eventn + .5),
+                                                             eventn - .5),
+                                                      eventn)) %>% data.table()
+
+        # every instance of the message in question must have an alignment target.
+        stopifnot(nrow(raw_align) == nrow(instances))
+        # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
+        for(i in 1:nrow(raw_align)){
+          t1 <- as.numeric(raw_align[i, "time"])
+          msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+          while (msg != "."){ # search down until hitting first "."
+            t1 <- t1 + 1
+            msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+          }
+          instances[i,"time"] <- t1
+        }
+        eye$raw <- eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
+      }
 
 
+    },
+    describe_text = dt3)
 
+  } 
 
-  # 8.1 store messages with no timestamp match in raw data (collected between trials with no corresponding measurements).
-  # In my (neighborhood) checks these have to do with calibration parameters, display coords, etc. For most users this will not be very helpful.
-  # N.B. however, if the user passes important information before turning the tracker on (as in the sorting mushrooms data), it will be important to allow for users to move messages in the interstitial spaces between recordings to the beginning of a trial/event. Later will include this in the YAML parsing framework.
- 
-
- 
-
-  # 8.3 merge messages to raw data.
-  # N.B. the left_join means that between trial messages will not be copied over but rather are stored in metadata if between trial messages are of interest. Since there is no corresponding measurements of gaze/pupil in the raw data there is nowhere in the raw time series to place these relatively unhelpful messages.
-  # N.B. Under the current set-up this operation will increase the number of rows if multiple messages are passed simultaneously. At a later point, one could change this format with the yaml config file under $definitions$eye$coincident_msg.
+  return(ep.eye)
+}
