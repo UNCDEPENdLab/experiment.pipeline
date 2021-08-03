@@ -417,8 +417,8 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
   } else{
      cat("-- 3.12.1 Calibration/validation checks: SKIP\n")
   }
-browser()
-  ### 3.12.2 Move requested messages to following event block
+# browser()
+  ### 3.12.2 Move requested messages to correct eventn depending on if it preceeds the event ("pre") or follows the event("post")
   if(!is.null(inherit_btw_ev$move_to_within)){
   dt3 <- "-- 3.12.2 Pull requested messages into measured data:"
     tryCatch.ep({
@@ -427,34 +427,47 @@ browser()
       for(m in 1:length(mtw$str)){
         ms <- mtw$str[m]
 
-        raw_align <- eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], eye$raw$et.msg))
-        instances <- eye$metadata$btw_tr_msg %>% dplyr::filter(grepl(ms, text)) %>%
+        # grab instances of string in between-event messages
+        instances <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(ms, text)) %>%
           group_by(eventn) %>% mutate(eventn = ifelse(!eventn%%1==0, # update 11/12/20: only update eventn if value is not divisible by 0
                                                       ifelse(mtw$pre_post[m] == "pre", # update event depending on pre-post designation
                                                              (eventn + .5),
                                                              eventn - .5),
                                                       eventn)) %>% data.table()
 
-        # every instance of the message in question must have an alignment target.
-        stopifnot(nrow(raw_align) == nrow(instances))
-        # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
-        for(i in 1:nrow(raw_align)){
-          t1 <- as.numeric(raw_align[i, "time"])
-          msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
-          while (msg != "."){ # search down until hitting first "."
-            t1 <- t1 + 1
-            msg <- eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+        if(mtw$align_msg[m] == ""){
+          ## no alignment message, pull into raw data in first or last "." position depending on pre_post.
+          if(mtw$pre_post[m] == "pre"){
+            for(i in unique(instances$eventn)){
+              first_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == min(time)) %>% pull(time)
+              ep.eye$raw[which(ep.eye$raw$time == first_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
+            }
+          } else{
+            for(i in unique(instances$eventn)){
+              last_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == max(time)) %>% pull(time)
+              ep.eye$raw[which(ep.eye$raw$time == last_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
+            }
           }
-          instances[i,"time"] <- t1
+        } else{
+          raw_align <- ep.eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], ep.eye$raw$et.msg))
+          # every instance of the message in question must have an alignment target.
+          stopifnot(nrow(raw_align) == nrow(instances))
+          # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
+          for(i in 1:nrow(raw_align)){
+            t1 <- as.numeric(raw_align[i, "time"])
+            msg <- ep.eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+            while (msg != "."){ # search down until hitting first "."
+              t1 <- t1 + 1
+              msg <- ep.eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+            }
+            instances[i,"time"] <- t1
+          }
+          ep.eye$raw <- ep.eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
         }
-        eye$raw <- eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
       }
-
-
+      ep.eye$raw <- ep.eye$raw %>% select(-contains("btw_ev"))
     },
     describe_text = dt3)
-
   } 
-
   return(ep.eye)
 }

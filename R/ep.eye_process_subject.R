@@ -46,7 +46,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
                                 task = config$task,
                                 gaze_events = config$definitions$eye$initialize$unify_gaze_events,
                                 meta_check = config$definitions$eye$initialize$meta_check,
-                                inherit_btw_ev = config$definitions$eye$intialize$inherit_btw_ev,
+                                inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
                                 header = "2. Initialize ep.eye object:")
   toc()
 

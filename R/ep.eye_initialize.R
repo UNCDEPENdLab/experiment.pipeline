@@ -54,7 +54,7 @@ ep.eye_initialize <- function(file,
   ### 2.6 Unify gaze events.
   if(!is.null(gaze_events)){
     cat(paste0("- 2.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:\n"))
-    ep.eye <- ep.eye_unify_gaze_events(ep.eye, gaze_events = gaze_events)
+    ep.eye <- ep.eye_backup <-  ep.eye_unify_gaze_events(ep.eye, gaze_events = gaze_events) # store backup for testing
   } else {
     "- 2.6 Unify gaze events: SKIP"
   }
