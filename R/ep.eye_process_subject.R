@@ -18,12 +18,12 @@ ep.eye_process_subject <- function(file, config_path, ...) {
  
  ######################### load example files for debugging. comment when running full.
  source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
- # Neighborhood - PSU
- file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
- config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
- # Sorting Mushrooms 
+#  # Neighborhood - PSU
 #  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
 #  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+ # Sorting Mushrooms 
+ file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye/010_AE_SortingMushrooms_Eye.edf"
+ config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Sorting_Mushrooms.yaml"
  # Neighborhood - UNC
 
  ######################## 
@@ -57,6 +57,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
                                 task = config$task,
                                 gaze_events = config$definitions$eye$initialize$unify_gaze_events,
                                 meta_check = config$definitions$eye$initialize$meta_check,
+                                inherit_btw_ev = config$definitions$eye$intialize$inherit_btw_ev,
                                 header = "3. Initialize eye object:")
   toc()
 
@@ -64,13 +65,14 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 4. Parse eye messages from experiment.pipeline config file, specified in task yaml.
   #########
   if (is.null(config$definitions$eye$msg_parse)) {
-    cat("4. Parse task messages: SKIP (Only generic read/validation of ep.eye object applied. No user-specified message parsing)")
+    cat("4. Parse task events: SKIP (Only generic read/validation of ep.eye object applied. No user-specified message parsing)")
   } else{
     tic("3. parse time")
     eye_parsed <- ep.eye_parse_events(eye_init, 
-                                      inherit_btw_ev = config$definitions$eye$msg_parse$inherit_btw_ev,
-                                      event_info = config$definitions$eye$msg_parse$event_info,
-                                      prefix = config$definitions$eye$global$prefix,
+                                      extraction_method = config$definitions$eye$msg_parse$extraction_method,
+                                      extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
+                                      csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
+                                      msg_seq = config$definitions$eye$msg_parse$msg_seq,
                                       header = "4. Parse task events:")
     toc()
   }
