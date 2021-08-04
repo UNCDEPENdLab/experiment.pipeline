@@ -1,25 +1,34 @@
 
-ep.eye_preprocess_gaze <- function(eye, config, header = "4. Gaze preprocessing:"){
+ep.eye_preprocess_gaze <- function(ep.eye, 
+                                   aoi,
+                                   downsample,
+                                   interpolate,
+                                   header = NULL){
+  ## debug 
+  ep.eye <- eye_parsed
+  aoi <- config$definitions$eye$gaze_preproc$aoi
+  downsample <- config$definitions$eye$gaze_preproc$downsample
+  interpolate <- config$definitions$eye$gaze_preproc$interpolate
+  header = "4. Preprocess gaze data:"
 
   log_chunk_header(header)
 
-  ### 4.1 Extract gaze configuration options
-  tryCatch.ep({
-    c.gaze <- tidy_eye_config(config)[["gaze"]]
-    # stopifnot(all(c("downsample_bins") %in% names(c.ts))) # if omitted, run defaults.
-  }, describe_text = "- 4.1 Extract gaze config options:")
-
-  ### 4.2 Assign AOIs
-  if (!"aoi" %in% names(c.gaze)) {
-    cat("No AOI configurations supplied. Skipping")
+  ### 4.1 Assign AOIs
+  if (!is.null(aoi)) {
+    cat("- 4.1 Assign AOIs to gaze data\n")
+    ep.eye <- ep.eye_add_aois(ep.eye, 
+                       indicator = aoi$indicator,
+                       extract_coords = aoi$extract_coords,
+                       extract_labs = aoi$extract_labs,
+                       split_coords = aoi$split_coords,
+                       tag_raw = aoi$tag_raw)
   } else{
-    cat("- 4.2 Assign AOIs to gaze data\n")
-    eye <- add_aois(eye, config)
+    cat("- 4.1 Assign AOIs to gaze data: SKIP")
   }
 
-  ### 4.3 Collapse timestamps
-  dt <- "- 4.3 Collapse timestamps with more than one row:"
-  eye <- collapse_time(eye, dt)
+  ### 4.2 Collapse timestamps
+  dt <- "- 4.2 Collapse timestamps with more than one row:"
+  ep.eye <- ep.eye_collapse_time(ep.eye, dt)
 
 
   ### N.B. 3/8/21 Interpolating eye data, even in a simplistic manner, is a bad idea given that gaze data is very non-smooth. Better to just rely on the good readings and remove trials with too much data missing, rather than trying to save missing samples.
@@ -62,36 +71,3 @@ ep.eye_preprocess_gaze <- function(eye, config, header = "4. Gaze preprocessing:
 
   return(eye)
 }
-
-
-
-
-
-
-
-
-
-#' collapse timing to one row per time (paste multiple messages in a single et.msg)
-#'
-#'
-collapse_time <- function(eye, dt){
-  tryCatch.ep({
-    eye$raw <- eye$raw %>% data.frame() %>%
-      dplyr::group_by(eventn, time, xp, yp, ps, saccn, fixn, blinkn, block, block_trial, event) %>%
-      dplyr::summarise(et.msg = paste(et.msg, collapse = " | "), .groups = "drop") %>% data.table()
-    # browser()
-
-    if(unique(table(eye$raw$time)) != 1){
-      warning("Some measurements have more than one row")
-    }
-  },
-  describe_text = dt
-  )
-  return(eye)
-}
-
-
-
-
-# ignore below ------------------------------------------------------------
-
