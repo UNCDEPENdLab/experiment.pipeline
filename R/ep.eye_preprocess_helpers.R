@@ -12,6 +12,7 @@
 # -- downsample_chars()
 ##### Pupil
 # - ep.eye_extend_blinks()
+# - ep.eye_smooth_pupil()
 ############################
 
 ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
@@ -318,14 +319,13 @@ downsample_chars <- function(dt, dfac=1L){
 
 
 ep.eye_extend_blinks <- function(ep.eye, 
-                                 sample.rate = 1000,
                                  ms_before = 100, 
                                  ms_after = 100){
 
   ### extract pupil size from raw.
   pup <- ep.eye$raw
 
-  sr <- sample.rate
+  sr <- ep.eye$metadata$sample.rate
   bf <- ms_before
   af <- ms_after
 
@@ -349,4 +349,81 @@ ep.eye_extend_blinks <- function(ep.eye,
   ep.eye$pupil$preprocessed <- pup %>% select(-xp, -yp) %>% tibble() %>% mutate(ps_blinkex = ifelse(time %in% bl_rms, NA, ps))
 
   return(ep.eye)
+}
+
+
+ep.eye_smooth_pupil <- function(ep.eye, 
+                                method = "movingavg",
+                                window_length = 50){
+
+  stopifnot(method == "movingavg")
+
+  ### convert to ntimepoints depending on sampling rate if not 1000
+  sr <- ep.eye$metadata$sample.rate
+  maw <- window_length
+
+  if(sr != 1000){
+    conv_ms <- 1000/sr
+    maw <- maw/conv_ms
+  }
+
+  ep.eye$pupil$preprocessed$ps_smooth <- movavg.ep(ep.eye$pupil$preprocessed$ps_blinkex, window_length, "s")
+
+  ## average will run through the deblinked trials. Ensure these remain NA'ed
+  ep.eye$pupil$preprocessed <-  ep.eye$pupil$preprocessed %>% mutate(ps_smooth = ifelse(is.na(ps_blinkex), NA, ps_smooth))
+
+
+  return(ep.eye)
+}
+
+movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
+  ### this is taken from the pracma package with added na.rm functionality
+  
+  stopifnot(is.numeric(x), is.numeric(n), is.character(type))
+  if (length(n) != 1 || ceiling(n != floor(n)) || n <= 1)
+    stop("Window length 'n' must be a single integer greater 1.")
+  nx <- length(x)
+  if (n >= nx)
+    stop("Window length 'n' cannot be greater then length of time series.")
+  y <- numeric(nx)
+  if (type == "s.ep") {
+    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
+    for (k in n:nx) {
+      if(all(x[k:(k+n)])){
+        y[k] <- NA
+      } else{
+        y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)}
+    }
+
+  } else if (type == "s"){
+    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
+    for (k in n:nx) y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)
+  }
+  # else if (type == "t") {
+  #   n <- ceiling((n + 1)/2)
+  #   s <- movavg(x, n, "s")
+  #   y <- movavg(s, n, "s")
+  # }
+  # else if (type == "w") {
+  #   for (k in 1:(n - 1)) y[k] <- 2 * sum((k:1) * x[k:1],na.rm = TRUE)/(k *
+  #                                                           (k + 1))
+  #   for (k in n:nx) y[k] <- 2 * sum((n:1) * x[k:(k - n +
+  #                                                  1)], na.rm= TRUE)/(n * (n + 1))
+  # }
+  # else if (type == "m") {
+  #   y[1] <- x[1]
+  #   for (k in 2:nx) y[k] <- y[k - 1] + (x[k] - y[k - 1])/n
+  # }
+  # else if (type == "e") {
+  #   a <- 2/(n + 1)
+  #   y[1] <- x[1]
+  #   for (k in 2:nx) y[k] <- a * x[k] + (1 - a) * y[k - 1]
+  # }
+  # else if (type == "r") {
+  #   a <- 1/n
+  #   y[1] <- x[1]
+  #   for (k in 2:nx) y[k] <- a * x[k] + (1 - a) * y[k - 1]
+  # }
+  # else stop("The type must be one of 's', 't', 'w', 'm', 'e', or 'r'.")
+  return(y)
 }

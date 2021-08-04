@@ -31,60 +31,6 @@ interp_pupil <- function(eye, maxgap, option = "linear"){
 }
 
 
-extend_blinks <- function(eye, c.pupil){
-
-  ### extract pupil size from raw.
-  pup <- eye$raw
-
-  sr <- eye$metadata$sample.rate
-  bf <- c.pupil$blink_corr$ms_before
-  af <- c.pupil$blink_corr$ms_after
-
-  ### convert to ntimepoints depending on sampling rate if not 1000
-  if(sr != 1000){
-    conv_ms <- 1000/sr
-    bf <- bf/conv_ms
-    af <- af/conv_ms
-  }
-
-
-  blinks <- eye$gaze$blink %>% tibble() %>% mutate(stime_ex = stime - bf,
-                                                   etime_ex = etime + af)
-
-  bl_rms <- c()
-  for(row in 1:nrow(blinks)){ #tried to avoid, this is just so much easier
-    rang <- blinks[row,] %>% select(stime_ex, etime_ex) %>% as.numeric()
-    bl_rms <- c(bl_rms, seq(rang[1], rang[2], 1))
-  }
-
-  eye$pupil$preprocessed <- pup %>% select(-xp, -yp) %>% tibble() %>% mutate(ps_blinkex = ifelse(time %in% bl_rms, NA, ps))
-
-  return(eye)
-}
-
-smooth_pupil <- function(eye, c.pupil){
-
-  stopifnot(c.pupil$filter$method == "movingavg")
-
-  ### convert to ntimepoints depending on sampling rate if not 1000
-  sr <- eye$metadata$sample.rate
-  maw <- c.pupil$filter$window_length
-
-  if(sr != 1000){
-    conv_ms <- 1000/sr
-    maw <- maw/conv_ms
-  }
-
-  eye$pupil$preprocessed$ps_smooth <- movavg.ep(eye$pupil$preprocessed$ps_blinkex, c.pupil$filter$window_length, "s")
-
-  ## average will run through the deblinked trials. Ensure these remain NA'ed
-  eye$pupil$preprocessed <-  eye$pupil$preprocessed %>% mutate(ps_smooth = ifelse(is.na(ps_blinkex), NA, ps_smooth))
-
-
-  return(eye)
-}
-
-
 baseline_correct <- function(eye, center_on, dur_ms){
 
   # if this is populated, the metadata will have information stored on the timestamp discrepancies and a warning that asks the user to check. Ideally, only one message is passed that marks the start of the trial/stimulus onset/etc
@@ -147,58 +93,6 @@ baseline_correct <- function(eye, center_on, dur_ms){
   return(eye)
 }
 
-# moving average ----------------------------------------------------------
-### this is taken from the pracma package with added na.rm functionality
-movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r"))
-{
-  stopifnot(is.numeric(x), is.numeric(n), is.character(type))
-  if (length(n) != 1 || ceiling(n != floor(n)) || n <= 1)
-    stop("Window length 'n' must be a single integer greater 1.")
-  nx <- length(x)
-  if (n >= nx)
-    stop("Window length 'n' cannot be greater then length of time series.")
-  y <- numeric(nx)
-  if (type == "s.ep") {
-    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
-    for (k in n:nx) {
-      if(all(x[k:(k+n)])){
-        y[k] <- NA
-      } else{
-        y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)}
-    }
-
-  } else if (type == "s"){
-    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
-    for (k in n:nx) y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)
-  }
-  # else if (type == "t") {
-  #   n <- ceiling((n + 1)/2)
-  #   s <- movavg(x, n, "s")
-  #   y <- movavg(s, n, "s")
-  # }
-  # else if (type == "w") {
-  #   for (k in 1:(n - 1)) y[k] <- 2 * sum((k:1) * x[k:1],na.rm = TRUE)/(k *
-  #                                                           (k + 1))
-  #   for (k in n:nx) y[k] <- 2 * sum((n:1) * x[k:(k - n +
-  #                                                  1)], na.rm= TRUE)/(n * (n + 1))
-  # }
-  # else if (type == "m") {
-  #   y[1] <- x[1]
-  #   for (k in 2:nx) y[k] <- y[k - 1] + (x[k] - y[k - 1])/n
-  # }
-  # else if (type == "e") {
-  #   a <- 2/(n + 1)
-  #   y[1] <- x[1]
-  #   for (k in 2:nx) y[k] <- a * x[k] + (1 - a) * y[k - 1]
-  # }
-  # else if (type == "r") {
-  #   a <- 1/n
-  #   y[1] <- x[1]
-  #   for (k in 2:nx) y[k] <- a * x[k] + (1 - a) * y[k - 1]
-  # }
-  # else stop("The type must be one of 's', 't', 'w', 'm', 'e', or 'r'.")
-  return(y)
-}
 
 
 # provide ev-locked time --------------------------------------------------

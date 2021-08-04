@@ -18,8 +18,7 @@ ep.eye_preprocess_pupil <- function(ep.eye,
 
   ### 5.1 Extend blinks
   tryCatch.ep({
-    ep.eye <- ep.eye_extend_blinks(ep.eye,
-                                   sample.rate = ep.eye$metadata$sample.rate,   
+    ep.eye <- ep.eye_extend_blinks(ep.eye, 
                                    ms_before = blink_corr$ms_before,
                                    ms_after = blink_corr$ms_after)
     # stopifnot(all(c("downsample_bins") %in% names(c.ts))) # if omitted, run defaults.
@@ -27,8 +26,9 @@ ep.eye_preprocess_pupil <- function(ep.eye,
 
   ### 5.2 Filtering
   tryCatch.ep({
-    ep.eye <- smooth_pupil(ep.eye, c.pupil)
-    # stopifnot(all(c("downsample_bins") %in% names(c.ts))) # if omitted, run defaults.
+    ep.eye <- ep.eye_smooth_pupil(ep.eye, 
+                           method = filter$method,
+                           window_length = filter$window_length)
   }, describe_text = "- 5.2 Smoothing pupil data:")
 
   ### 5.4 Interpolate
