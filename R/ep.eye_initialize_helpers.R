@@ -9,6 +9,7 @@
 # - ep.eye_rm_crinfo()
 # - ep.eye_unify_raw_msg()
 # - ep.eye_meta_check()
+# - ep.eye_shift_timing()
 # - ep.eye_inherit_btw_ev()
 ############################
 
@@ -377,6 +378,37 @@ ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt)
   },
   describe_text = dt2)
 
+  return(ep.eye)
+}
+
+#' Shift timing of ep.eye files to 0 start point
+ep.eye_shift_timing <- function(ep.eye, dt){
+  tryCatch.ep({
+    t_start <- ep.eye$raw$time[1]
+    ep.eye$metadata$t_start <- t_start
+
+    # raw
+    ep.eye$raw$time <- ep.eye$raw$time - t_start
+    # saccades
+    ep.eye$gaze$sacc$stime <- ep.eye$gaze$sacc$stime - t_start
+    ep.eye$gaze$sacc$etime <- ep.eye$gaze$sacc$etime - t_start
+    # fixations
+    ep.eye$gaze$fix$stime <- ep.eye$gaze$fix$stime - t_start
+    ep.eye$gaze$fix$etime <- ep.eye$gaze$fix$etime - t_start
+    # blinks
+    ep.eye$gaze$blink$stime <- ep.eye$gaze$blink$stime - t_start
+    ep.eye$gaze$blink$etime <- ep.eye$gaze$blink$etime - t_start
+    # messages
+    ep.eye$msg$time <-  ep.eye$msg$time - t_start
+
+    #meta-data
+    # ep.eye$metadata$missing_measurements$start <- ep.eye$metadata$missing_measurements$start - t_start
+    # ep.eye$metadata$missing_measurements$end <- ep.eye$metadata$missing_measurements$end - t_start
+    ep.eye$metadata$btw_ev_msg$time <- ep.eye$metadata$btw_ev_msg$time - t_start
+
+
+
+  }, describe_text = dt)
   return(ep.eye)
 }
 

@@ -87,7 +87,7 @@ ep.eye_initialize <- function(file,
   }
 
   ### 2.11 Shift timestamps to 0 start point
-  ep.eye <- shift_eye_timing(ep.eye,"- 2.11 Shift timestamps to 0 start point:")
+  ep.eye <- ep.eye_shift_timing(ep.eye,"- 2.11 Shift timestamps to 0 start point:")
 
   ### 2.12 Extract important between-event messages if requested. N.B. 4.1.2 move_to_within still needs work!!!
   dt <- "- 2.12 Inherit between-event messages, calibration checks:\n"

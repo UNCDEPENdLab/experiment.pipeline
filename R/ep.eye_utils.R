@@ -148,8 +148,6 @@ baseline_correct <- function(eye, center_on, dur_ms){
 }
 
 # moving average ----------------------------------------------------------
-
-
 ### this is taken from the pracma package with added na.rm functionality
 movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r"))
 {
@@ -201,43 +199,6 @@ movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r"))
   # else stop("The type must be one of 's', 't', 'w', 'm', 'e', or 'r'.")
   return(y)
 }
-
-
-# shift timestamps --------------------------------------------------------
-
-#' Shift timing of ep.eye files to 0 start point
-
-
-shift_eye_timing <- function(eye, dt){
-  tryCatch.ep({
-    t_start <- eye$raw$time[1]
-    eye$metadata$t_start <- t_start
-
-    # raw
-    eye$raw$time <- eye$raw$time - t_start
-    # saccades
-    eye$gaze$sacc$stime <- eye$gaze$sacc$stime - t_start
-    eye$gaze$sacc$etime <- eye$gaze$sacc$etime - t_start
-    # fixations
-    eye$gaze$fix$stime <- eye$gaze$fix$stime - t_start
-    eye$gaze$fix$etime <- eye$gaze$fix$etime - t_start
-    # blinks
-    eye$gaze$blink$stime <- eye$gaze$blink$stime - t_start
-    eye$gaze$blink$etime <- eye$gaze$blink$etime - t_start
-    # messages
-    eye$msg$time <-  eye$msg$time - t_start
-
-    #meta-data
-    # eye$metadata$missing_measurements$start <- eye$metadata$missing_measurements$start - t_start
-    # eye$metadata$missing_measurements$end <- eye$metadata$missing_measurements$end - t_start
-    eye$metadata$btw_ev_msg$time <- eye$metadata$btw_ev_msg$time - t_start
-
-
-
-  }, describe_text = dt)
-  return(eye)
-}
-
 
 
 # provide ev-locked time --------------------------------------------------
