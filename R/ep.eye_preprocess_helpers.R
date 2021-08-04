@@ -13,6 +13,9 @@
 ##### Pupil
 # - ep.eye_extend_blinks()
 # - ep.eye_smooth_pupil()
+# -- movavg.ep()
+# - ep.eye_interp_pupil()
+# - ep.eye_baseline_correct()
 ############################
 
 ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
@@ -467,3 +470,68 @@ ep.eye_interp_pupil <- function(ep.eye,
 
   return(ep.eye)
 }
+
+
+ep.eye_baseline_correct <- function(ep.eye, 
+                                    method = "subtract",
+                                    dur_ms = 100,
+                                    center_on){
+
+  # if this is populated, the metadata will have information stored on the timestamp discrepancies and a warning that asks the user to check. Ideally, only one message is passed that marks the start of the trial/stimulus onset/etc
+  mult_bldf <- data.table()
+  # if this is populated, the trial in question does not have the specified center_on message and will use the first measurement alone as a baseline assessment
+  missing_baseline <- c()
+
+  ret_bc <- data.table()
+
+  for(ev in unique(ep.eye$pupil$preprocessed$eventn)){
+
+    st <- ep.eye$pupil$preprocessed %>% filter(eventn == ev) %>% tibble()
+
+    baset <- st[which(grepl(center_on, st$et.msg)),]$time
+
+    #### if there are more than one instance where message is passed, take first position, but log discrepancies and pass error at the end to look through these. This should be rare
+    if(length(baset) > 1){
+      mult_bldf <- rbind(mult_bldf, data.table(eventn = ev,
+                                               time = baset,
+                                               et.msg = st %>% dplyr::filter(time %in% baset) %>% pull(et.msg)))
+      baset <- baset[1] # this could be considered for an argument to put in config file.
+    }
+
+    #### if no baseline message passed on this event, set baseline measurement to the first in the event
+    if(length(baset) == 0){
+      bl <- st$ps_interp[1]
+      baset <- st$time[1]
+      missing_baseline <- c(missing_baseline, ev)
+    } else{
+      bpos <- which(st$time %in% seq(baset - 100, baset))
+      bl <- median(st$ps_interp[bpos], na.rm = TRUE)
+    }
+
+    ### perform baseline correction
+    if(method == "subtract"){
+      st <- st %>% mutate(ps_bc = ps_interp - bl,
+                          time_bc = time -baset) %>% data.table()
+    } else{
+      message("Currently only subtrative ('subtract') baseline correction supported")
+    }
+
+    ret_bc <- rbind(ret_bc, st)
+    # ggplot(st, aes(x = time_bc, y = ps_bc, color = eventn)) + geom_line() + geom_vline(xintercept = 0, alpha = .5) + geom_hline(yintercept = 0, alpha = .5) + theme_bw()
+  }
+
+  ep.eye$pupil$preprocessed <- ret_bc
+
+  if(nrow(mult_bldf) != 0){
+    ep.eye$metadata$pupil_multiple_baseline_msgs <- mult_bldf
+    cat("MESSAGE: For at least one trial, multiple baseline/center_on messages passed. First instance selected by default but see ep.eye$metadata$pupil_multiple_baselines for large discrepancies\n")
+  }
+
+  if(length(missing_baseline) != 0){
+    ep.eye$metadata$pupil_missing_baseline_msg <- missing_baseline
+    cat("MESSAGE: For at least one trial, no baseline/center_on messages passed. First measurement in trial used as baseline.\n")
+  }
+
+  return(ep.eye)
+}
+

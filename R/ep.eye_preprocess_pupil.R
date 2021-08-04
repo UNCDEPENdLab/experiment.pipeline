@@ -5,14 +5,6 @@ ep.eye_preprocess_pupil <- function(ep.eye,
                                     baseline_correction,
                                     downsample,
                                     header = NULL){
-  ### debug
-  ep.eye <- eye_gazePre
-  blink_corr = config$definitions$eye$pupil_preproc$blink_corr
-  filter = config$definitions$eye$pupil_preproc$filter
-  interpolate = config$definitions$eye$pupil_preproc$interpolate
-  baseline_correction = config$definitions$eye$pupil_preproc$baseline_correction
-  downsample = config$definitions$eye$pupil_preproc$downsample
-  header = "5. Pupil preprocessing:"
 
   log_chunk_header(header)
 
@@ -38,19 +30,22 @@ ep.eye_preprocess_pupil <- function(ep.eye,
                                   maxgap = interpolate$maxgap)
   }, describe_text = "- 5.3 Interpolating pupil data:")
 
-  ### 5.5 Baseline Correction
+  ### 5.4 Baseline Correction
   tryCatch.ep({
-    ep.eye <- baseline_correct(ep.eye, center_on = c.pupil$baseline_correction$center_on, dur_ms = c.pupil$baseline_correction$dur_ms)
-  }, describe_text = "- 5.5 Baseline correction:")
+    ep.eye <- ep.eye_baseline_correct(ep.eye, 
+                               method = baseline_correction$method,
+                               dur_ms = baseline_correction$dur_ms,
+                               center_on = baseline_correction$center_on)
+  }, describe_text = "- 5.4 Baseline correction:")
 
-  ## 5.6 Downsample pupil
-  if("downsample" %in% names(c.pupil)){
-
-      ep.eye$pupil$downsample <- downsample_eye(ep.eye[["pupil"]][["preprocessed"]],
-                                             downsample_factor = c.pupil[["downsample"]][["factor"]],
-                                             analog_channels = c("ps", "ps_blinkex", "ps_smooth", "ps_interp", "ps_bc", "time_bc"),
-                                             method = c.pupil[["downsample"]][["method"]])
-      cat("- 5.6 Downsample pupil: COMPLETE\n")
+  ### 5.5 Downsample pupil
+  if(!is.null(downsample)){
+    tryCatch.ep({
+      ep.eye$pupil$downsample <- ep.eye_downsample(ep.eye$pupil$preprocessed,
+                                                  downsample_factor = downsample$factor,
+                                                  analog_channels = c("ps", "ps_blinkex", "ps_smooth", "ps_interp", "ps_bc", "time_bc"),
+                                                  method = downsample$method)
+    }, describe_text = "- 5.5 Downsample pupil:")
   }
 
   return(ep.eye)
