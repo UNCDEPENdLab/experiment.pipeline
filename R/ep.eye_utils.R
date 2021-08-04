@@ -1,36 +1,4 @@
 
-# pupil funcs -------------------------------------------------------------
-
-
-#### need to tweak for different sampling rates.
-interp_pupil <- function(eye, maxgap, option = "linear"){
-  all_t <- seq(0,max(eye$raw$time))
-
-  ##### if there are missing timepoints, they need to be included so we dont interpolate over periods where the tracker is off.
-  paddf <- data.table(eventn = NA,
-                      time = which(!all_t %in% eye$raw$time) -1,
-                      ps = NA,
-                      saccn = NA,
-                      fixn = NA,
-                      blinkn = NA,
-                      block = NA,
-                      block_trial = NA,
-                      event = NA,
-                      et.msg = NA,
-                      ps_blinkex = NA,
-                      ps_smooth = NA
-  )
-
-  temp <- rbind(eye$pupil$preprocessed, paddf) %>% arrange(time)
-
-  temp$ps_interp <- na_interpolation(temp$ps_smooth, option = option, maxgap = maxgap)
-
-  eye$pupil$preprocessed <- temp %>% filter(!is.na(eventn)) %>% data.table()
-
-  return(eye)
-}
-
-
 baseline_correct <- function(eye, center_on, dur_ms){
 
   # if this is populated, the metadata will have information stored on the timestamp discrepancies and a warning that asks the user to check. Ideally, only one message is passed that marks the start of the trial/stimulus onset/etc

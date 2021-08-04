@@ -427,3 +427,43 @@ movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
   # else stop("The type must be one of 's', 't', 'w', 'm', 'e', or 'r'.")
   return(y)
 }
+
+
+ep.eye_interp_pupil <- function(ep.eye, 
+                                algor = "linear",
+                                maxgap =  1000){
+
+  ### convert to ntimepoints depending on sampling rate if not 1000
+  sr <- ep.eye$metadata$sample.rate
+  maxgap <- maxgap
+
+  if(sr != 1000){
+    conv_ms <- 1000/sr
+    maxgap <- maxgap/conv_ms
+  }
+                                  
+  all_t <- seq(0,max(ep.eye$raw$time))
+
+  ##### if there are missing timepoints, they need to be included so we dont interpolate over periods where the tracker is off.
+  paddf <- data.table(eventn = NA,
+                      time = which(!all_t %in% ep.eye$raw$time) -1,
+                      ps = NA,
+                      saccn = NA,
+                      fixn = NA,
+                      blinkn = NA,
+                      block = NA,
+                      block_trial = NA,
+                      event = NA,
+                      et.msg = NA,
+                      ps_blinkex = NA,
+                      ps_smooth = NA
+  )
+
+  temp <- rbind(ep.eye$pupil$preprocessed, paddf) %>% arrange(time)
+
+  temp$ps_interp <- na_interpolation(temp$ps_smooth, option = algor, maxgap = maxgap)
+  
+  ep.eye$pupil$preprocessed <- temp %>% filter(!is.na(eventn)) %>% data.table()
+
+  return(ep.eye)
+}

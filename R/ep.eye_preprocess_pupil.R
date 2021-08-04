@@ -27,14 +27,16 @@ ep.eye_preprocess_pupil <- function(ep.eye,
   ### 5.2 Filtering
   tryCatch.ep({
     ep.eye <- ep.eye_smooth_pupil(ep.eye, 
-                           method = filter$method,
-                           window_length = filter$window_length)
+                                  method = filter$method,
+                                  window_length = filter$window_length)
   }, describe_text = "- 5.2 Smoothing pupil data:")
 
-  ### 5.4 Interpolate
+  ### 5.3 Interpolate
   tryCatch.ep({
-    ep.eye <- interp_pupil(ep.eye, maxgap = c.pupil$interpolate$maxgap)
-  }, describe_text = "- 5.4 Interpolating pupil data:")
+    ep.eye <- ep.eye_interp_pupil(ep.eye, 
+                                  algor = interpolate$algor,
+                                  maxgap = interpolate$maxgap)
+  }, describe_text = "- 5.3 Interpolating pupil data:")
 
   ### 5.5 Baseline Correction
   tryCatch.ep({
