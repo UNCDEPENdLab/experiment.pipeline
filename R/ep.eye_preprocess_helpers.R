@@ -1,6 +1,7 @@
 ############################
 ##### List of subsidiary functions utilized in `ep.eye_preprocess_gaze()` and `ep.eye_preprocess_pupil()`
 ############################
+##### Gaze
 # - ep.eye_rm_impossible()
 # - ep.eye_add_aois()
 # -- ep.eye_gen_aoi_ref()
@@ -9,6 +10,8 @@
 # - ep.eye_downsample()
 # -- subsample_dt()
 # -- downsample_chars()
+##### Pupil
+# - ep.eye_extend_blinks()
 ############################
 
 ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
@@ -314,3 +317,36 @@ downsample_chars <- function(dt, dfac=1L){
 }
 
 
+ep.eye_extend_blinks <- function(ep.eye, 
+                                 sample.rate = 1000,
+                                 ms_before = 100, 
+                                 ms_after = 100){
+
+  ### extract pupil size from raw.
+  pup <- ep.eye$raw
+
+  sr <- sample.rate
+  bf <- ms_before
+  af <- ms_after
+
+  ### convert to ntimepoints depending on sampling rate if not 1000
+  if(sr != 1000){
+    conv_ms <- 1000/sr
+    bf <- bf/conv_ms
+    af <- af/conv_ms
+  }
+
+
+  blinks <- ep.eye$gaze$blink %>% tibble() %>% mutate(stime_ex = stime - bf,
+                                                   etime_ex = etime + af)
+
+  bl_rms <- c()
+  for(row in 1:nrow(blinks)){ #tried to avoid, this is just so much easier
+    rang <- blinks[row,] %>% select(stime_ex, etime_ex) %>% as.numeric()
+    bl_rms <- c(bl_rms, seq(rang[1], rang[2], 1))
+  }
+
+  ep.eye$pupil$preprocessed <- pup %>% select(-xp, -yp) %>% tibble() %>% mutate(ps_blinkex = ifelse(time %in% bl_rms, NA, ps))
+
+  return(ep.eye)
+}

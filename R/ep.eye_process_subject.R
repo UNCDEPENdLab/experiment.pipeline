@@ -79,7 +79,14 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 5 Pupil preprocessing.
   ######
   tic("5. pupil time")
-  eye <- eye_gaze_pupilPre <- preprocess_pupil(eye_gazePre, config)
+  # config$definitions$eye$pupil_preproc
+  eye_gaze_pupilPre <- preprocess_pupil(eye_gazePre, 
+                                        blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
+                                        filter = config$definitions$eye$pupil_preproc$filter,
+                                        interpolate = config$definitions$eye$pupil_preproc$interpolate,
+                                        baseline_correction = config$definitions$eye$pupil_preproc$baseline_correction,
+                                        downsample = config$definitions$eye$pupil_preproc$downsample,
+                                        header = "5. Pupil preprocessing:")
   toc()
 
 
