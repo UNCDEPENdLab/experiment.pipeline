@@ -16,28 +16,27 @@ ep.eye_parse_events <- function(ep.eye,
                                 msg_seq,
                                 header = NULL) { 
   # debug
-  ep.eye <- eye_init
-  extraction_method = config$definitions$eye$msg_parse$extraction_method
-  extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path
-  csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv"))
-  msg_seq = config$definitions$eye$msg_parse$msg_seq
-  header = "4. Parse task events:"
+  # ep.eye <- eye_init
+  # extraction_method = config$definitions$eye$msg_parse$extraction_method
+  # extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path
+  # csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv"))
+  # msg_seq = config$definitions$eye$msg_parse$msg_seq
+  # header = "3. Parse task events:"
 
   
   if (!"ep.eye" %in% class(ep.eye)) { stop("parse_config_eye expects a pre-initialized ep.eye object") }
 
   if(!is.null(header)) log_chunk_header(header)
 
-  ### 4.1 Extract event info
+  ### 3.1 Extract event info
   ep.eye <- ep.eye_parse_event_info(ep.eye, 
-                                    extraction_method = extraction_method,
                                     extract_event_func_path = extract_event_func_path,
                                     csv_path = csv_path,
                                     msg_seq = msg_seq,
-                                    dt = "- 4.1 Parsing event information:\n")
+                                    dt = "- 3.1 Parsing event information:\n")
 
-  ### 4.2 Event sequences check
-  dt <- "- 4.2 Validate message sequence and ordering:\n"
+  ### 3.2 Event sequences check
+  dt <- "- 3.2 Validate message sequence and ordering:\n"
   if(!is.null(msg_seq)){
     ep.eye <- ep.eye_validate_msg_seq(ep.eye, 
                                       msg_seq = msg_seq,
