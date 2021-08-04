@@ -98,8 +98,7 @@ ep.eye_initialize <- function(file,
   } else{
     cat(paste0(dt, " SKIP\n"))
   }
-
-  cat("\n")
+  
   return(ep.eye)
 }
 

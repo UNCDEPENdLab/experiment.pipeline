@@ -137,7 +137,10 @@ ep.eye_raw_sample_continuity_check <- function(ep.eye){
 #' @author Nate Hall
 #' 
 #' @export
-ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "blink")){
+ep.eye_unify_gaze_events <- function(ep.eye, 
+                                     gaze_events = c("sacc", "fix", "blink"),
+                                     confirm_correspondence = FALSE
+                                     ){
 
   # Generate new columns to add gaze event information if requested.
   ep.eye$raw <- cbind(ep.eye$raw, setNames(data.frame(matrix(0, ncol = length(gaze_events), nrow = length(ep.eye$raw$time))), paste0(gaze_events, "n"))) %>% tibble()
@@ -166,57 +169,58 @@ ep.eye_unify_gaze_events <- function(ep.eye, gaze_events = c("sacc", "fix", "bli
       cat("---",step, " Search for events without gaze events: SUCCESS\n")
     }
 
-
+    ### 8/4/21: set default to skip this section, it is quite a miniscule check and takes a long time to complete (can be up to 5-ish min per subject).
     ## 6.i.2. Two nit-picky checks: confirm timestamps are equal and present in raw and gaze_event data. confirm same event numbering between raw and gaze_event data. Then tag raw data with event number.
     # This essentially checks that correspondence between raw and extracted gaze events are exactly as expected.
     # in an ideal world these all run without issue, though even very minuscule mismatches will get flagged here. If there becomes some consistency in mismatches, perhaps it's worth doing some investigating.
+    if(confirm_correspondence){
 
-    step_26i2 <- paste0("2.6.", which(gaze_events == i), ".2")
+      step_26i2 <- paste0("2.6.", which(gaze_events == i), ".2")
 
-    counts_26i2 <- list()#  "etime_mismatch" , "event_mismatch")
-    # since this loops over typically thousands of gaze events, this is the most computationally intensive part of the initialization script.
-    for (j in 1:nrow(gaze_event)) {
-      # print(j)
-      ev <- gaze_event[j,]
-      etimes <- seq(ev$stime, ev$etime,1)
-      ## pull from raw data
-      r <- ep.eye$raw[ep.eye$raw$time %in% etimes,]
+      counts_26i2 <- list()#  "etime_mismatch" , "event_mismatch")
+      # since this loops over typically thousands of gaze events, this is the most computationally intensive part of the initialization script.
+      for (j in 1:nrow(gaze_event)) {
+        # print(j)
+        ev <- gaze_event[j,]
+        etimes <- seq(ev$stime, ev$etime,1)
+        ## pull from raw data
+        r <- ep.eye$raw[ep.eye$raw$time %in% etimes,]
 
-      # check 1: confirm timestamps are equal and present in raw and gaze_event data
-      if(#!(length(r$time) == length(etimes)) | #if number of measurements dont match
-        !all(r$time == etimes)    # this supersedes the above, forcing number of measurements to be exact and have timestamps be strictly equal
-      ){
-        counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
+        # check 1: confirm timestamps are equal and present in raw and gaze_event data
+        if(#!(length(r$time) == length(etimes)) | #if number of measurements dont match
+          !all(r$time == etimes)    # this supersedes the above, forcing number of measurements to be exact and have timestamps be strictly equal
+        ){
+          counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
+        }
+
+        #check 2: confirm same event numbering between raw and gaze_event data.
+        if(!ev$eventn == unique(r$eventn)){
+          b_mismatch <- data.table("gaze_event" = i, "gaze_event_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
+          counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
+        }
+
+        #tag raw data with event number
+        ep.eye$raw[which(ep.eye$raw$time %in% etimes), paste0(i,"n")] <- j
       }
 
-      #check 2: confirm same event numbering between raw and gaze_event data.
-      if(!ev$eventn == unique(r$eventn)){
-        b_mismatch <- data.table("gaze_event" = i, "gaze_event_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
-        counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
+      # all gaze_events should be represented in the raw data now +1 (0 represents no event)
+      if(length(unique(as.matrix(ep.eye$raw[, paste0(i,"n")]))) != nrow(gaze_event) +1){
+        counts_26i2[["raw_tag_gaze_events"]] <- length(unique(as.matrix(ep.eye$raw[, paste0(i,"n")])))
       }
 
-      #tag raw data with event number
-      ep.eye$raw[which(ep.eye$raw$time %in% etimes), paste0(i,"n")] <- j
+
+      if(length(counts_26i2) != 0){
+        issues[[i]][["raw_gaze_event_mismatches"]] <- counts_26i2
+        cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: WARNING (look in metadata for timing issues)\n", sep = "")
+      } else { #perfect match, and all gaze_event tagging worked just fine.
+        cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: SUCCESS\n", sep = "")
+      }
+
     }
-
-    # all gaze_events should be represented in the raw data now +1 (0 represents no event)
-    if(length(unique(as.matrix(ep.eye$raw[, paste0(i,"n")]))) != nrow(gaze_event) +1){
-      counts_26i2[["raw_tag_gaze_events"]] <- length(unique(as.matrix(ep.eye$raw[, paste0(i,"n")])))
-    }
-
-
-    if(length(counts_26i2) != 0){
-      issues[[i]][["raw_gaze_event_mismatches"]] <- counts_26i2
-      cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: WARNING (look in metadata for timing issues)\n", sep = "")
-    } else { #perfect match, and all gaze_event tagging worked just fine.
-      cat("--- ",step_26i2, " Check timing mismatches between raw gaze data and extracted gaze events: SUCCESS\n", sep = "")
-    }
-
   }
-
+  
   ep.eye$metadata[["gaze_event_issues"]] <- issues
-
-
+  
   ### Confirm that tagging raw data with GEV numbers successful
   tryCatch.ep({
     substep <- substep + 1
