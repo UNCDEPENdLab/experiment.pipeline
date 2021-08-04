@@ -1,11 +1,26 @@
 ############################
 ##### List of subsidiary functions utilized in `ep.eye_preprocess_gaze()` and `ep.eye_preprocess_pupil()`
 ############################
+# - ep.eye_rm_impossible()
 # - ep.eye_add_aois()
 # -- ep.eye_gen_aoi_ref()
 # -- ep.eye_gen_aoi_look()
 # - ep.eye_collapse_time()
+# - ep.eye_downsample()
+# -- subsample_dt()
+# -- downsample_chars()
 ############################
+
+ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
+  tryCatch.ep({
+    ep.eye$raw <- ep.eye$raw %>% mutate(xp = ifelse(xp >= ep.eye$metadata$screen.x | xp <= 0, NA, xp),
+                                                        yp = ifelse(yp >= ep.eye$metadata$screen.y | yp <= 0, NA, yp),
+                                                        xp = ifelse(is.na(yp), NA, xp),
+                                                        yp = ifelse(is.na(xp), NA, yp),
+  )
+  }, describe_text = dt)
+  return(ep.eye)
+}
 
 ep.eye_add_aois <- function(ep.eye, 
                             indicator,
@@ -20,13 +35,13 @@ ep.eye_add_aois <- function(ep.eye,
                          extract_coords,
                          extract_labs,
                          split_coords,
-                         dt = "-- 4.1.1 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
+                         dt = "-- 4.2.1 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
 
   ### 4.1.2 tag gaze data with AOI_look field
   ep.eye <- ep.eye_gen_aoi_look(ep.eye,
                          aoi_ref,
                          tag_raw,
-                         dt = "-- 4.1.2 Generate AOI fields in data:")
+                         dt = "-- 4.2.2 Generate AOI fields in data:")
 
   return(ep.eye)
 }
@@ -65,7 +80,7 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
 ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
   cat(dt, "\n")
   if(tag_raw){ ## leaving in as an option, though I think it is probably more important to gauge which AOIs were the focus during saccades (to/from) and fixations.
-    dt <- "--- 4.1.2.0 Appending AOIs to raw data"
+    dt <- "--- 4.2.2.0 Appending AOIs to raw data"
     tryCatch.ep({
       ep.eye$raw$aoi_look <- "."
       for(i in 1:nrow(ep.eye$raw)) {
@@ -82,7 +97,7 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
   } 
 
   # saccades
-  dt <- "--- 4.1.2.1 Appending AOIs to saccade data"
+  dt <- "--- 4.2.2.1 Appending AOIs to saccade data"
   tryCatch.ep({
     ep.eye$gaze$sacc$aoi_start <- "."
     ep.eye$gaze$sacc$aoi_end <- "."
@@ -114,7 +129,7 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
 
 
   # fixations
-  dt <- "--- 4.1.2.2 Appending AOIs to fixation data"
+  dt <- "--- 4.2.2.2 Appending AOIs to fixation data"
   tryCatch.ep({
     ep.eye$gaze$fix$aoi_look <- "."
     for (i in 1:nrow(ep.eye$gaze$fix)) {
@@ -162,14 +177,20 @@ ep.eye_collapse_time <- function(ep.eye, dt){
 
 
 ep.eye_downsample <- function(df, 
-                           downsample_factor=50,
-                           digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
-                           analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
-                           char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
-                           # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
-                           method = "mean", # mean, subsamp
-                           dt = NULL
-){
+                              downsample_factor=50,
+                              digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
+                              analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
+                              char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
+                              # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
+                              method = "mean") {
+  ### debug
+  # df <- ep.eye$raw
+  # downsample_factor = downsample$factor
+  # digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial") # integer values of trial, event, and gevs.
+  # analog_channels = c("xp", "yp") # gaze and pupil measurements
+  # char_channels = c("et.msg", "block", "event") # characters, if there are unique values within a block, will paste them together with " || "
+  # method = downsample$method # mean, subsamp
+  # # dt = NULL
 
   #### checks
   assert_data_table(df) #for now, we are using data.table objects, so DT syntax applies
@@ -291,4 +312,5 @@ downsample_chars <- function(dt, dfac=1L){
   dt[, et.msg := gsub(". | ", "", et.msg, fixed = TRUE)]
   dt[, chunk := NULL]
 }
+
 
