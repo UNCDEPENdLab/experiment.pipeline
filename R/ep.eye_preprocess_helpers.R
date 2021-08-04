@@ -524,12 +524,12 @@ ep.eye_baseline_correct <- function(ep.eye,
 
   if(nrow(mult_bldf) != 0){
     ep.eye$metadata$pupil_multiple_baseline_msgs <- mult_bldf
-    cat("MESSAGE: For at least one trial, multiple baseline/center_on messages passed. First instance selected by default but see ep.eye$metadata$pupil_multiple_baselines for large discrepancies\n")
+    # cat("MESSAGE: For at least one trial, multiple baseline/center_on messages passed. First instance selected by default but see ep.eye$metadata$pupil_multiple_baselines for large discrepancies\n")
   }
 
   if(length(missing_baseline) != 0){
     ep.eye$metadata$pupil_missing_baseline_msg <- missing_baseline
-    cat("MESSAGE: For at least one trial, no baseline/center_on messages passed. First measurement in trial used as baseline.\n")
+    # cat("MESSAGE: For at least one trial, no baseline/center_on messages passed. First measurement in trial used as baseline.\n")
   }
 
   return(ep.eye)
