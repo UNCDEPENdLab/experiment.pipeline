@@ -69,7 +69,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 4. Gaze preprocessing
   #########
   tic("4. gaze preproc time")
-  eye <- eye_gazePre <- preprocess_gaze(eye_parsed, config)
+  eye_gazePre <- preprocess_gaze(eye_parsed, config)
   toc()
 
   ######
