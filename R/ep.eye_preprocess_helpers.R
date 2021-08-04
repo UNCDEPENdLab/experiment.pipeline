@@ -4,7 +4,7 @@
 # - ep.eye_add_aois()
 # -- ep.eye_gen_aoi_ref()
 # -- ep.eye_gen_aoi_look()
-# -- ep.eye_check_msg_order()
+# - ep.eye_collapse_time()
 ############################
 
 ep.eye_add_aois <- function(ep.eye, 
@@ -138,12 +138,7 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
     }}, describe_text = dt)
 
   ep.eye$metadata$aoi_ref <- data.table(aoi_ref)
-  
-
-
-
-
-  return(eye)
+  return(ep.eye)
 }
 
 #' collapse timing to one row per time (paste multiple messages in a single et.msg)

@@ -43,16 +43,14 @@ ep.eye_preprocess_gaze <- function(ep.eye,
   #   },describe_text = dt)
   # }
 
-  ### 4.4 Downsample gaze
-  if (!"downsample" %in% names(c.gaze)) {
-    cat("- 4.4 Downsample gaze: No gaze downsampling configurations supplied. Defaulting to downsampling factor of 50, and method 'mean'")
-    eye <- downsample_eye(eye, analog_channels = c("xp", "yp"))
-  } else{
+  ### 4.3 Downsample gaze
+  if(!is.null(downsample)){
+    cat("- 4.3 Downsample gaze:\n")
     eye$gaze$downsample <- downsample_eye(eye$raw,
                                           downsample_factor = c.gaze[["downsample"]][["factor"]],
                                           analog_channels = c("xp", "yp"),
                                           method = c.gaze[["downsample"]][["method"]])
-    cat("- 4.4 Downsample gaze: COMPLETE\n")
+
   }
 
   ### 4.5 Remove impossible values (outside of screen dim)
