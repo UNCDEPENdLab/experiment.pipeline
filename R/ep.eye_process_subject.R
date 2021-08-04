@@ -7,7 +7,9 @@
 #' @details This function is ideally used within the \code{ep_batch_process_eye.R}
 #' @examples
 #'  \dontrun{
-#'    ep.eye <- read_process_eye("/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/002_HS_Neighborhood_Eye.edf", "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml")
+#'    file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
+#'    config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+#'    ep.eye <- read_process_eye(file, config_path)
 #'  }
 #' @author Nate Hall
 #' 
@@ -16,17 +18,17 @@
 #' @export
 ep.eye_process_subject <- function(file, config_path, ...) {
  
- ######################### load example files for debugging. comment when running full.
- source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
-#  # Neighborhood - PSU
- file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
- config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
- # Sorting Mushrooms 
-#  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye/010_AE_SortingMushrooms_Eye.edf"
-#  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Sorting_Mushrooms.yaml"
- # Neighborhood - UNC
+  ######################### load example files for debugging. comment when running full.
+  source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
+  #  # Neighborhood - PSU
+  # file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
+  # config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+  # # Sorting Mushrooms 
+  #  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye/010_AE_SortingMushrooms_Eye.edf"
+  #  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Sorting_Mushrooms.yaml"
+  # Neighborhood - UNC
 
- ######################## 
+  ######################## 
  
   ######
   ### 1. Setup processing configuration variables and build block and event-specific message sequences.
@@ -79,8 +81,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 5 Pupil preprocessing.
   ######
   tic("5. pupil time")
-  # config$definitions$eye$pupil_preproc
-  eye_gaze_pupilPre <- preprocess_pupil(eye_gazePre, 
+  eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre, 
                                         blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
                                         filter = config$definitions$eye$pupil_preproc$filter,
                                         interpolate = config$definitions$eye$pupil_preproc$interpolate,
@@ -89,47 +90,14 @@ ep.eye_process_subject <- function(file, config_path, ...) {
                                         header = "5. Pupil preprocessing:")
   toc()
 
-
   ######
-  ### 6 Generate timing by event and trial.
+  ### 6 Cleanup.
   ######
-  log_chunk_header("6. Generating event-locked timings")
-  eye <- eye_evtag <- tag_event_time(eye); cat("- 6.1 time_ev column generated: COMPLETE\n")
+  tic("6. cleanup time")
+  ep.eye_clean <- ep.eye_cleanup(eye_gaze_pupilPre,
+                                 globals = config$definitions$eye$global,
+                                 header = "6. Cleanup and export ep.eye: ")
+  toc()
 
-
-  # to signal that preprocessing finished without issue (though make sure to check .elog for missteps along the way)
-  class(eye) <- c(class(eye), "ep.eye.preproc")
-
-  ######
-  ### 7. Remove raw data to cut the size of returned object considerably.
-  ######
-  if(return_raw){
-    log_chunk_header("7. Removing raw data")
-    eye$raw <- NULL
-    cat("- 7.1 Removing raw data: COMPLETE\n")
-  } else{
-    log_chunk_header("7. Removing raw data: SKIPPED")
-  }
-
-  ######
-  ### 8. Save preprocessed data
-  ######
-  if(save_preproc){
-    log_chunk_header("8. Saving preprocessed data")
-    if(is.null(out_dir)) {
-      spath <- paste0(prefix, "_ep.eye.preproc.RData")
-    } else{
-      if(!dir.exists(out_dir)) dir.create(out_dir)
-      spath <- file.path(out_dir, paste0(prefix, "_ep.eye.preproc.RData"))
-    }
-    save(eye, file = spath); cat(paste0("- 8.1 Preprocessed data saved to ", spath, ": COMPLETE\n"))
-  }
-
-  #close .elog
-  sink(); sink()
-
-  return(eye)
+  return(ep.eye_clean)
 }
-
-
-
