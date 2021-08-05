@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // downsample_digital_timeseries
 Rcpp::IntegerVector downsample_digital_timeseries(arma::uvec& x, int downsamp, bool demote_zeros);
 RcppExport SEXP _experiment_pipeline_downsample_digital_timeseries(SEXP xSEXP, SEXP downsampSEXP, SEXP demote_zerosSEXP) {

@@ -2,19 +2,21 @@
 title: "Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline"
 author: "Nate Hall"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+output: pdf_document
+# output: rmarkdown::html_vignette
+# vignette: >
+#   %\VignetteIndexEntry{Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline}
+#   %\VignetteEngine{knitr::rmarkdown}
+#   \usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(knitr)
+library(experiment.pipeline)
 # groupdir <- "/proj/mnhallqlab" # on cluster.
 groupdir <- "~/ll" # sshfs mounted on local (easier to use markdown knitting functionality)
-source(file.path(groupdir, "users/nate/experiment.pipeline/NH_local/setup_envi.R"))
+# source(file.path(groupdir, "users/nate/experiment.pipeline/NH_local/setup_envi.R"))
 ```
 
 # `experiment.pipeline` relies on a single configuration file
@@ -24,7 +26,7 @@ The YAML file is structured hierarchically, with five fields at the highest leve
 
 ```{r}
 config_path <- file.path(groupdir,"studies/NeuroMAP/s3_data_ep_specs/yaml/SortingMushrooms.yaml")
-config <- validate_exp_yaml(config_path)
+config <- experiment.pipeline::validate_exp_yaml(config_path)
 ```
 
 # YAML configuration files: expected fields

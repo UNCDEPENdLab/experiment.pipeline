@@ -3,6 +3,7 @@
 #' @importFrom yaml read_yaml
 #' @importFrom checkmate assert_int assert_count assert_subset
 #' @author Michael Hallquist
+#' @export
 validate_exp_yaml <- function(yaml_file) {
   stopifnot(file.exists(yaml_file))
   yy <- read_yaml(yaml_file)
