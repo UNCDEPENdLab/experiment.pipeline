@@ -1,40 +1,78 @@
 ---
-title: "Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline"
+title: "Setting up a Configuration File for an Eyetracking Study in `experiment.pipeline`:  The `ep.eye` framework"
 author: "Nate Hall"
 date: "`r Sys.Date()`"
-output: pdf_document
-# output: rmarkdown::html_vignette
-# vignette: >
-#   %\VignetteIndexEntry{Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline}
-#   %\VignetteEngine{knitr::rmarkdown}
-#   \usepackage[utf8]{inputenc}
+
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+      # theme: united
+vignette: >
+  %\VignetteIndexEntry{Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(knitr)
-library(experiment.pipeline)
 # groupdir <- "/proj/mnhallqlab" # on cluster.
 groupdir <- "~/ll" # sshfs mounted on local (easier to use markdown knitting functionality)
-# source(file.path(groupdir, "users/nate/experiment.pipeline/NH_local/setup_envi.R"))
 ```
 
-# `experiment.pipeline` relies on a single configuration file
-The core worker function in the `experiment.pipeline` package for processing eye data on a single subject, (`ep.eye_process_subject.R`) relies entirely on a YAML file that the user sets up prior to processing depending on the structure of the task and the processing procedures desired. 
+# experiment.pipeline relies on a single configuration file
 
-The YAML file is structured hierarchically, with five fields at the highest level. Additional fields are nested within the high-level fields, which we will explore below. Once the config has been set up and is read in to `experiment.pipeline`, the package's internal environment will have access to all components of the specified configuration in the form of a nested list, which I will show as we go along. 
+This vignette documents setting up a configuration file within the `experiment.pipeline` package framework for any arbitrary eyetracking study. The goal is to setup a configuration file which, when combined with a single `.edf` eyetracking file from SR Research, initializes and preprocesses eyetracking data into a single "`ep.eye`" object.
+
+The core worker function in the `experiment.pipeline` package for processing eye data on a single subject, (`ep.eye_process_subject.R`) relies entirely on a `.yaml`/config file that the user sets up prior to processing depending on the structure of the task and the processing procedures desired. 
+
+The config file is structured hierarchically, with five fields at the highest level. Additional fields are nested within the high-level fields, which we will explore below. Once the config has been set up and is read in to `experiment.pipeline`, the package's internal environment will have access to all components of the specified configuration in the form of a nested list, which I will show as we go along. 
+
+## running ep.eye_preprocess_subject:
+
+To get us started, we can extract the path to a single subject's `.edf` file from a directory containing all raw files run through a single cognitive task and specify a path to the config file for that task:
+
+```{r task dir}
+library(experiment.pipeline)
+edf_dir <- file.path(groupdir, "studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye")
+edf_files <- list.files(edf_dir, full.names = TRUE); print(edf_files[1:5])
+edf_path <-edf_files[1] # extract a single subject for example case
+config_path <- file.path(groupdir,"studies/NeuroMAP/s3_data_ep_specs/yaml/SortingMushrooms.yaml")#; print(config_path)
+```
+
+At the end of this vignette, you will be able to process a single subject in an eyetracking study as such:
+
+```{r, eval=FALSE}
+# don't run
+ep.eye_preproc <- ep.eye_process_subject(edf_path, config_path)
+```
+
+By extension, if you have tested your config file on a single subject and think it's ready to roll for all subjects from your study, this can be run while looping over all files in a directory with a simple `for` loop:
+
+```{r, eval= FALSE}
+# don't run
+all_subjects <- list()
+for(subj_file in edf_files){
+  id_string <- sub("_SortingMushrooms_Eye.edf", "", subj_file) # extract just the subject's id to store as the name of the element of all_subjects
+  all_subjects[[id_string]]  <- ep.eye_process_subject(edf_path, config_path)
+}
+```
+
+I have some code written for an additional function `ep.eye_process_dir.R` that would allow for an easy interface to process an entire directory of files (and parallel processing across subjects) for a single task, but I'll probably write another vignette to go over batch processing for a single task or battery of tasks.
+
+Below I include detailed instructions on how to specify a single config file using a single subject (subject 005_EK from `edf_path`) to guide decision points along the way.
+
+# Config files: expected fields
+Starting at the highest level are the `task`, `runs`, `variable_mapping`, `definitions`, and `blocks` fields. I like to separate these with some sort of break line to denote changes in major sections of the config file. The major action for eyetracking preprocessing happens in `definitions`, and a bit in `blocks`. 
 
 ```{r}
-config_path <- file.path(groupdir,"studies/NeuroMAP/s3_data_ep_specs/yaml/SortingMushrooms.yaml")
 config <- experiment.pipeline::validate_exp_yaml(config_path)
 ```
 
-# YAML configuration files: expected fields
-Starting at the highest level are the `task`, `runs`, `variable_mapping`, `definitions`, and `blocks` fields. I like to separate these with some sort of break line to denote changes in major sections of the config file. The major action for eyetracking preprocessing happens in `definitions`, and a bit in `blocks`. 
 
 ```{r, eval = FALSE}
 ################################
-task: neighborhood
+task: SortingMushrooms
 ################################
 runs: 
 ################################
@@ -46,14 +84,14 @@ blocks:
 ################################
 ```
 
-These fields are represented in the named list that will be used to process the eye data. Note that at the highest level only `task` and `runs` will have values assigned to them. Leaving colons open at a level of the YAML file either means that there will be subfields with explicit values defined or that the field is to remain empty. 
+These fields are represented in the named list that will be used to process the eye data. Note that at the highest level only `task` and `runs` will have values assigned to them. Leaving colons open at a level of the YAML file either means that there will be subfields with explicit values defined or that the field is to remain NULL/empty. 
 
 ```{r}
 names(config)
 ```
 
 
-# High-level information on the task structure: `task`, `runs`, and `variable_mapping`, fields
+# High-level information on the task structure: "task", "runs", and "variable_mapping", fields
 These three major fields contain high-level information about the task:
 
 ## `task`
@@ -62,14 +100,13 @@ The `task` field is simply the name of the task that is being processed, in this
 <!-- This is primarily important to specify if you are using the batch processing functionality to process a full battery of tasks but is not used much in the processing scripts themselves. -->
 ```{r, eval = FALSE}
 ################################
-task: neighborhood
+task: SortingMushrooms
 ################################
 ```
 This is imported as:
 ```{r}
 config$task # or config[["task"]]
 ```
-<!-- 
 ## `runs`
 
 The `runs` field has yet to be built in and validated, but the idea here is that multiple exact replicas of a task can be denoted by the user and the config file can be used iteratively on each run without issue.
@@ -106,25 +143,28 @@ This is imported as:
 ```{r}
 config$variable_mapping # or config[["variable_mapping"]]
 ```
-Each of these subfields map to a specific task-general construct of interest:
 
-- `id`: Unique identifier for the subject/decision-maker 
+Each of these subfields map to a specific task-general construct of interest, which are situated hierarchically
+
+### The experiment.pipeline hierarchy
+
+- `id`: Unique identifier for a single human subject/agent. 
 - `run`: An exact replication of the entire task procedure used to increase degrees of freedom (from the task fMRI literature). If the task is completed just once this can remain empty (as in this case).
 - `phase`: A conceptually distinct phase of the task that produces data that should be validated separately (e.g. unique phases of a Pavlovian-Instrumental Transfer task). 
-- `block`: A block of trials. The block may have some characteristics (e.g., mostly incongruent trials in a conflict monitoring task or varying reward/punishment probabilities in a Pavlovian conditioning task), but are validated similarly with respect to the phase. 
+- `block`: A block of conceptually related trials. The block may have some characteristics (e.g., mostly incongruent trials in a conflict monitoring task or blocks with varying reward/punishment probabilities in a Pavlovian conditioning task), but are validated similarly with respect to the phase. 
 - `trial`: A replication unit that is repeated several times in order to achieve a more reliable sample of behavior.
 It is important to denote what level of the task hierarchy the trial is ordered with respect to. Examples include:
     - `trial`: Trial number over the entire task, continues to increment across runs and blocks.
     - `run_trial`: Trial within a run, which resets to 1 with every new run.
     - `block_trial`: Trial within a block, which resets to 1 with every new block.
-- `event`: A component of a trial that occurs in **time** and  constitutes a perceptible event to the subject (e.g., stimulus onset or offset, onset of an auditory cue, display background changes, etc.). Essentially, an **event** is the most atomic unit of task design and represent momentary changes in task demands.
-- `condition`: Experiments also have **design factors** or **conditions** that determine the features of any sub-element in the hierarchy. For example, a 'catch trial' in fMRI can consist of a subset of events within a trial: for example Cue and Anticipation, but no Feedback in a monetary incentive delay task. Or a block may consist of mostly congruent trials, which makes the block a test of a "Mostly congruent" condition. **N.B. consider whether conditions should be specified at different levels of the hierarchy, or if they should remain at the trial-level.**
+- `event`: A component of a trial that occurs in *time* and  constitutes a perceptible event to the subject (e.g., stimulus onset or offset, onset of an auditory cue, display background changes, etc.). Essentially, an *event* is the most atomic unit of task design and represents momentary changes in task demands.
+- `condition`: Experiments also have *design factors* or *conditions* that determine the features of any sub-element in the hierarchy. For example, a 'catch trial' in fMRI can consist of a subset of events within a trial: for example Cue and Anticipation, but no Feedback in a monetary incentive delay task. Or a block may consist of mostly congruent trials, which makes the block a test of a "Mostly congruent" condition. **N.B. consider whether conditions should be specified at different levels of the hierarchy, or if they should remain at the trial-level (e.g. a block naming scheme could be assumed to capture "conditions" of a block of trials).**
 
-Importantly, these subfields constitute a task-general hierarchy that will be present regardless of the specifics of the task. An single task sits atop this hierarchy and a single config file will be needed to process each task, with phases, blocks, trials, and events all nested within a task.
+Importantly, these subfields constitute a task-general hierarchy that will be present regardless of the specifics of any task. An single task sits atop this hierarchy and a single config file will be needed to process each task, with phases, blocks, trials, and events all nested within a task. If you are processing a battery of tasks, we have provided documentation **[HERE]** on how to simultaneuosly process multiple tasks, but each task will need to have a set of unique preprocessing options stored in a YAML file. This vignette documents how to set up a config/YAML file for a single cognitive task, which can be easily copied over if you would like to use experiment.pipeline's batch processing capabilities.  
 
-# Defining key variables for data processing: `definitions`
+# Defining key variables for data processing: "definitions"
 
-This field is where most of the action for processing an eyetracking experiment will happen. The `definitions` field will be grouped according to the data modality (`behav`, `eye`, `phys`). We will focus on `eye` definitions here, directions on implementing `behav` and `phys` definitions can be found [here] and [here].
+This field is where most of the action for processing an eyetracking experiment will happen. The `definitions` field will be grouped according to the data modality (`behav`, `eye`, `phys`). We will focus on `eye` definitions here, directions on implementing `behav` and `phys` definitions can be found **[HERE]** and **[HERE]**.
 
 ```{r, eval = FALSE}
 ################################
@@ -196,12 +236,13 @@ definitions:
       downsample:
         factor: 50
         method: "mean"
-    # qa:
+    # qa: # coming soon!
     #   gaze:
     #     na:
     #       check: ["raw", "downsample"]
     #       perc: 30
     #       cols: ["xp", "yp"]
+    #     ... and more (maybe)!
     #   pupil:
     #     na:
     #       check: ["downsample"]
@@ -213,26 +254,82 @@ definitions:
 
 ## Overview of `definitions$eye` subfields
 
+In general, `ep.eye_process_subject` runs a stepwise procedure taking a file.path to a raw `.edf` file (which comes off of the SR Research Eyelink tracker, but needs to be integrated into the ep.eye framework) and a file.path to a config `.yaml` file and runs a few major procedures (which are themselves broken up into many component parts). Each subfield of `config$definitions$eye` roughly maps onto one of six functions that performs a portion of processing an `ep.eye` object:
+
 ```{r}
 names(config$definitions$eye)
 ```
+
+
 
 - `global`: High-level processing options (whether or not to generate an .elog, path to save preprocessed data to, prefix to append to .elog and preprocessed data, whether or not to save raw eyetracking data). See below for defaults and descriptions. 
 - `initialize`: Options utilized as the arguments to `ep.eye_initialize` function. Consider initialization options a form of sanity check on the imported .edf file before any major preprocessing is done.
 - `msg_parse`: Off of the SR EyeLink, important events are passed as messages in the `ep.eye$msg` field. However, the meaning of these messages often needs to be validated and integrated into the ep.eye hierarchy by the user in order to make the info contained in the .edf file conceptually meaningful. Subfields of `msg_parse` are utilized in the `ep.eye_parse_events` function.
 - `gaze_preproc`
 - `pupil_preproc`
-- `qa`
+- `qa`: Coming soon! Some code and functions are in the works (see `ep.eye_qa.R`) but have not yet been expanded, cleaned up, documented, and integrated into the overall pipeline. This will take a bit of time before it is fully functional
 
 ## `global`
-- `prefix`: A regex to append to the saved .elog and preprocessed data. If supplied, experiment.pipeline will attempt to extract the desired prefix from the basename of the .edf file using `stringr::str_extract`. **Importantly**, if passing a regex in your config file, your regex must be double quoted (rather than single) in order to keep `read_yaml` from appending additional escape characters to your string. If this is left null/empty, will simply use the basename of the .edf file being processed. Defaults to NULL.
+
+Global `ep.eye` definitions are used very early (e.g. whether or not to launch a log file in Step 1: setup processing configuration [`ep.eye_setup_proc_config.R`]) or very late (e.g. removing raw data and saving the preprocessed `ep.eye` object in Step 6: cleanup [`ep.eye_cleanup.R`] ) in the `ep.eye` processing procedure and can be setup in the config as such: 
+
+```{r, eval=FALSE}
+################################
+definitions:
+  eye: &eye
+    global:
+      prefix: "\\d{3}_[[:upper:]]+"
+      gen_log: TRUE
+      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
+      save_preproc: TRUE
+      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
+      return_raw: TRUE 
+################################
+```
+
+and are read into the R session as:
+
+```{r}
+config$definitions$eye$global
+```
+### subfield descriptions and default options
+
+- `prefix`: A regex to append to the saved .elog and preprocessed data. If supplied, experiment.pipeline will attempt to extract the desired prefix from the basename of the .edf file using `stringr::str_extract`. **Importantly**, if passing a regex in your config file, your regex must be double quoted (rather than single) in order to keep `read_yaml` from appending additional escape characters to your string. If this is left null/empty, will simply use the `basename()` of the .edf file being processed. Defaults to NULL.
+  - example of how to test if your regex works:
+```{r}
+## if prefix is specified in config:
+prefix_regex <- "\\d{3}_[[:upper:]]+" # If all files in your edf_dir have the same naming structure, you can be assured that this regex, when applied across your edf files will extract the exact string you want to label your files as.
+stringr::str_extract(edf_path, prefix_regex)
+## default option: use basename()
+basename(edf_path)
+```
+  
+
 - `gen_log`: Logical to determine whether to create an .elog file during processing. If NULL or FALSE will print processing documentation to the console. Defaults to TRUE.
 - `log_dir`: Path to the directory to store .elog files. If `log_dir` is NULL (default) and `gen_log` is TRUE will write to working directory. 
 - `save_preproc`: Logical to determine whether to attempt to save the preprocessed file. Defaults to TRUE.
 - `preproc_out`: Path to directory to store preprocessed ep.eye files. Defaults to NULL, which creates a directory, named "preproc" in working directory.
 - `return_raw`: Logical to determine whether or not to return ep.eye$raw data. Defaults to FALSE to cut down on file size unless explicitly requested.
 
-## `initialize_opts`
+Knowing what we know now about default options, we could rewrite these global options as:
+```{r, eval=FALSE}
+################################
+definitions:
+  eye: &eye
+    global:
+      prefix: "\\d{3}_[[:upper:]]+"
+      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
+      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
+      return_raw: TRUE 
+################################
+```
+
+and achieve the same result since `save_preproc` and `gen_log` both default to TRUE.
+
+## `initialize`
+
+Initialize `ep.eye` definitions are all utilized in Step 2: Initialize ep.eye object (`ep.eye_initialize.R`). These options configure how the `.edf` file is read into an `ep.eye` object and the initial validation and data wrangling that goes into setting up a subject to be processed 
+
 - `expected_edf_fields`: A character vector of field names that should be included in raw all .edf files. It is suggested to read in a single .edf file using `read_edf` and use `names()` to guide what the expected fields are across participants. Defaults to `['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']`, which should be auto-generated by `read_edf`. So this can generally be ommitted unless there is an exception to this rule.
 - `unify_gaze_events`: Character vector including any subset of `['sacc', 'fix', 'blink']` to perform "gaze event unitization" on. This procedure tags specific "gaze events" with unique identifiers, and appends them to `ep.eye[["raw"]]`, `ep.eye[["sacc"]]`, etc. Defaults to `['sacc', 'fix', 'blink']` to unify all gaze events. This is the more time-consuming piece of `ep.eye_initialize` so if your planned analysis focuses on one type of gaze event over another, selecting just a subset can help cut down on computational time (usually on the order of 2-6 min per subject for a 20 min acquisition).
 - `meta_check`: Session metadata taken from the `edf[["info"]]` field (see `expected_edf_fields`) is stored in the ep.eye object, and is appended with additional information throughout the course of ep.eye initialization, message parsing, etc. It is recommended to give an example edf file a quick inspection before batch processing. Subfields of `meta_check` validate that the metadata of a given file does not violate expectations. No default, if this field is NULL or absent, checking metadata will be skipped.
@@ -240,6 +337,11 @@ names(config$definitions$eye)
   - `meta_vals`: Character vector of matched values to validate with respect to `meta_vars`. If the legnth of `meta_vars` and `meta_vals` do not match, this will generate an error. An example of metavalues to check is: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
   - `recording_time`: Numeric vector of length 2 indicating the expected time of the recording session **in seconds** and the margin of error above and below the expected recording time without generating an error. For example, if your task should take approximately 20 mins, with a margin of error of 6 mins, one would pass `[1200, 360]`, which would be interpreted to mean that the `ep.eye[["metadata"]][["recording_time"]]` field should be greater than 840 (14 min) and less than 1560 (26 min).
 
+
+
+
+
+<!-- 
 ## `msg_parse` 
 
 **Important:** This stage of setting up your ep.eye config file is important and is probably the stage where the most user interface with the raw data is necessary. In this field, you will specify an expected message structure across events and will use one of a few methods to extract the relevant eyetracker messages which denote things things trials starting and stopping, stimuli being presented, and subject choices. These will be added to the raw data and will eventually be downsampled and interpolated when preprocessing the ep.eye option. Thus, it is higly recommended that you use the `ep.eye_msg_report()` function to extract and examine the messages that get passed to the eyetracker and use this information to guide you at this step. 
