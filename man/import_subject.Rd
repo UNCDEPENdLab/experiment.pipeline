@@ -4,7 +4,7 @@
 \alias{import_subject}
 \title{function for reading multimodal data files for a subject according to a set of parsing routines. This function is in working shape.}
 \usage{
-import_subject(files, parsers)
+import_subject(files, yaml_file)
 }
 \description{
 function for reading multimodal data files for a subject according to a set of parsing routines. This function is in working shape.

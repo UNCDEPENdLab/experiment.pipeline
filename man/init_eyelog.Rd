@@ -2,11 +2,27 @@
 % Please edit documentation in R/init_log.R
 \name{init_eyelog}
 \alias{init_eyelog}
-\title{Initializes .elog file which will store eye-specific messages about how QA checks are going.}
+\title{Initializes .elog}
 \usage{
-init_eyelog(log_dir = NULL)
+init_eyelog(file, log_dir = NULL, prefix = NULL)
+}
+\arguments{
+\item{file}{Path to the .edf file to process.}
+
+\item{log_dir}{Path to directory to store .elog. If NULL (default) will write to current directory.}
+
+\item{prefix}{Optional prefix to append to .elog name.}
+}
+\value{
+Nested list with processing options pulled from .yml configuration file.
 }
 \description{
-Initially, my thought is to create .blog and .plog files for behavior and physio respectively and eventually write a separate function (or set of functions) that searches through logs and documents how certain checks went in a more succinct format (e.g. a .csv with subjects on rows and stages of QA on columns). 
+.elog files uses \code{sink()} to create a .txt file which will store eye-specific messages about how QA checks are going.
+}
+\note{
+Initially, my thought is to create .blog and .plog files for behavior and physio respectively and eventually write a separate function (or set of functions) that searches through logs and documents how certain checks went in a more succinct format (e.g. a .csv with subjects on rows and stages of QA on columns).
  A report can then be generated to either verify folks that look fine or to draw attention to problematic data.
+}
+\author{
+Nate Hall
 }
