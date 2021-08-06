@@ -7,7 +7,13 @@
 ep.eye_msg_report(eye, report_path = NULL, events = "all", return_eye = FALSE)
 }
 \arguments{
-\item{return_eye}{}
+\item{eye}{Path to .edf file to generate report for or an initialized \code{ep.eye} object.}
+
+\item{report_path}{Path to report destination.}
+
+\item{events}{Character which can take values "between", "within", or "all" to print either between-event, within-event messages, or both, respectively.}
+
+\item{return_eye}{Logical. Whether or not to return the eye object.}
 }
 \description{
 Generate a report of all eyetracker messages for user review.
@@ -16,8 +22,8 @@ Generate a report of all eyetracker messages for user review.
 #'  \dontrun{
    ep.eye <- ep.eye_msg_report("/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/eye/004_AZ_Neighborhood_Eye.edf", "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/message_reports", return_eye = TRUE)
    ep.eye_msg_report(ep.eye, "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/message_reports_004_AZ.txt")
-
  }
+
 }
 \author{
 Nate Hall

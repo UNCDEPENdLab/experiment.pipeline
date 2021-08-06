@@ -14,13 +14,15 @@
 ############################
 
 #' Setup ep.eye structure
-#' 
+#'
 #' @param eye Loaded .edf file from \code{read_edf}
 #' @param task Task name (character)
-#' 
+#'
 #' @return ep.eye Initialized ep.eye structure. [DETAILS HERE].
 #' @author Nate Hall
-#' 
+#'
+#' @import data.table
+#'
 #' @export
 ep.eye_setup_structure <- function(eye, task = NULL){
     ep.eye <- list(raw = eye$raw,
@@ -41,7 +43,7 @@ ep.eye_setup_structure <- function(eye, task = NULL){
                #                blink = data.table(),
                #                pupil = data.table()
                #),
-               metadata = suppress_warnings(split(t(eye$info),f = colnames(eye$info)) %>% lapply(., function(x) {
+               metadata = suppressWarnings(split(t(eye$info),f = colnames(eye$info)) %>% lapply(., function(x) {
                  if (x %in% c("TRUE", "FALSE")){
                    as.logical(x)} else if(!is.na(as.numeric(x))){
                      as.numeric(x)} else {x}
@@ -57,7 +59,7 @@ ep.eye_setup_structure <- function(eye, task = NULL){
     } else {
       n <- 0
     }
-    return(n) 
+    return(n)
   }
   ep.eye$msg$btw_ev <- sapply(ep.eye$msg$eventn, FUN = countDecimalPlaces)
 
@@ -70,13 +72,13 @@ ep.eye_setup_structure <- function(eye, task = NULL){
 }
 
 #' Tag ep.eye metadata with the length of the recording session
-#' 
+#'
 #' @param ep.eye Initialized ep.eye structure.
 #' @return ep.eye Modified ep.eye structure with metadata$recording time denoting session recording length in seconds.
-#' 
+#'
 #' @author Nate Hall
-#' 
-#' @export 
+#'
+#' @export
 ep.eye_get_session_length <- function(ep.eye){
 
     mintime <- min(ep.eye$raw$time)
@@ -91,16 +93,16 @@ ep.eye_get_session_length <- function(ep.eye){
 
 
 #' Tag ep.eye metadata with the length of the recording session
-#' 
+#'
 #' @param ep.eye Initialized ep.eye structure.
 #' @return ep.eye Modified ep.eye structure with metadata$missing_measurements, either NULL if all timepoints are strictly accounted for or a data.table documenting "runs" of missing data.
-#' 
+#'
 #' @author Nate Hall
-#' 
-#' @export 
-#' 
+#'
+#' @export
+#'
 ep.eye_raw_sample_continuity_check <- function(ep.eye){
-    
+
     mintime <- min(ep.eye$raw$time)
     maxtime <- max(ep.eye$raw$time)
     all_time <- seq(mintime,maxtime,1)
@@ -115,7 +117,7 @@ ep.eye_raw_sample_continuity_check <- function(ep.eye){
         mmls <- lapply(mms, function(x) {length(x)}) %>% do.call(c,.) %>% as.numeric() # same as above, just store in summary.
         ep.eye$metadata[["missing_measurements"]] <-  data.table("start" = lapply(mms, function(x) {min(x)}) %>% do.call(c,.),
                                                             "end" = lapply(mms, function(x) {max(x)}) %>% do.call(c,.),
-                                                            "length" = mmls)    
+                                                            "length" = mmls)
   }
 
   ### Check for continuity in events (e.g. that events in time dont jump skip or go out of order)
@@ -128,17 +130,17 @@ ep.eye_raw_sample_continuity_check <- function(ep.eye){
 }
 
 #' Unify gaze events with raw data
-#' 
-#' @description When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.  
-#' 
+#'
+#' @description When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.
+#'
 #' @param ep.eye An initialized ep.eye object
 #' @param gaze_events Character vector of gaze_events to unify with raw. Defaults to unifying sacc, fix, and blink but can be set to any subset of these.
-#' 
+#'
 #' @return ep.eye ep.eye structure that has been tagged with gaze event numbers and validated for correspondence between raw and gaze event fields.
 #' @author Nate Hall
-#' 
+#'
 #' @export
-ep.eye_unify_gaze_events <- function(ep.eye, 
+ep.eye_unify_gaze_events <- function(ep.eye,
                                      gaze_events = c("sacc", "fix", "blink"),
                                      confirm_correspondence = FALSE
                                      ){
@@ -147,7 +149,7 @@ ep.eye_unify_gaze_events <- function(ep.eye,
   ep.eye$raw <- cbind(ep.eye$raw, setNames(data.frame(matrix(0, ncol = length(gaze_events), nrow = length(ep.eye$raw$time))), paste0(gaze_events, "n"))) %>% tibble()
 
   issues <- list()
-  substep <- 0 
+  substep <- 0
   for(i in gaze_events){
     substep <- substep + 1
     step <- paste0("2.6.", substep)
@@ -219,9 +221,9 @@ ep.eye_unify_gaze_events <- function(ep.eye,
 
     }
   }
-  
+
   ep.eye$metadata[["gaze_event_issues"]] <- issues
-  
+
   ### Confirm that tagging raw data with GEV numbers successful
   tryCatch.ep({
     substep <- substep + 1
@@ -243,18 +245,18 @@ ep.eye_unify_gaze_events <- function(ep.eye,
       stopifnot(all(rawtag %in% gaze_eventnums))
     }
   }, describe_text = paste0("-- 2.6.", substep, " Confirm accurate tagging of raw data with gaze event numbers:"))
-  
+
   return(ep.eye)
 }
 
 
 
 #' @title Extract messages that are passed between recording events.
-#' 
-#' @description Some task/quality-relevant messages may (depending on how the experiment is setup) be passed to the .edf file in between times where the tracker is actively recording data (e.g. prior to a screen flip or during calibration and validation). This function extracts such messages in ep.eye[["metadata"]]. These "between event messages", are denoted with a eventn ending in .5. For example, messages passed in "eventn" 1.5 are passed between recording events 1 and 2 and may contain information about the previous or following event. 
-#' 
-#' @param ep.eye An ep.eye object. 
-#' 
+#'
+#' @description Some task/quality-relevant messages may (depending on how the experiment is setup) be passed to the .edf file in between times where the tracker is actively recording data (e.g. prior to a screen flip or during calibration and validation). This function extracts such messages in ep.eye[["metadata"]]. These "between event messages", are denoted with a eventn ending in .5. For example, messages passed in "eventn" 1.5 are passed between recording events 1 and 2 and may contain information about the previous or following event.
+#'
+#' @param ep.eye An ep.eye object.
+#'
 #' @return ep.eye Returns the same ep.eye object, with between-event messages stored in metadata.
 ep.eye_store_between_event_messages <- function(ep.eye){
   #Store messages with no timestamp match in raw data (collected between trials with no corresponding measurements).
@@ -264,29 +266,31 @@ ep.eye_store_between_event_messages <- function(ep.eye){
 }
 
 
-#' @description Remove useless cr.info column.
-#' @param ep.eye An ep.eye object. 
-#' @return ep.eye 
+#' @title Remove useless cr.info column.
+#' @description  Removes cr.info column if it contains unhelpful information
+#' @param ep.eye An ep.eye object.
+#' @return ep.eye
 ep.eye_rm_crinfo <- function(ep.eye){
   cr <- unique(ep.eye$raw$cr.info)
   if(length(cr) == 1 & cr == "..."){
     ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
-  } else{ 
-    stop(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))    
+  } else{
+    stop(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
   }
   return(ep.eye)
 }
 
 
 
-#' @description Remove useless cr.info column.
-#' @param ep.eye An ep.eye object. 
-#' @return ep.eye 
+#' @title Add et.msg column to raw data
+#' @description Adds within-event messages from \code{ep.eye$msg} to \code{ep.eye$raw}.
+#' @param ep.eye An ep.eye object.
+#' @return ep.eye
 ep.eye_unify_raw_msg <- function(ep.eye){
 
-  ep.eye$raw <- ep.eye$raw %>% 
+  ep.eye$raw <- ep.eye$raw %>%
     left_join(dplyr::filter(ep.eye$msg, btw_ev == 0), by = c("eventn", "time")) %>% dplyr::select(-btw_ev) %>%
-    rename(`et.msg` = `text`) %>% 
+    rename(`et.msg` = `text`) %>%
     mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
 
   # important to back-translate extracted messages to original messages due to the use of left_join. This should not fail.
@@ -294,14 +298,14 @@ ep.eye_unify_raw_msg <- function(ep.eye){
 
   # make sure to eliminate between-trial messages and just grab messages that are passed while recording.
   umsg_orig <- ep.eye$msg %>% dplyr::filter(btw_ev == 0) %>% pull(text) %>% unique() # unadulterated, right off the eyetracker.
-  
+
 
   if(!all(umsg %in% umsg_orig)){
     stop("Backtranslate message merge issue. Errors in this step have not been fully vetted.")
   }
 
   return(ep.eye)
-  ## vestigial from an earlier version. Not sure if we'll need to revive. 
+  ## vestigial from an earlier version. Not sure if we'll need to revive.
 
   # if(all(umsg %in% umsg_orig)){
   #   cat("-- 2.8.3 Merge raw gaze data with eyetracker messages, with successful back-translate: SUCCESS\n", sep = "")
@@ -322,15 +326,15 @@ ep.eye_unify_raw_msg <- function(ep.eye){
 
 
 #' @title Check ep.eye metadata
-#' 
-#' @description When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.  
-#' 
+#'
+#' @description When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.
+#'
 #' @param ep.eye An initialized ep.eye object
 #' @param gaze_events Character vector of gaze_events to unify with raw. Defaults to unifying sacc, fix, and blink but can be set to any subset of these.
-#' 
+#'
 #' @return ep.eye ep.eye structure that has been tagged with gaze event numbers and validated for correspondence between raw and gaze event fields.
 #' @author Nate Hall
-#' 
+#'
 #' @export
 ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt){
   cat(dt,"\n")
@@ -415,16 +419,16 @@ ep.eye_shift_timing <- function(ep.eye, dt){
 
 #' split off function for conversion of between trial messages to within
 #'
-ep.eye_inherit_btw_ev <- function(ep.eye, 
+ep.eye_inherit_btw_ev <- function(ep.eye,
                                   inherit_btw_ev,
                                   dt){
-  
+
   cat(dt)
 
   ### 3.12.1 Calibration/validation check
   if(!is.null(inherit_btw_ev$calibration_check)){
     cat("-- 3.12.1 Calibration/validation checks:\n")
-    
+
     dt1 <- "--- 3.12.1.1 Calibration:"
     tryCatch.ep({
       c.check <- inherit_btw_ev$calibration_check$cal
@@ -504,6 +508,6 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
       ep.eye$raw <- ep.eye$raw %>% select(-contains("btw_ev"))
     },
     describe_text = dt3)
-  } 
+  }
   return(ep.eye)
 }

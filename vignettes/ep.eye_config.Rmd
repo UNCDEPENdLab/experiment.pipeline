@@ -59,8 +59,17 @@ for(subj_file in edf_files){
 
 ```{r, include=FALSE}
 config <- ep.eye_setup_proc_config(edf_path,
-                                     config_path,
-                                     header = "1. Setup Processing Options:")
+                                   config_path,
+                                   header = "1. Setup Processing Options:")
+
+eye_init <- ep.eye_initialize(edf_path,
+                              expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
+                              task = config$task,
+                              gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
+                              confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
+                              meta_check = config$definitions$eye$initialize$meta_check,
+                              inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
+                              header = "2. Initialize ep.eye object:")
 
 ```
 
@@ -82,13 +91,13 @@ config <- experiment.pipeline::validate_exp_yaml(config_path)
 task: SortingMushrooms
 ################################
 runs: 
-################################
+  ################################
 variable_mapping:
-################################
+  ################################
 definitions:
-################################
+  ################################
 blocks: 
-################################
+  ################################
 ```
 
 These fields are represented in the named list that will be used to process the eye data. Note that at the highest level only `task` and `runs` will have values assigned to them. Leaving colons open at a level of the YAML file either means that there will be subfields with explicit values defined or that the field is to remain NULL/empty. 
@@ -121,7 +130,7 @@ The `runs` field has yet to be built in and validated, but the idea here is that
 ```{r, eval = FALSE}
 ################################
 runs:
-################################
+  ################################
 ```
 This is imported as (empty in this case):
 ```{r}
@@ -136,14 +145,14 @@ The `variable_mapping` field provides a mapping between column names in a $behav
 ################################
 variable_mapping:
   id: id
-  run:
+run:
   phase:
   block: block
-  trial: trial
-  run_trial:
+trial: trial
+run_trial:
   block_trial: block_trial
-  event: event
-  condition: condition
+event: event
+condition: condition
 ################################
 ```
 This is imported as:
@@ -161,9 +170,9 @@ Each of these subfields map to a specific task-general construct of interest, wh
 - **`block`**: A block of conceptually related trials. The block may have some characteristics (e.g., mostly incongruent trials in a conflict monitoring task or blocks with varying reward/punishment probabilities in a Pavlovian conditioning task), but are validated similarly with respect to the phase. 
 - **`trial`**: A replication unit that is repeated several times in order to achieve a more reliable sample of behavior.
 It is important to denote what level of the task hierarchy the trial is ordered with respect to. Examples include:
-    - **`trial`**: Trial number over the entire task, continues to increment across runs and blocks.
-    - **`run_trial`**: Trial within a run, which resets to 1 with every new run.
-    - **`block_trial`**: Trial within a block, which resets to 1 with every new block.
+- **`trial`**: Trial number over the entire task, continues to increment across runs and blocks.
+- **`run_trial`**: Trial within a run, which resets to 1 with every new run.
+- **`block_trial`**: Trial within a block, which resets to 1 with every new block.
 - **`event`**: A component of a trial that occurs in *time* and  constitutes a perceptible event to the subject (e.g., stimulus onset or offset, onset of an auditory cue, display background changes, etc.). Essentially, an *event* is the most atomic unit of task design and represents momentary changes in task demands.
 - **`condition`**: Experiments also have *design factors* or *conditions* that determine the features of any sub-element in the hierarchy. For example, a 'catch trial' in fMRI can consist of a subset of events within a trial: for example Cue and Anticipation, but no Feedback in a monetary incentive delay task. Or a block may consist of mostly congruent trials, which makes the block a test of a "Mostly congruent" condition. **N.B. consider whether conditions should be specified at different levels of the hierarchy, or if they should remain at the trial-level (e.g. a block naming scheme could be assumed to capture "conditions" of a block of trials).**
 
@@ -183,79 +192,79 @@ definitions:
   #   start_time: #key_resp_10.started
   #   end_time: #key_resp_10.stopped
   eye: &eye
-    global:
-      prefix: "\\d{3}_[[:upper:]]+"
-      gen_log: TRUE
-      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
-      save_preproc: TRUE
-      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
-      return_raw: TRUE 
-    initialize:
-      expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
-      unify_gaze_events: 
-        gaze_events: ['sacc', 'fix', 'blink']
-        confirm_correspondence: FALSE
-      meta_check:
-        meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
-        meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
-        recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
-      inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
-        calibration_check:
-          cal: ["!CAL CALIBRATION HV9"]
-          val: ["!CAL VALIDATION HV9"]
-        move_to_within:
-          str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
-          align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
-          pre_post: ["post", "pre", "post", "post"]
-    msg_parse:
-      extract_event_func_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/gen_eye_events/gen_SortingMushrooms_eye_events.R'   # if extraction method == "function" pass path to the function here.
-      csv_dir_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms/eye/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
-      msg_seq: # &msg_seq #decided to comment this out below for the sake of simplicity.
-        msg_start: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
-        msg_end: [ "TRIAL_OUTCOME ", "TRIAL "]
-        eval_middle: TRUE #smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
-        ordered: TRUE
-    gaze_preproc:
-      aoi:
-        indicator: ["!V IAREA RECTANGLE"]
-        extraction_method: regex
-        extract_coords: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
-        extract_labs: ["[a-z]+$"]
-        split_coords: " "
-        tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
-      downsample:
-        factor: 20
-        method: "mean"
-    pupil_preproc:
-      blink_corr:
-        ms_before: 100
-        ms_after: 100
-      filter:
-        method: "movingavg" #right now only moving average supported
-        window_length: 50 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
-      interpolate:
-        algor: "spline"
-        maxgap: 1000 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
-      baseline_correction:
-        method: "subtract"
-        dur_ms: 100
-        center_on: "DISPLAY ON"
-      downsample:
-        factor: 50
-        method: "mean"
-    # qa: # coming soon!
-    #   gaze:
-    #     na:
-    #       check: ["raw", "downsample"]
-    #       perc: 30
-    #       cols: ["xp", "yp"]
-    #     ... and more (maybe)!
-    #   pupil:
-    #     na:
-    #       check: ["downsample"]
-    #       perc: 30
-    #       cols: ["ps_bc"]
-  # phys:
+global:
+  prefix: "\\d{3}_[[:upper:]]+"
+gen_log: TRUE
+log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
+save_preproc: TRUE
+preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
+return_raw: TRUE 
+initialize:
+  expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
+unify_gaze_events: 
+  gaze_events: ['sacc', 'fix', 'blink']
+confirm_correspondence: FALSE
+meta_check:
+  meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
+inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+  calibration_check:
+  cal: ["!CAL CALIBRATION HV9"]
+val: ["!CAL VALIDATION HV9"]
+move_to_within:
+  str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+pre_post: ["post", "pre", "post", "post"]
+msg_parse:
+  extract_event_func_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/gen_eye_events/gen_SortingMushrooms_eye_events.R'   # if extraction method == "function" pass path to the function here.
+csv_dir_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms/eye/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+msg_seq: # &msg_seq #decided to comment this out below for the sake of simplicity.
+  msg_start: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
+msg_end: [ "TRIAL_OUTCOME ", "TRIAL "]
+eval_middle: TRUE #smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
+ordered: TRUE
+gaze_preproc:
+  aoi:
+  indicator: ["!V IAREA RECTANGLE"]
+extraction_method: regex
+extract_coords: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
+extract_labs: ["[a-z]+$"]
+split_coords: " "
+tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
+downsample:
+  factor: 20
+method: "mean"
+pupil_preproc:
+  blink_corr:
+  ms_before: 100
+ms_after: 100
+filter:
+  method: "movingavg" #right now only moving average supported
+window_length: 50 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
+interpolate:
+  algor: "spline"
+maxgap: 1000 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
+baseline_correction:
+  method: "subtract"
+dur_ms: 100
+center_on: "DISPLAY ON"
+downsample:
+  factor: 50
+method: "mean"
+# qa: # coming soon!
+#   gaze:
+#     na:
+#       check: ["raw", "downsample"]
+#       perc: 30
+#       cols: ["xp", "yp"]
+#     ... and more (maybe)!
+#   pupil:
+#     na:
+#       check: ["downsample"]
+#       perc: 30
+#       cols: ["ps_bc"]
+# phys:
 ################################
 ```
 
@@ -284,13 +293,13 @@ Global `ep.eye` definitions are used very early (e.g. whether or not to launch a
 ################################
 definitions:
   eye: &eye
-    global:
-      prefix: "\\d{3}_[[:upper:]]+"
-      gen_log: TRUE
-      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
-      save_preproc: TRUE
-      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
-      return_raw: TRUE 
+global:
+  prefix: "\\d{3}_[[:upper:]]+"
+gen_log: TRUE
+log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
+save_preproc: TRUE
+preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
+return_raw: TRUE 
 ################################
 ```
 
@@ -302,11 +311,11 @@ config$definitions$eye$global
 ### subfield descriptions and default options
 
 - **`prefix`**: A regex taken from an `.edf` file name to append to the saved `.elog` and preprocessed data.  
-  - **Defaults** to NULL. If NULL, will simply use the `basename()` of the .edf file being processed. If supplied, experiment.pipeline will attempt to extract the desired prefix from the basename of the .edf file using `stringr::str_extract`.
-  - **N.B.**, if passing a regex in your config file, your regex must be double quoted (rather than single) in order to keep `read_yaml()` from appending additional escape characters to your string. 
+- **Defaults** to NULL. If NULL, will simply use the `basename()` of the .edf file being processed. If supplied, experiment.pipeline will attempt to extract the desired prefix from the basename of the .edf file using `stringr::str_extract`.
+- **N.B.**, if passing a regex in your config file, your regex must be double quoted (rather than single) in order to keep `read_yaml()` from appending additional escape characters to your string. 
 
 Here's example of how to test if your regex works as expected:
-  
+
 ```{r}
 ## if prefix is specified in config:
 # It is imporatant to make sure the naming structure in your directory is uniform if batch processing.
@@ -315,22 +324,22 @@ stringr::str_extract(edf_path, prefix_regex)
 ## default option: use basename() while removing file extension
 sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(edf_path))
 ```
-  
+
 
 - **`gen_log`**: Logical to determine whether to create an `.elog` file during processing. 
-  - **Defaults** to TRUE. If NULL or FALSE will print processing documentation to the console.  
+- **Defaults** to TRUE. If NULL or FALSE will print processing documentation to the console.  
 
 - **`log_dir`**: Path to the directory to store `.elog` files. 
-  - **Defaults** to NULL. If NULL and `gen_log` is TRUE will write to working directory. 
+- **Defaults** to NULL. If NULL and `gen_log` is TRUE will write to working directory. 
 
 - **`save_preproc`**: Logical to determine whether to attempt to save the preprocessed file. 
-  - **Defaults** to TRUE.
+- **Defaults** to TRUE.
 
 - **`preproc_out`**: Path to directory to store preprocessed `ep.eye` files. 
-  - **Defaults** to NULL. If NULL, creates a directory, named "preproc" in working directory.
+- **Defaults** to NULL. If NULL, creates a directory, named "preproc" in working directory.
 
 - **`return_raw`**: Logical to determine whether or not to return `ep.eye$raw` data to cut down on file size unless explicitly requested.
-  - **Defaults** to FALSE. If FALSE, remove raw data from resulting 
+- **Defaults** to FALSE. If FALSE, remove raw data from resulting 
 
 Knowing what we know now about default options, we could rewrite these global options as:
 
@@ -338,11 +347,11 @@ Knowing what we know now about default options, we could rewrite these global op
 ################################
 definitions:
   eye: &eye
-    global:
-      prefix: "\\d{3}_[[:upper:]]+"
-      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
-      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
-      return_raw: TRUE 
+global:
+  prefix: "\\d{3}_[[:upper:]]+"
+log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
+preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
+return_raw: TRUE 
 ################################
 ```
 
@@ -356,29 +365,29 @@ Initialize `ep.eye` definitions are all utilized in Step 2: Initialize ep.eye ob
 ################################
 definitions:
   eye: &eye
-    initialize:
-          expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
-          unify_gaze_events: 
-            gaze_events: ['sacc', 'fix', 'blink']
-            confirm_correspondence: FALSE
-          meta_check:
-            meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
-            meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
-            recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
-          inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
-            calibration_check:
-              cal: ["!CAL CALIBRATION HV9"]
-              val: ["!CAL VALIDATION HV9"]
-            move_to_within:
-              str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
-              align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
-              pre_post: ["post", "pre", "post", "post"]
+initialize:
+  expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
+unify_gaze_events: 
+  gaze_events: ['sacc', 'fix', 'blink']
+confirm_correspondence: FALSE
+meta_check:
+  meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
+inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+  calibration_check:
+  cal: ["!CAL CALIBRATION HV9"]
+val: ["!CAL VALIDATION HV9"]
+move_to_within:
+  str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+pre_post: ["post", "pre", "post", "post"]
 ################################
 ```
 
 - **`expected_edf_fields`**: A character vector of field names that should be included in all raw `.edf` files. 
-  - **Defaults** to `['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']`. This should be auto-generated by `read_edf.R`. In most cases then, this can generally be omitted unless there is an exception to this rule. 
-  
+- **Defaults** to `['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']`. This should be auto-generated by `read_edf.R`. In most cases then, this can generally be omitted unless there is an exception to this rule. 
+
 It is suggested to read in a single .edf file using `read_edf` and use `names()` to guide what the expected fields are across participants. Here is an example:
 ```{r, cache=TRUE}
 ### If edf2asc executable has not been added to path see: https://rdrr.io/github/davebraze/FDBeye/man/edf2asc.html
@@ -387,21 +396,21 @@ names(edf)
 ```
 
 - **`unify_gaze_events`**: This procedure tags specific "gaze events" with unique identifiers, and appends them to `ep.eye[["raw"]]`, `ep.eye[["sacc"]]`, etc. This allows for a detailed representation of gaze patterns to be stored in raw data, which is propagated to later stages of preprocessing (e.g. blink correction in pupil preprocessing depends on the raw pupil data having information about when in time blinks occur).
-  - **`gaze_events`**: Character vector including any subset of `['sacc', 'fix', 'blink']` to perform "gaze event unification" on. 
-    - **Defaults** to `['sacc', 'fix', 'blink']`. This will unify all gaze events in raw data. 
-  - **`check_correspondence`**: This is the more time-consuming piece of `ep.eye_initialize` so if your planned analysis focuses on one type of gaze event over another, selecting just a subset can help cut down on computational time (usually on the order of 2-6 min per subject for a 20 min acquisition).
+- **`gaze_events`**: Character vector including any subset of `['sacc', 'fix', 'blink']` to perform "gaze event unification" on. 
+- **Defaults** to `['sacc', 'fix', 'blink']`. This will unify all gaze events in raw data. 
+- **`check_correspondence`**: This is the more time-consuming piece of `ep.eye_initialize` so if your planned analysis focuses on one type of gaze event over another, selecting just a subset can help cut down on computational time (usually on the order of 2-6 min per subject for a 20 min acquisition).
 - `meta_check`: Session metadata taken from the `edf[["info"]]` field (see `expected_edf_fields`) is stored in the ep.eye object, and is appended with additional information throughout the course of ep.eye initialization, message parsing, etc. It is recommended to give an example edf file a quick inspection before batch processing. Subfields of `meta_check` validate that the metadata of a given file does not violate expectations. No default, if this field is NULL or absent, checking metadata will be skipped.
-  - `meta_vars`: Field names in `ep.eye[["metadata"]]` to be validated against expected values which are passed in `meta_vals`. Usually, it is good to look at an example .edf file to set expectation across subjects. An example of metavariables to check is: `['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']` corresponding to recording session parameters (e.g. sampling rate of the eyetracker in Hz, eyetracker model, binocular vs monocular recording, screen display size in pixels, etc.) that should be the same across subjects. 
-  - `meta_vals`: Character vector of matched values to validate with respect to `meta_vars`. If the legnth of `meta_vars` and `meta_vals` do not match, this will generate an error. An example of metavalues to check is: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
-  - `recording_time`: Numeric vector of length 2 indicating the expected time of the recording session **in seconds** and the margin of error above and below the expected recording time without generating an error. For example, if your task should take approximately 20 mins, with a margin of error of 6 mins, one would pass `[1200, 360]`, which would be interpreted to mean that the `ep.eye[["metadata"]][["recording_time"]]` field should be greater than 840 (14 min) and less than 1560 (26 min).
+- `meta_vars`: Field names in `ep.eye[["metadata"]]` to be validated against expected values which are passed in `meta_vals`. Usually, it is good to look at an example .edf file to set expectation across subjects. An example of metavariables to check is: `['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']` corresponding to recording session parameters (e.g. sampling rate of the eyetracker in Hz, eyetracker model, binocular vs monocular recording, screen display size in pixels, etc.) that should be the same across subjects. 
+- `meta_vals`: Character vector of matched values to validate with respect to `meta_vars`. If the legnth of `meta_vars` and `meta_vals` do not match, this will generate an error. An example of metavalues to check is: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+- `recording_time`: Numeric vector of length 2 indicating the expected time of the recording session **in seconds** and the margin of error above and below the expected recording time without generating an error. For example, if your task should take approximately 20 mins, with a margin of error of 6 mins, one would pass `[1200, 360]`, which would be interpreted to mean that the `ep.eye[["metadata"]][["recording_time"]]` field should be greater than 840 (14 min) and less than 1560 (26 min).
 inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
-            calibration_check:
-              cal: ["!CAL CALIBRATION HV9"]
-              val: ["!CAL VALIDATION HV9"]
-            move_to_within:
-              str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
-              align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
-              pre_post: ["post", "pre", "post", "post"]
+calibration_check:
+cal: ["!CAL CALIBRATION HV9"]
+val: ["!CAL VALIDATION HV9"]
+move_to_within:
+str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+pre_post: ["post", "pre", "post", "post"]
 
 
 
@@ -412,19 +421,19 @@ inherit_btw_ev: # do certain between-trial messages need to be extracted for any
 **Important:** This stage of setting up your ep.eye config file is important and is probably the stage where the most user interface with the raw data is necessary. In this field, you will specify an expected message structure across events and will use one of a few methods to extract the relevant eyetracker messages which denote things things trials starting and stopping, stimuli being presented, and subject choices. These will be added to the raw data and will eventually be downsampled and interpolated when preprocessing the ep.eye option. Thus, it is higly recommended that you use the `ep.eye_msg_report()` function to extract and examine the messages that get passed to the eyetracker and use this information to guide you at this step. 
 
 - `inherit_btw_ev`: Do certain between-event messages need to be extracted into raw and gaze event data frames? If empty, will skip inheritance of between-event messages. Defaults to NULL.
-  - `calibration_check`: Check the between-event messages for calibration and validation messages? This simply checks that messages exist that confirm the type of calibration and validation (e.g. 5- vs 9-point calibration etc.) that were performed on this data. If empty, will skip. Defaults to NULL.
-    - `cal`: Calibration message to search for (e.g. `['!CAL CALIBRATION HV9']`) 
-    - `val`: Calibration message to search for (e.g. `['!CAL VALIDATION HV9']`) 
-  - `move_to_within`: **RECONSIDER DEPRECATING THIS FEATURE**
-      - `str`: ["TRIALID", "END_RECORDING", "TRIAL "]
-      - `align_msg`: ["!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
-      - `pre_post`: ["pre", "post", "post"]
+- `calibration_check`: Check the between-event messages for calibration and validation messages? This simply checks that messages exist that confirm the type of calibration and validation (e.g. 5- vs 9-point calibration etc.) that were performed on this data. If empty, will skip. Defaults to NULL.
+- `cal`: Calibration message to search for (e.g. `['!CAL CALIBRATION HV9']`) 
+- `val`: Calibration message to search for (e.g. `['!CAL VALIDATION HV9']`) 
+- `move_to_within`: **RECONSIDER DEPRECATING THIS FEATURE**
+- `str`: ["TRIALID", "END_RECORDING", "TRIAL "]
+- `align_msg`: ["!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+- `pre_post`: ["pre", "post", "post"]
 - `event_info`:  
-  - `extraction_method`: Can be 'csv', 'regex', 'function', or 'data.frame'
-  - `extract_event_func_path`: If extraction method == "function" pass path to the function here.
-  - `csv_path`: If extraction method %in% c("csv", "function")  path to extract or write event csvs to.
-  - `msg_seq`: 
-    - `msg_start`: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
-    - `msg_end`: [ "TRIAL_RESULT ", "TRIAL "]
-    - `eval_middle`: TRUE #smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
-    - `ordered`: FALSE -->
+- `extraction_method`: Can be 'csv', 'regex', 'function', or 'data.frame'
+- `extract_event_func_path`: If extraction method == "function" pass path to the function here.
+- `csv_path`: If extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+- `msg_seq`: 
+- `msg_start`: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
+- `msg_end`: [ "TRIAL_RESULT ", "TRIAL "]
+- `eval_middle`: TRUE #smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
+- `ordered`: FALSE -->

@@ -29,7 +29,7 @@ ep.eye_initialize <- function(file,
                               inherit_btw_ev = NULL,
                               header = NULL,
                               ...){
-
+  browser()
   log_chunk_header(header)
 
   ### 2.1 Read EDF file
