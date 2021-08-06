@@ -15,7 +15,7 @@ ep.eye_setup_proc_config(file, config_path, header = NULL)
 Nested list with processing options pulled from .yml configuration file.
 }
 \description{
-Validates and imports processing configuration options into the environment for later use.
+Validates and imports processing configuration options into the environment for later use. Implements default configuration options if missing from YAML.
 }
 \details{
 Also generates new log file using \code{sink()}, and sets  up a new directory for preprocessed output if it does not already exist.

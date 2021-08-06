@@ -4,10 +4,17 @@
 \alias{ep.eye_set_config_definitions}
 \title{Implement Default Definitions}
 \usage{
-ep.eye_set_config_definitions(config, field)
+ep.eye_set_config_definitions(file, config, field)
 }
 \arguments{
-\item{config}{}
+\item{file}{Path to .edf file}
+
+\item{config}{Named list extracted from config file}
+
+\item{field}{Character of field name to set config definitions}
+}
+\value{
+config. Named list with config file, including default values if missing from config
 }
 \description{
 Implement Default Definitions

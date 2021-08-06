@@ -16,8 +16,7 @@ vignette: >
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(knitr)
-# groupdir <- "/proj/mnhallqlab" # on cluster.
-groupdir <- "~/ll" # sshfs mounted on local (easier to use markdown knitting functionality)
+library(rprojroot)
 ```
 
 # experiment.pipeline relies on a single configuration file
@@ -34,10 +33,10 @@ To get us started, we can extract the path to a single subject's `.edf` file fro
 
 ```{r task dir}
 library(experiment.pipeline)
-edf_dir <- file.path(groupdir, "studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye")
-edf_files <- list.files(edf_dir, full.names = TRUE); print(edf_files[1:5])
+
+edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/SortingMushrooms_edfs"), full.names = TRUE); print(edf_files)
 edf_path <-edf_files[1] # extract a single subject for example case
-config_path <- file.path(groupdir,"studies/NeuroMAP/s3_data_ep_specs/yaml/SortingMushrooms.yaml")#; print(config_path)
+config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep.eye_configs/SortingMushrooms.yaml")
 ```
 
 At the end of this vignette, you will be able to process a single subject in an eyetracking study as such:
@@ -57,6 +56,14 @@ for(subj_file in edf_files){
   all_subjects[[id_string]]  <- ep.eye_process_subject(edf_path, config_path)
 }
 ```
+
+```{r, include=FALSE}
+config <- ep.eye_setup_proc_config(edf_path,
+                                     config_path,
+                                     header = "1. Setup Processing Options:")
+
+```
+
 
 I have some code written for an additional function `ep.eye_process_dir.R` that would allow for an easy interface to process an entire directory of files (and parallel processing across subjects) for a single task, but I'll probably write another vignette to go over batch processing for a single task or battery of tasks.
 
@@ -148,19 +155,19 @@ Each of these subfields map to a specific task-general construct of interest, wh
 
 ### The experiment.pipeline hierarchy
 
-- `id`: Unique identifier for a single human subject/agent. 
-- `run`: An exact replication of the entire task procedure used to increase degrees of freedom (from the task fMRI literature). If the task is completed just once this can remain empty (as in this case).
-- `phase`: A conceptually distinct phase of the task that produces data that should be validated separately (e.g. unique phases of a Pavlovian-Instrumental Transfer task). 
-- `block`: A block of conceptually related trials. The block may have some characteristics (e.g., mostly incongruent trials in a conflict monitoring task or blocks with varying reward/punishment probabilities in a Pavlovian conditioning task), but are validated similarly with respect to the phase. 
-- `trial`: A replication unit that is repeated several times in order to achieve a more reliable sample of behavior.
+- **`id`**: Unique identifier for a single human subject/agent. 
+- **`run`**: An exact replication of the entire task procedure used to increase degrees of freedom (from the task fMRI literature). If the task is completed just once this can remain empty (as in this case).
+- **`phase`**: A conceptually distinct phase of the task that produces data that should be validated separately (e.g. unique phases of a Pavlovian-Instrumental Transfer task). 
+- **`block`**: A block of conceptually related trials. The block may have some characteristics (e.g., mostly incongruent trials in a conflict monitoring task or blocks with varying reward/punishment probabilities in a Pavlovian conditioning task), but are validated similarly with respect to the phase. 
+- **`trial`**: A replication unit that is repeated several times in order to achieve a more reliable sample of behavior.
 It is important to denote what level of the task hierarchy the trial is ordered with respect to. Examples include:
-    - `trial`: Trial number over the entire task, continues to increment across runs and blocks.
-    - `run_trial`: Trial within a run, which resets to 1 with every new run.
-    - `block_trial`: Trial within a block, which resets to 1 with every new block.
-- `event`: A component of a trial that occurs in *time* and  constitutes a perceptible event to the subject (e.g., stimulus onset or offset, onset of an auditory cue, display background changes, etc.). Essentially, an *event* is the most atomic unit of task design and represents momentary changes in task demands.
-- `condition`: Experiments also have *design factors* or *conditions* that determine the features of any sub-element in the hierarchy. For example, a 'catch trial' in fMRI can consist of a subset of events within a trial: for example Cue and Anticipation, but no Feedback in a monetary incentive delay task. Or a block may consist of mostly congruent trials, which makes the block a test of a "Mostly congruent" condition. **N.B. consider whether conditions should be specified at different levels of the hierarchy, or if they should remain at the trial-level (e.g. a block naming scheme could be assumed to capture "conditions" of a block of trials).**
+    - **`trial`**: Trial number over the entire task, continues to increment across runs and blocks.
+    - **`run_trial`**: Trial within a run, which resets to 1 with every new run.
+    - **`block_trial`**: Trial within a block, which resets to 1 with every new block.
+- **`event`**: A component of a trial that occurs in *time* and  constitutes a perceptible event to the subject (e.g., stimulus onset or offset, onset of an auditory cue, display background changes, etc.). Essentially, an *event* is the most atomic unit of task design and represents momentary changes in task demands.
+- **`condition`**: Experiments also have *design factors* or *conditions* that determine the features of any sub-element in the hierarchy. For example, a 'catch trial' in fMRI can consist of a subset of events within a trial: for example Cue and Anticipation, but no Feedback in a monetary incentive delay task. Or a block may consist of mostly congruent trials, which makes the block a test of a "Mostly congruent" condition. **N.B. consider whether conditions should be specified at different levels of the hierarchy, or if they should remain at the trial-level (e.g. a block naming scheme could be assumed to capture "conditions" of a block of trials).**
 
-Importantly, these subfields constitute a task-general hierarchy that will be present regardless of the specifics of any task. An single task sits atop this hierarchy and a single config file will be needed to process each task, with phases, blocks, trials, and events all nested within a task. If you are processing a battery of tasks, we have provided documentation **[HERE]** on how to simultaneuosly process multiple tasks, but each task will need to have a set of unique preprocessing options stored in a YAML file. This vignette documents how to set up a config/YAML file for a single cognitive task, which can be easily copied over if you would like to use experiment.pipeline's batch processing capabilities.  
+Importantly, these subfields constitute a task-general hierarchy that will be present regardless of the specifics of any task. An single task sits atop this hierarchy and a single config file will be needed to process each task, with phases, blocks, trials, and events all nested within a task. If you are processing a battery of tasks, we have provided documentation **[HERE]** on how to simultaneuosly process multiple tasks, but each task will need to have a set of unique preprocessing options stored in a config file. This vignette documents how to set up a config file for a single cognitive task, which can be easily translated over multiple tasks if you would like to use experiment.pipeline's batch processing capabilities.  
 
 # Defining key variables for data processing: "definitions"
 
@@ -262,12 +269,12 @@ names(config$definitions$eye)
 
 
 
-- `global`: High-level processing options (whether or not to generate an .elog, path to save preprocessed data to, prefix to append to .elog and preprocessed data, whether or not to save raw eyetracking data). See below for defaults and descriptions. 
-- `initialize`: Options utilized as the arguments to `ep.eye_initialize` function. Consider initialization options a form of sanity check on the imported .edf file before any major preprocessing is done.
-- `msg_parse`: Off of the SR EyeLink, important events are passed as messages in the `ep.eye$msg` field. However, the meaning of these messages often needs to be validated and integrated into the ep.eye hierarchy by the user in order to make the info contained in the .edf file conceptually meaningful. Subfields of `msg_parse` are utilized in the `ep.eye_parse_events` function.
-- `gaze_preproc`
-- `pupil_preproc`
-- `qa`: Coming soon! Some code and functions are in the works (see `ep.eye_qa.R`) but have not yet been expanded, cleaned up, documented, and integrated into the overall pipeline. This will take a bit of time before it is fully functional
+- **`global`**: High-level processing options (whether or not to generate an .elog, path to save preprocessed data to, prefix to append to .elog and preprocessed data, whether or not to save raw eyetracking data). See below for defaults and descriptions. 
+- **`initialize`**: Options utilized as the arguments to `ep.eye_initialize` function. Consider initialization options a form of sanity check on the imported .edf file before any major preprocessing is done.
+- **`msg_parse`**: Off of the SR EyeLink, important events are passed as messages in the `ep.eye$msg` field. However, the meaning of these messages often needs to be validated and integrated into the ep.eye hierarchy by the user in order to make the info contained in the .edf file conceptually meaningful. Subfields of `msg_parse` are utilized in the `ep.eye_parse_events` function.
+- **`gaze_preproc`**
+- **`pupil_preproc`**
+- **`qa`**: Coming soon! Some code and functions are in the works (see `ep.eye_qa.R`) but have not yet been expanded, cleaned up, documented, and integrated into the overall pipeline. This will take a bit of time before it is fully functional
 
 ## `global`
 
@@ -294,24 +301,39 @@ config$definitions$eye$global
 ```
 ### subfield descriptions and default options
 
-- `prefix`: A regex to append to the saved .elog and preprocessed data. If supplied, experiment.pipeline will attempt to extract the desired prefix from the basename of the .edf file using `stringr::str_extract`. **Importantly**, if passing a regex in your config file, your regex must be double quoted (rather than single) in order to keep `read_yaml` from appending additional escape characters to your string. If this is left null/empty, will simply use the `basename()` of the .edf file being processed. Defaults to NULL.
-  - example of how to test if your regex works:
+- **`prefix`**: A regex taken from an `.edf` file name to append to the saved `.elog` and preprocessed data.  
+  - **Defaults** to NULL. If NULL, will simply use the `basename()` of the .edf file being processed. If supplied, experiment.pipeline will attempt to extract the desired prefix from the basename of the .edf file using `stringr::str_extract`.
+  - **N.B.**, if passing a regex in your config file, your regex must be double quoted (rather than single) in order to keep `read_yaml()` from appending additional escape characters to your string. 
+
+Here's example of how to test if your regex works as expected:
+  
 ```{r}
 ## if prefix is specified in config:
-prefix_regex <- "\\d{3}_[[:upper:]]+" # If all files in your edf_dir have the same naming structure, you can be assured that this regex, when applied across your edf files will extract the exact string you want to label your files as.
+# It is imporatant to make sure the naming structure in your directory is uniform if batch processing.
+prefix_regex <- "\\d{3}_[[:upper:]]+" 
 stringr::str_extract(edf_path, prefix_regex)
-## default option: use basename()
-basename(edf_path)
+## default option: use basename() while removing file extension
+sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(edf_path))
 ```
   
 
-- `gen_log`: Logical to determine whether to create an .elog file during processing. If NULL or FALSE will print processing documentation to the console. Defaults to TRUE.
-- `log_dir`: Path to the directory to store .elog files. If `log_dir` is NULL (default) and `gen_log` is TRUE will write to working directory. 
-- `save_preproc`: Logical to determine whether to attempt to save the preprocessed file. Defaults to TRUE.
-- `preproc_out`: Path to directory to store preprocessed ep.eye files. Defaults to NULL, which creates a directory, named "preproc" in working directory.
-- `return_raw`: Logical to determine whether or not to return ep.eye$raw data. Defaults to FALSE to cut down on file size unless explicitly requested.
+- **`gen_log`**: Logical to determine whether to create an `.elog` file during processing. 
+  - **Defaults** to TRUE. If NULL or FALSE will print processing documentation to the console.  
+
+- **`log_dir`**: Path to the directory to store `.elog` files. 
+  - **Defaults** to NULL. If NULL and `gen_log` is TRUE will write to working directory. 
+
+- **`save_preproc`**: Logical to determine whether to attempt to save the preprocessed file. 
+  - **Defaults** to TRUE.
+
+- **`preproc_out`**: Path to directory to store preprocessed `ep.eye` files. 
+  - **Defaults** to NULL. If NULL, creates a directory, named "preproc" in working directory.
+
+- **`return_raw`**: Logical to determine whether or not to return `ep.eye$raw` data to cut down on file size unless explicitly requested.
+  - **Defaults** to FALSE. If FALSE, remove raw data from resulting 
 
 Knowing what we know now about default options, we could rewrite these global options as:
+
 ```{r, eval=FALSE}
 ################################
 definitions:
@@ -328,15 +350,58 @@ and achieve the same result since `save_preproc` and `gen_log` both default to T
 
 ## `initialize`
 
-Initialize `ep.eye` definitions are all utilized in Step 2: Initialize ep.eye object (`ep.eye_initialize.R`). These options configure how the `.edf` file is read into an `ep.eye` object and the initial validation and data wrangling that goes into setting up a subject to be processed 
+Initialize `ep.eye` definitions are all utilized in Step 2: Initialize ep.eye object (`ep.eye_initialize.R`). These options configure how the `.edf` file is read into an `ep.eye` object and the initial validation and data wrangling that goes into setting up a subject to be preprocessed.  
 
-- `expected_edf_fields`: A character vector of field names that should be included in raw all .edf files. It is suggested to read in a single .edf file using `read_edf` and use `names()` to guide what the expected fields are across participants. Defaults to `['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']`, which should be auto-generated by `read_edf`. So this can generally be ommitted unless there is an exception to this rule.
-- `unify_gaze_events`: Character vector including any subset of `['sacc', 'fix', 'blink']` to perform "gaze event unitization" on. This procedure tags specific "gaze events" with unique identifiers, and appends them to `ep.eye[["raw"]]`, `ep.eye[["sacc"]]`, etc. Defaults to `['sacc', 'fix', 'blink']` to unify all gaze events. This is the more time-consuming piece of `ep.eye_initialize` so if your planned analysis focuses on one type of gaze event over another, selecting just a subset can help cut down on computational time (usually on the order of 2-6 min per subject for a 20 min acquisition).
+```{r, eval = FALSE}
+################################
+definitions:
+  eye: &eye
+    initialize:
+          expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
+          unify_gaze_events: 
+            gaze_events: ['sacc', 'fix', 'blink']
+            confirm_correspondence: FALSE
+          meta_check:
+            meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+            meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+            recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
+          inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+            calibration_check:
+              cal: ["!CAL CALIBRATION HV9"]
+              val: ["!CAL VALIDATION HV9"]
+            move_to_within:
+              str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+              align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+              pre_post: ["post", "pre", "post", "post"]
+################################
+```
+
+- **`expected_edf_fields`**: A character vector of field names that should be included in all raw `.edf` files. 
+  - **Defaults** to `['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']`. This should be auto-generated by `read_edf.R`. In most cases then, this can generally be omitted unless there is an exception to this rule. 
+  
+It is suggested to read in a single .edf file using `read_edf` and use `names()` to guide what the expected fields are across participants. Here is an example:
+```{r, cache=TRUE}
+### If edf2asc executable has not been added to path see: https://rdrr.io/github/davebraze/FDBeye/man/edf2asc.html
+edf <- read_edf(edf_path, keep_asc = FALSE)[[1]]
+names(edf)
+```
+
+- **`unify_gaze_events`**: This procedure tags specific "gaze events" with unique identifiers, and appends them to `ep.eye[["raw"]]`, `ep.eye[["sacc"]]`, etc. This allows for a detailed representation of gaze patterns to be stored in raw data, which is propagated to later stages of preprocessing (e.g. blink correction in pupil preprocessing depends on the raw pupil data having information about when in time blinks occur).
+  - **`gaze_events`**: Character vector including any subset of `['sacc', 'fix', 'blink']` to perform "gaze event unification" on. 
+    - **Defaults** to `['sacc', 'fix', 'blink']`. This will unify all gaze events in raw data. 
+  - **`check_correspondence`**: This is the more time-consuming piece of `ep.eye_initialize` so if your planned analysis focuses on one type of gaze event over another, selecting just a subset can help cut down on computational time (usually on the order of 2-6 min per subject for a 20 min acquisition).
 - `meta_check`: Session metadata taken from the `edf[["info"]]` field (see `expected_edf_fields`) is stored in the ep.eye object, and is appended with additional information throughout the course of ep.eye initialization, message parsing, etc. It is recommended to give an example edf file a quick inspection before batch processing. Subfields of `meta_check` validate that the metadata of a given file does not violate expectations. No default, if this field is NULL or absent, checking metadata will be skipped.
   - `meta_vars`: Field names in `ep.eye[["metadata"]]` to be validated against expected values which are passed in `meta_vals`. Usually, it is good to look at an example .edf file to set expectation across subjects. An example of metavariables to check is: `['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']` corresponding to recording session parameters (e.g. sampling rate of the eyetracker in Hz, eyetracker model, binocular vs monocular recording, screen display size in pixels, etc.) that should be the same across subjects. 
   - `meta_vals`: Character vector of matched values to validate with respect to `meta_vars`. If the legnth of `meta_vars` and `meta_vals` do not match, this will generate an error. An example of metavalues to check is: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
   - `recording_time`: Numeric vector of length 2 indicating the expected time of the recording session **in seconds** and the margin of error above and below the expected recording time without generating an error. For example, if your task should take approximately 20 mins, with a margin of error of 6 mins, one would pass `[1200, 360]`, which would be interpreted to mean that the `ep.eye[["metadata"]][["recording_time"]]` field should be greater than 840 (14 min) and less than 1560 (26 min).
-
+inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+            calibration_check:
+              cal: ["!CAL CALIBRATION HV9"]
+              val: ["!CAL VALIDATION HV9"]
+            move_to_within:
+              str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+              align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+              pre_post: ["post", "pre", "post", "post"]
 
 
 

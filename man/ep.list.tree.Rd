@@ -19,5 +19,5 @@ ep.list.tree(
 )
 }
 \description{
-this is a very slight ammendment to the Hmisc package for easy display of lists: http://math.furman.edu/~dcs/courses/math47/R/library/Hmisc/html/list.tree.html
+this is a very slight ammendment to \code{Hmisc::list.tree} for easy display of lists: http://math.furman.edu/~dcs/courses/math47/R/library/Hmisc/html/list.tree.html
 }

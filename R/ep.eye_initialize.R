@@ -1,28 +1,34 @@
-#' generic function for initializing ep.eye object and performing basic internal checks on the eye data, while remaining agnostic to task/behavior structure.
+#' @title Initialize an ep.eye object
+#' @description This is a  generic function for initializing an \code{ep.eye} object and performing basic internal checks on the eye data, while remaining agnostic to task/behavior structure.
 #'
-#' This includes validation of very basic data quality (large variance in gaze distribution, excessive blinks, large jumps in eye position, etc).
-#' TODO: include functionality for logging of successes, warnings, failures. This will probably involve a trycatch statement that could handle a potentially large number of issues. We'll have to see how complicated it gets by balancing flexibility with parsimony. Tend to prefer flexibility if the package allows user-side functionality to be parsimonious :)
-#' TODO: perhaps even store key variables (e.g. some measure of pupil fluctuation, or saccade velocity/acceleration) from prior subjects in separate circumscribed csv (which values get appended to) and plot distributions for every new subject. This would be akin to constructing a sort of empirical null distribution and performing informal (visual)"hypothesis tests" where we would hope certain variables in a given subject are not "significantly different" than the group distribution.
-#' @param eye raw eye object pulled directly from the .edf file using read_edf(). Must be a list with expected_edf_fields c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file").
+#' @param file Path to a single \code{.edf} file using \code{read_edf()}.
+#' @param expected_edf_fields Character vector of field names to enforce during initialization.
+#' @param task Character value with task name.
+#' @param gaze_events Character vector of field names to unify with \code{ep.eye_unify_gaze_events()}.
+#' @param confirm_correspondence Logical. Check for exact correspondence of unified gaze events stored in ep.eye$raw and ep.eye$sacc/fix/blink.
+#' @param meta_check List with $meta_vars, $meta_vals, and/or $recording_time fields.
+#' @param inherit_btw_ev List of between event message configurations to check/move to within. Can contain $calibration_check and $move_to_within elements.
+#'
+#'
+#' @return \code{ep.eye}. A single list object of class ep.eye, that has been read in, initialized, and integrated into the experiment.pipeline eye structure. Contains fields
+#'
+#' @note TODO: perhaps even store key variables (e.g. some measure of pupil fluctuation, or saccade velocity/acceleration) from prior subjects in separate circumscribed csv (which values get appended to) and plot distributions for every new subject. This would be akin to constructing a sort of empirical null distribution and performing informal (visual)"hypothesis tests" where we would hope certain variables in a given subject are not "significantly different" than the group distribution. Also this could include validation/ computing very basic data quality (large variance in gaze distribution, excessive blinks, large jumps in eye position, etc).
 #' @importFrom lubridate seconds_to_period
+#'
+#' @author Nate Hall
+#'
+#' @export
 
 
-ep.eye_initialize <- function(file, 
-                              expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file"), 
+ep.eye_initialize <- function(file,
+                              expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file"),
                               task = NULL,
                               gaze_events = c("sacc", "fix", "blink"),
-                              meta_check = NULL, 
+                              confirm_correspondence = FALSE,
+                              meta_check = NULL,
                               inherit_btw_ev = NULL,
-                              header = "2. Initialize eye object:",
+                              header = NULL,
                               ...){
-
-  ## debug
-  expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
-  task = config$task
-  gaze_events = config$definitions$eye$initialize$unify_gaze_events
-  meta_check = config$definitions$eye$initialize$meta_check
-  inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
-  header = "2. Initialize eye object:"
 
   log_chunk_header(header)
 
@@ -54,7 +60,9 @@ ep.eye_initialize <- function(file,
   ### 2.6 Unify gaze events.
   if(!is.null(gaze_events)){
     cat(paste0("- 2.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:\n"))
-    ep.eye <- ep.eye_backup <-  ep.eye_unify_gaze_events(ep.eye, gaze_events = gaze_events) # store backup for testing
+    ep.eye <- ep.eye_backup <-  ep.eye_unify_gaze_events(ep.eye,
+                                                         gaze_events = gaze_events,
+                                                         confirm_correspondence = confirm_correspondence) # store backup for testing
   } else {
     "- 2.6 Unify gaze events: SKIP"
   }
@@ -77,7 +85,7 @@ ep.eye_initialize <- function(file,
   ### 2.10 Check metadata
   dt <- "- 2.10 Check ep.eye metadata:"
   if("meta_check" %in% names(config$definitions$eye$initialize)){
-    ep.eye <- ep.eye_meta_check(ep.eye, 
+    ep.eye <- ep.eye_meta_check(ep.eye,
                meta_vars = config$definitions$eye$initialize$meta_check$meta_vars,
                meta_vals = config$definitions$eye$initialize$meta_check$meta_vals,
                recording_time = config$definitions$eye$initialize$meta_check$recording_time,
@@ -92,13 +100,13 @@ ep.eye_initialize <- function(file,
   ### 2.12 Extract important between-event messages if requested. N.B. 4.1.2 move_to_within still needs work!!!
   dt <- "- 2.12 Inherit between-event messages, calibration checks:\n"
   if(!is.null(inherit_btw_ev)){
-    ep.eye <-  ep.eye_inherit_btw_ev(ep.eye, 
-                                     inherit_btw_ev, 
+    ep.eye <-  ep.eye_inherit_btw_ev(ep.eye,
+                                     inherit_btw_ev,
                                      dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
   }
-  
+
   return(ep.eye)
 }
 

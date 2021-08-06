@@ -1,0 +1,167 @@
+################################
+task: SortingMushrooms
+################################
+runs:
+################################
+variable_mapping:
+  id: id
+  run:
+  phase:
+  block: block
+  trial: trial
+  run_trial:
+  block_trial: block_trial
+  event: event
+  condition: condition
+################################
+definitions:
+  behav: &behav #shared key mapping for behavior across blocks
+    response: key_pressed
+    valid: [space, None]
+    rt: rt
+    start_time: #key_resp_10.started
+    end_time: #key_resp_10.stopped
+  eye: &eye
+    global:
+      prefix: "\\d{3}_[[:upper:]]+"
+      gen_log: TRUE
+      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
+      save_preproc: TRUE
+      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
+      return_raw: TRUE 
+    initialize:
+      expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
+      unify_gaze_events: 
+        gaze_events: ['sacc', 'fix', 'blink']
+        confirm_correspondence: FALSE
+      meta_check:
+        meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+        meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+        recording_time: [1200, 360] # [expected time (seconds), margin of error above and below]
+      inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+        calibration_check:
+          cal: ["!CAL CALIBRATION HV9"]
+          val: ["!CAL VALIDATION HV9"]
+        move_to_within:
+          str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+          align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+          pre_post: ["post", "pre", "post", "post"]
+    msg_parse:
+      extract_event_func_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/gen_eye_events/gen_SortingMushrooms_eye_events.R'   # if extraction method == "function" pass path to the function here.
+      csv_dir_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms/eye/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+      msg_seq: # &msg_seq #decided to comment this out below for the sake of simplicity.
+        msg_start: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
+        msg_end: [ "TRIAL_OUTCOME ", "TRIAL "]
+        eval_middle: TRUE #smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
+        ordered: TRUE
+    gaze_preproc:
+      aoi:
+        indicator: ["!V IAREA RECTANGLE"]
+        extraction_method: regex
+        extract_coords: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
+        extract_labs: ["[a-z]+$"]
+        split_coords: " "
+        tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
+      downsample:
+        factor: 20
+        method: "mean"
+    pupil_preproc:
+      blink_corr:
+        ms_before: 100
+        ms_after: 100
+      filter:
+        method: "movingavg" #right now only moving average supported
+        window_length: 50 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
+      interpolate:
+        algor: "spline"
+        maxgap: 1000 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
+      baseline_correction:
+        method: "subtract"
+        dur_ms: 100
+        center_on: "DISPLAY ON"
+      downsample:
+        factor: 50
+        method: "mean"
+    # qa:
+    #   gaze:
+    #     na:
+    #       check: ["raw", "downsample"]
+    #       perc: 30
+    #       cols: ["xp", "yp"]
+    #   pupil:
+    #     na:
+    #       check: ["downsample"]
+    #       perc: 30
+    #       cols: ["ps_bc"]
+  phys:
+################################
+blocks:
+  approach-ins:
+    # block_wrappers: #helps clarify difference between block-level onset and offset
+    #   onset: #block-level onset
+    #     parport_code:
+    #     #eye_msg: [BLOCK_BEGIN]
+    #   offset: #block-level offset
+    #     parport_code:
+    #     #eye_msg: [BLOCK_END]
+    ntrials: [48, 72]
+    behav: *behav
+    events:  ## leave blank #["shroom", "feedback"]
+      # event_key: stim   #keep with variable mapping conventions
+      shroom:
+        #parport_code: "xyz"
+        eye:
+          #<<: *msg_seq # as useful as this may be in the future, currently an unneccesary thing.
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "mouse on", "DISPLAY OFF"] #these will be event-specific messages that will fall between msg_start and msg_end
+      feedback:
+        #parport_code: "xyz"
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "DISPLAY OFF",] # ${definitions.eye.aoi_indicator} would be nice to have something like this. but probably overly complicated
+  approach-pav:
+    # block_wrappers:
+    #   onset: #block-level onset
+    #     parport_code: 84
+    #     #eye_msg: [BLOCK_BEGIN]
+    #   offset: #block-level offset
+    #     parport_code: 92
+    #     #eye_msg: [BLOCK_END]
+    ntrials: 60
+    behav: *behav
+    events:
+      fractal:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1"]
+      feedback:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "DISPLAY OFF"]
+  approach-feedback:
+    # block_wrappers:
+    #   onset: #block-level onset
+    #     parport_code: 84
+    #     #eye_msg: [BLOCK_BEGIN]
+    #   offset: #block-level offset
+    #     parport_code: 92
+    #     #eye_msg: [BLOCK_END]
+    ntrials: 10
+    behav: *behav
+    events:
+      fractals:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "mouse on", "DISPLAY OFF"]
+
+
+  approach-pit:
+    # block_wrappers:
+    #   onset: #block-level onset
+    #     parport_code: 84
+    #     #eye_msg: [BLOCK_BEGIN]
+    #   offset: #block-level offset
+    #     parport_code: 92
+    #     #eye_msg: [BLOCK_END]
+    ntrials: 90
+    behav: *behav
+    events:
+      compound:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "mouse on", "DISPLAY OFF"]
+
