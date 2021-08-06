@@ -25,13 +25,13 @@ definitions:
     global:
       prefix: "\\d{3}_[[:upper:]]+"
       gen_log: TRUE
-      log_dir: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/elog'
-      save_preproc: TRUE
-      preproc_out: '/proj/mnhallqlab/studies/NeuroMAP/s3_preproc/SortingMushrooms/eye'
-      return_raw: TRUE 
+      log_dir: '~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_elogs'
+      save_preproc: FALSE
+      preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_preproc'
+      return_raw: TRUE
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
-      unify_gaze_events: 
+      unify_gaze_events:
         gaze_events: ['sacc', 'fix', 'blink']
         confirm_correspondence: FALSE
       meta_check:

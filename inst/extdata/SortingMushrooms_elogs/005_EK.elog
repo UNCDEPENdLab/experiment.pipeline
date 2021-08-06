@@ -1,0 +1,488 @@
+---------------------------------------------
+---------------------------------------------
+experiment.pipeline eye QA log for:  /Users/natehall/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_edfs/005_EK_SortingMushrooms_Eye.edf 
+
+Processed on 2021-08-06 11:40:32
+---------------------------------------------
+---------------------------------------------
+sessionInfo:
+
+R version 4.1.0 (2021-05-18)
+Platform: x86_64-apple-darwin17.0 (64-bit)
+Running under: macOS Catalina 10.15.7
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.1/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] rprojroot_2.0.2           knitr_1.33                forcats_0.5.1             stringr_1.4.0            
+ [5] dplyr_1.0.7               purrr_0.3.4               readr_2.0.0               tidyr_1.1.3              
+ [9] tibble_3.1.3              ggplot2_3.3.5             tidyverse_1.3.1           experiment.pipeline_0.1.0
+
+loaded via a namespace (and not attached):
+ [1] fs_1.5.0                xts_0.12.1              lubridate_1.7.10        RHRV_4.2.6              RColorBrewer_1.1-2     
+ [6] httr_1.4.2              tools_4.1.0             backports_1.2.1         utf8_1.2.2              R6_2.5.0               
+[11] rpart_4.1-15            Hmisc_4.5-0             DBI_1.1.1               colorspace_2.0-2        rhdf5filters_1.4.0     
+[16] nnet_7.3-16             withr_2.4.2             tidyselect_1.1.1        gridExtra_2.3           waveslim_1.8.2         
+[21] tictoc_1.0.1            curl_4.3.2              compiler_4.1.0          rvest_1.0.1             cli_3.0.1              
+[26] htmlTable_2.2.1         xml2_1.3.2              rsleep_1.0.3            tseries_0.10-48         scales_1.1.1           
+[31] checkmate_2.0.0         nonlinearTseries_0.2.11 quadprog_1.5-8          digest_0.6.27           foreign_0.8-81         
+[36] base64enc_0.1-3         jpeg_0.1-9              pkgconfig_2.0.3         htmltools_0.5.1.1       dbplyr_2.1.1           
+[41] htmlwidgets_1.5.3       rlang_0.4.11            readxl_1.3.1            TTR_0.24.2              rstudioapi_0.13        
+[46] quantmod_0.4.18         farver_2.1.0            generics_0.1.0          lomb_2.0                zoo_1.8-9              
+[51] jsonlite_1.7.2          magrittr_2.0.1          Formula_1.2-4           Matrix_1.3-4            Rcpp_1.0.7             
+[56] munsell_0.5.0           Rhdf5lib_1.14.2         fansi_0.5.0             lifecycle_1.0.0         stringi_1.7.3          
+[61] yaml_2.2.1              MASS_7.3-54             rhdf5_2.36.0            eyelinker_0.2.1         grid_4.1.0             
+[66] crayon_1.4.1            lattice_0.20-44         haven_2.4.3             splines_4.1.0           hms_1.1.0              
+[71] pillar_1.6.2            reprex_2.0.1            glue_1.4.2              latticeExtra_0.6-29     data.table_1.14.0      
+[76] modelr_0.1.8            png_0.1-7               vctrs_0.3.8             tzdb_0.1.2              tweenr_1.0.2           
+[81] cellranger_1.1.0        gtable_0.3.0            polyclip_1.10-0         assertthat_0.2.1        xfun_0.24              
+[86] ggforce_0.3.3           broom_0.7.9             survival_3.2-11         signal_0.7-7            intervals_0.15.2       
+[91] cluster_2.1.2           ellipsis_0.3.2         
+
+---------------------------------------------
+---------------------------------------------
+--------------
+ 1. Setup Processing Options: 
+--------------
+1.1 Setup global options: SUCCESS
+------ global config options:
+- prefix = character 1= 005_EK 
+- gen_log = logical 1= TRUE
+- log_dir = character 1= ~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_elogs 
+- save_preproc = logical 1= FALSE
+- preproc_out = character 1= ~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_preproc 
+- return_raw = logical 1= TRUE
+------
+1.2 Setup initialize options: SUCCESS
+------ initialize config options:
+- expected_edf_fields = character 10= raw sacc fix blinks msg input button info asc_file edf_file 
+- unify_gaze_events = list 2
+-- gaze_events = character 3= sacc fix blink 
+-- confirm_correspondence = logical 1= FALSE
+- meta_check = list 3
+-- meta_vars = character 7= sample.rate model mono pupil.dtype screen.x screen.y version 
+-- meta_vals = character 7= 1000 EyeLink 1000 TRUE AREA 1920 1080 4.594 
+-- recording_time = integer 2= 1200 360
+- inherit_btw_ev = list 2
+-- calibration_check = list 2
+--- cal = character 1= !CAL CALIBRATION HV9 
+--- val = character 1= !CAL VALIDATION HV9 
+-- move_to_within = list 3
+--- str = character 4= !MODE RECORD CR 1000 2 1 R TRIALID END_RECORDING TRIAL  
+--- align_msg = character 4=  !MODE RECORD CR 1000 2 1 R TRIAL_OUTCOME TRIAL_OUTCOME 
+--- pre_post = character 4= post pre post post 
+------
+1.3 Setup msg_parse options: SUCCESS
+------ msg_parse config options:
+- extract_event_func_path = character 1= /proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/gen_eye_events/gen_SortingMushrooms_eye_events.R 
+- csv_dir_path = character 1= /proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms/eye/eye_event_csvs 
+- msg_seq = list 4
+-- msg_start = character 4= !MODE RECORD CR 1000 2 1 R TRIALID SYNCTIME DISPLAY ON 
+-- msg_end = character 2= TRIAL_OUTCOME  TRIAL  
+-- eval_middle = logical 1= TRUE
+-- ordered = logical 1= TRUE
+------
+1.4 Setup gaze_preproc options: SUCCESS
+------ gaze_preproc config options:
+- aoi = list 6
+-- indicator = character 1= !V IAREA RECTANGLE 
+-- extraction_method = character 1= regex 
+-- extract_coords = character 1= \d{3,4} \d{3,4} \d{3,4} \d{3,4} 
+-- extract_labs = character 1= [a-z]+$ 
+-- split_coords = character 1=   
+-- tag_raw = logical 1= FALSE
+- downsample = list 2
+-- factor = integer 1= 20
+-- method = character 1= mean 
+------
+1.5 Setup pupil_preproc options: SUCCESS
+------ pupil_preproc config options:
+- blink_corr = list 2
+-- ms_before = integer 1= 100
+-- ms_after = integer 1= 100
+- filter = list 2
+-- method = character 1= movingavg 
+-- window_length = integer 1= 50
+- interpolate = list 2
+-- algor = character 1= spline 
+-- maxgap = integer 1= 1000
+- baseline_correction = list 3
+-- method = character 1= subtract 
+-- dur_ms = integer 1= 100
+-- center_on = character 1= DISPLAY ON 
+- downsample = list 2
+-- factor = integer 1= 50
+-- method = character 1= mean 
+------
+1.6 Setup qa options: SUCCESS
+------ qa config options:
+------
+$task
+[1] "SortingMushrooms"
+
+$runs
+NULL
+
+$variable_mapping
+$variable_mapping$id
+[1] "id"
+
+$variable_mapping$run
+NULL
+
+$variable_mapping$phase
+NULL
+
+$variable_mapping$block
+[1] "block"
+
+$variable_mapping$trial
+[1] "trial"
+
+$variable_mapping$run_trial
+NULL
+
+$variable_mapping$block_trial
+[1] "block_trial"
+
+$variable_mapping$event
+[1] "event"
+
+$variable_mapping$condition
+[1] "condition"
+
+
+$definitions
+$definitions$behav
+$definitions$behav$response
+[1] "key_pressed"
+
+$definitions$behav$valid
+[1] "space" "None" 
+
+$definitions$behav$rt
+[1] "rt"
+
+$definitions$behav$start_time
+NULL
+
+$definitions$behav$end_time
+NULL
+
+
+$definitions$eye
+$definitions$eye$global
+$definitions$eye$global$prefix
+[1] "005_EK"
+
+$definitions$eye$global$gen_log
+[1] TRUE
+
+$definitions$eye$global$log_dir
+[1] "~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_elogs"
+
+$definitions$eye$global$save_preproc
+[1] FALSE
+
+$definitions$eye$global$preproc_out
+[1] "~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_preproc"
+
+$definitions$eye$global$return_raw
+[1] TRUE
+
+
+$definitions$eye$initialize
+$definitions$eye$initialize$expected_edf_fields
+ [1] "raw"      "sacc"     "fix"      "blinks"   "msg"      "input"    "button"   "info"     "asc_file" "edf_file"
+
+$definitions$eye$initialize$unify_gaze_events
+$definitions$eye$initialize$unify_gaze_events$gaze_events
+[1] "sacc"  "fix"   "blink"
+
+$definitions$eye$initialize$unify_gaze_events$confirm_correspondence
+[1] FALSE
+
+
+$definitions$eye$initialize$meta_check
+$definitions$eye$initialize$meta_check$meta_vars
+[1] "sample.rate" "model"       "mono"        "pupil.dtype" "screen.x"    "screen.y"    "version"    
+
+$definitions$eye$initialize$meta_check$meta_vals
+[1] "1000"         "EyeLink 1000" "TRUE"         "AREA"         "1920"         "1080"         "4.594"       
+
+$definitions$eye$initialize$meta_check$recording_time
+[1] 1200  360
+
+
+$definitions$eye$initialize$inherit_btw_ev
+$definitions$eye$initialize$inherit_btw_ev$calibration_check
+$definitions$eye$initialize$inherit_btw_ev$calibration_check$cal
+[1] "!CAL CALIBRATION HV9"
+
+$definitions$eye$initialize$inherit_btw_ev$calibration_check$val
+[1] "!CAL VALIDATION HV9"
+
+
+$definitions$eye$initialize$inherit_btw_ev$move_to_within
+$definitions$eye$initialize$inherit_btw_ev$move_to_within$str
+[1] "!MODE RECORD CR 1000 2 1 R" "TRIALID"                    "END_RECORDING"              "TRIAL "                    
+
+$definitions$eye$initialize$inherit_btw_ev$move_to_within$align_msg
+[1] ""                           "!MODE RECORD CR 1000 2 1 R" "TRIAL_OUTCOME"              "TRIAL_OUTCOME"             
+
+$definitions$eye$initialize$inherit_btw_ev$move_to_within$pre_post
+[1] "post" "pre"  "post" "post"
+
+
+
+
+$definitions$eye$msg_parse
+$definitions$eye$msg_parse$extract_event_func_path
+[1] "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/gen_eye_events/gen_SortingMushrooms_eye_events.R"
+
+$definitions$eye$msg_parse$csv_dir_path
+[1] "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms/eye/eye_event_csvs"
+
+$definitions$eye$msg_parse$msg_seq
+$definitions$eye$msg_parse$msg_seq$msg_start
+[1] "!MODE RECORD CR 1000 2 1 R" "TRIALID"                    "SYNCTIME"                   "DISPLAY ON"                
+
+$definitions$eye$msg_parse$msg_seq$msg_end
+[1] "TRIAL_OUTCOME " "TRIAL "        
+
+$definitions$eye$msg_parse$msg_seq$eval_middle
+[1] TRUE
+
+$definitions$eye$msg_parse$msg_seq$ordered
+[1] TRUE
+
+
+
+$definitions$eye$gaze_preproc
+$definitions$eye$gaze_preproc$aoi
+$definitions$eye$gaze_preproc$aoi$indicator
+[1] "!V IAREA RECTANGLE"
+
+$definitions$eye$gaze_preproc$aoi$extraction_method
+[1] "regex"
+
+$definitions$eye$gaze_preproc$aoi$extract_coords
+[1] "\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"
+
+$definitions$eye$gaze_preproc$aoi$extract_labs
+[1] "[a-z]+$"
+
+$definitions$eye$gaze_preproc$aoi$split_coords
+[1] " "
+
+$definitions$eye$gaze_preproc$aoi$tag_raw
+[1] FALSE
+
+
+$definitions$eye$gaze_preproc$downsample
+$definitions$eye$gaze_preproc$downsample$factor
+[1] 20
+
+$definitions$eye$gaze_preproc$downsample$method
+[1] "mean"
+
+
+
+$definitions$eye$pupil_preproc
+$definitions$eye$pupil_preproc$blink_corr
+$definitions$eye$pupil_preproc$blink_corr$ms_before
+[1] 100
+
+$definitions$eye$pupil_preproc$blink_corr$ms_after
+[1] 100
+
+
+$definitions$eye$pupil_preproc$filter
+$definitions$eye$pupil_preproc$filter$method
+[1] "movingavg"
+
+$definitions$eye$pupil_preproc$filter$window_length
+[1] 50
+
+
+$definitions$eye$pupil_preproc$interpolate
+$definitions$eye$pupil_preproc$interpolate$algor
+[1] "spline"
+
+$definitions$eye$pupil_preproc$interpolate$maxgap
+[1] 1000
+
+
+$definitions$eye$pupil_preproc$baseline_correction
+$definitions$eye$pupil_preproc$baseline_correction$method
+[1] "subtract"
+
+$definitions$eye$pupil_preproc$baseline_correction$dur_ms
+[1] 100
+
+$definitions$eye$pupil_preproc$baseline_correction$center_on
+[1] "DISPLAY ON"
+
+
+$definitions$eye$pupil_preproc$downsample
+$definitions$eye$pupil_preproc$downsample$factor
+[1] 50
+
+$definitions$eye$pupil_preproc$downsample$method
+[1] "mean"
+
+
+
+
+$definitions$phys
+NULL
+
+
+$blocks
+$blocks$`approach-ins`
+$blocks$`approach-ins`$ntrials
+[1] 48 72
+
+$blocks$`approach-ins`$behav
+$blocks$`approach-ins`$behav$response
+[1] "key_pressed"
+
+$blocks$`approach-ins`$behav$valid
+[1] "space" "None" 
+
+$blocks$`approach-ins`$behav$rt
+[1] "rt"
+
+$blocks$`approach-ins`$behav$start_time
+NULL
+
+$blocks$`approach-ins`$behav$end_time
+NULL
+
+
+$blocks$`approach-ins`$events
+$blocks$`approach-ins`$events$shroom
+$blocks$`approach-ins`$events$shroom$eye
+$blocks$`approach-ins`$events$shroom$eye$mid_msg
+[1] "!V IAREA RECTANGLE 1" "!V IAREA RECTANGLE 2" "!V IAREA RECTANGLE 3" "mouse on"             "DISPLAY OFF"         
+
+
+
+$blocks$`approach-ins`$events$feedback
+$blocks$`approach-ins`$events$feedback$eye
+$blocks$`approach-ins`$events$feedback$eye$mid_msg
+[1] "!V IAREA RECTANGLE 1" "DISPLAY OFF"         
+
+
+
+
+
+$blocks$`approach-pav`
+$blocks$`approach-pav`$ntrials
+[1] 60
+
+$blocks$`approach-pav`$behav
+$blocks$`approach-pav`$behav$response
+[1] "key_pressed"
+
+$blocks$`approach-pav`$behav$valid
+[1] "space" "None" 
+
+$blocks$`approach-pav`$behav$rt
+[1] "rt"
+
+$blocks$`approach-pav`$behav$start_time
+NULL
+
+$blocks$`approach-pav`$behav$end_time
+NULL
+
+
+$blocks$`approach-pav`$events
+$blocks$`approach-pav`$events$fractal
+$blocks$`approach-pav`$events$fractal$eye
+$blocks$`approach-pav`$events$fractal$eye$mid_msg
+[1] "!V IAREA RECTANGLE 1"
+
+
+
+$blocks$`approach-pav`$events$feedback
+$blocks$`approach-pav`$events$feedback$eye
+$blocks$`approach-pav`$events$feedback$eye$mid_msg
+[1] "!V IAREA RECTANGLE 1" "DISPLAY OFF"         
+
+
+
+
+
+$blocks$`approach-feedback`
+$blocks$`approach-feedback`$ntrials
+[1] 10
+
+$blocks$`approach-feedback`$behav
+$blocks$`approach-feedback`$behav$response
+[1] "key_pressed"
+
+$blocks$`approach-feedback`$behav$valid
+[1] "space" "None" 
+
+$blocks$`approach-feedback`$behav$rt
+[1] "rt"
+
+$blocks$`approach-feedback`$behav$start_time
+NULL
+
+$blocks$`approach-feedback`$behav$end_time
+NULL
+
+
+$blocks$`approach-feedback`$events
+$blocks$`approach-feedback`$events$fractals
+$blocks$`approach-feedback`$events$fractals$eye
+$blocks$`approach-feedback`$events$fractals$eye$mid_msg
+[1] "!V IAREA RECTANGLE 1" "!V IAREA RECTANGLE 2" "mouse on"             "DISPLAY OFF"         
+
+
+
+
+
+$blocks$`approach-pit`
+$blocks$`approach-pit`$ntrials
+[1] 90
+
+$blocks$`approach-pit`$behav
+$blocks$`approach-pit`$behav$response
+[1] "key_pressed"
+
+$blocks$`approach-pit`$behav$valid
+[1] "space" "None" 
+
+$blocks$`approach-pit`$behav$rt
+[1] "rt"
+
+$blocks$`approach-pit`$behav$start_time
+NULL
+
+$blocks$`approach-pit`$behav$end_time
+NULL
+
+
+$blocks$`approach-pit`$events
+$blocks$`approach-pit`$events$compound
+$blocks$`approach-pit`$events$compound$eye
+$blocks$`approach-pit`$events$compound$eye$mid_msg
+[1] "!V IAREA RECTANGLE 1" "mouse on"             "DISPLAY OFF"         
+
+
+
+
+
+

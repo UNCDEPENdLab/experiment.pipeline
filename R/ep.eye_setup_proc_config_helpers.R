@@ -64,19 +64,16 @@ ep.eye_set_config_definitions <- function(file, config, field){
 
 
     ### Setup folder to save preprocessed data: If none provided, creates directory "preproc" in working directory.
-    if(exists("preproc_out")){
+    if(exists("preproc_out") & opts[["save_preproc"]]){
       if(!is.null(preproc_out)) {
           if(!dir.exists(preproc_out)) dir.create(preproc_out, recursive = TRUE)
       } else {
       dir.create("preproc")
       preproc_out <- "preproc"
       }
-    } else {
-      dir.create("preproc")
-      preproc_out <- "preproc"
-    }
 
-    opts[["preproc_out"]] <- preproc_out
+      opts[["preproc_out"]] <- preproc_out
+    }
 
     ### Return raw data?
     if(!exists("return_raw")) opts[["return_raw"]] <- FALSE
