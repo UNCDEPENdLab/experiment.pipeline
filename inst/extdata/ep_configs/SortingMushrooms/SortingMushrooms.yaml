@@ -25,9 +25,9 @@ definitions:
     global:
       prefix: "\\d{3}_[[:upper:]]+"
       gen_log: TRUE
-      log_dir: '~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_elogs'
+      log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_preproc: FALSE
-      preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/SortingMushrooms_preproc'
+      preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
       return_raw: TRUE
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
@@ -47,8 +47,8 @@ definitions:
           align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
           pre_post: ["post", "pre", "post", "post"]
     msg_parse:
-      extract_event_func_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/gen_eye_events/gen_SortingMushrooms_eye_events.R'   # if extraction method == "function" pass path to the function here.
-      csv_dir_path: '/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms/eye/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+      extract_event_func_path: '~/github_repos/experiment.pipeline/inst/extdata/ep_configs/SortingMushrooms/gen_SortingMushrooms_eye_events.R'   # if extraction method == "function" pass path to the function here.
+      csv_dir_path: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
       msg_seq: # &msg_seq #decided to comment this out below for the sake of simplicity.
         msg_start: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
         msg_end: [ "TRIAL_OUTCOME ", "TRIAL "]

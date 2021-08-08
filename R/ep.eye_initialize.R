@@ -29,7 +29,28 @@ ep.eye_initialize <- function(file,
                               inherit_btw_ev = NULL,
                               header = NULL,
                               ...){
-  browser()
+  ## debugging setup
+  library(tidyverse)
+  library(knitr)
+  library(rprojroot)
+  library(lubridate)
+  library(data.table)
+  library(experiment.pipeline)
+
+  edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE); print(edf_files)
+  edf_path <-edf_files[1] # extract a single subject for example case
+  config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
+
+  file <- edf_path
+  expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
+  task = config$task
+  gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events
+  confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence
+  meta_check = config$definitions$eye$initialize$meta_check
+  inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
+  header = "2. Initialize ep.eye object:"
+
+
   log_chunk_header(header)
 
   ### 2.1 Read EDF file
@@ -60,9 +81,9 @@ ep.eye_initialize <- function(file,
   ### 2.6 Unify gaze events.
   if(!is.null(gaze_events)){
     cat(paste0("- 2.6 Unify gaze events(", paste0(gaze_events, collapse = ", "), ") and raw data:\n"))
-    ep.eye <- ep.eye_backup <-  ep.eye_unify_gaze_events(ep.eye,
-                                                         gaze_events = gaze_events,
-                                                         confirm_correspondence = confirm_correspondence) # store backup for testing
+    ep.eye <-  ep.eye_unify_gaze_events(ep.eye,
+                                        gaze_events = gaze_events,
+                                        confirm_correspondence = confirm_correspondence) # store backup for testing
   } else {
     "- 2.6 Unify gaze events: SKIP"
   }
@@ -74,7 +95,7 @@ ep.eye_initialize <- function(file,
 
   ### 2.8 rm cr.info
   tryCatch.ep({
-    ep.eye <- ep.eye_rm_crinfo(ep.eye)
+    ep.eye <- ep.eye_backup <- ep.eye_rm_crinfo(ep.eye)
   }, "- 2.8 Remove cr.info column from raw data:")
 
   ### 2.9 Unify et.msgs into raw data.
@@ -86,10 +107,10 @@ ep.eye_initialize <- function(file,
   dt <- "- 2.10 Check ep.eye metadata:"
   if("meta_check" %in% names(config$definitions$eye$initialize)){
     ep.eye <- ep.eye_meta_check(ep.eye,
-               meta_vars = config$definitions$eye$initialize$meta_check$meta_vars,
-               meta_vals = config$definitions$eye$initialize$meta_check$meta_vals,
-               recording_time = config$definitions$eye$initialize$meta_check$recording_time,
-               dt)
+                                meta_vars = config$definitions$eye$initialize$meta_check$meta_vars,
+                                meta_vals = config$definitions$eye$initialize$meta_check$meta_vals,
+                                recording_time = config$definitions$eye$initialize$meta_check$recording_time,
+                                dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
   }

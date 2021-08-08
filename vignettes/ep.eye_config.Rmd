@@ -17,6 +17,8 @@ vignette: >
 library(tidyverse)
 library(knitr)
 library(rprojroot)
+library(lubridate)
+library(data.table)
 ```
 
 # experiment.pipeline relies on a single configuration file
@@ -34,9 +36,9 @@ To get us started, we can extract the path to a single subject's `.edf` file fro
 ```{r task dir}
 library(experiment.pipeline)
 
-edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/SortingMushrooms_edfs"), full.names = TRUE); print(edf_files)
+edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE); print(edf_files)
 edf_path <-edf_files[1] # extract a single subject for example case
-config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep.eye_configs/SortingMushrooms.yaml")
+config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
 ```
 
 At the end of this vignette, you will be able to process a single subject in an eyetracking study as such:

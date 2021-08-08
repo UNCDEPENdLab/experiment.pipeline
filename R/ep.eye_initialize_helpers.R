@@ -21,7 +21,7 @@
 #' @return ep.eye Initialized ep.eye structure. [DETAILS HERE].
 #' @author Nate Hall
 #'
-#' @import data.table
+#' @importFrom data.table as.data.table data.table
 #'
 #' @export
 ep.eye_setup_structure <- function(eye, task = NULL){
@@ -258,6 +258,7 @@ ep.eye_unify_gaze_events <- function(ep.eye,
 #' @param ep.eye An ep.eye object.
 #'
 #' @return ep.eye Returns the same ep.eye object, with between-event messages stored in metadata.
+#' @export
 ep.eye_store_between_event_messages <- function(ep.eye){
   #Store messages with no timestamp match in raw data (collected between trials with no corresponding measurements).
   btw_ev <- ep.eye$msg %>% anti_join(ep.eye$raw, by = "time") %>% data.table()
@@ -270,6 +271,7 @@ ep.eye_store_between_event_messages <- function(ep.eye){
 #' @description  Removes cr.info column if it contains unhelpful information
 #' @param ep.eye An ep.eye object.
 #' @return ep.eye
+#' @export
 ep.eye_rm_crinfo <- function(ep.eye){
   cr <- unique(ep.eye$raw$cr.info)
   if(length(cr) == 1 & cr == "..."){
@@ -285,13 +287,18 @@ ep.eye_rm_crinfo <- function(ep.eye){
 #' @title Add et.msg column to raw data
 #' @description Adds within-event messages from \code{ep.eye$msg} to \code{ep.eye$raw}.
 #' @param ep.eye An ep.eye object.
+#'
+#' @import data.table
+#'
 #' @return ep.eye
+#'
+#' @export
 ep.eye_unify_raw_msg <- function(ep.eye){
-
+  # browser()
   ep.eye$raw <- ep.eye$raw %>%
     left_join(dplyr::filter(ep.eye$msg, btw_ev == 0), by = c("eventn", "time")) %>% dplyr::select(-btw_ev) %>%
-    rename(`et.msg` = `text`) %>%
-    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.table()
+    dplyr::rename(`et.msg` = `text`) %>%
+    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.frame()
 
   # important to back-translate extracted messages to original messages due to the use of left_join. This should not fail.
   umsg <- unique(ep.eye$raw$et.msg)[which(unique(ep.eye$raw$et.msg) != ".")] #unique messages in the final output.
@@ -303,6 +310,13 @@ ep.eye_unify_raw_msg <- function(ep.eye){
   if(!all(umsg %in% umsg_orig)){
     stop("Backtranslate message merge issue. Errors in this step have not been fully vetted.")
   }
+
+    #   WHYYYYYY
+    #   ep.eye$raw <- data.table(data.frame(ep.eye$raw))
+    # the below solves the problem (still not sure why we were getting trouble before)
+    try({suppressWarnings(setDT(ep.eye$raw))}, silent = TRUE) # need to just suppress the stupid vroom warning, not sure why this is happening.
+
+
 
   return(ep.eye)
   ## vestigial from an earlier version. Not sure if we'll need to revive.
@@ -385,8 +399,16 @@ ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt)
   return(ep.eye)
 }
 
-#' Shift timing of ep.eye files to 0 start point
-ep.eye_shift_timing <- function(ep.eye, dt){
+#' @title Shift timing of ep.eye object to 0 start point
+#'
+#' @param ep.eye An ep.eye object.
+#' @param dt descriptive text to print to log file, defaults to NULL.
+#'
+#' @return ep.eye ep.eye structure with all relevant elements recoded to 0 start point. Original start point is stored in ep.eye$metadata$t_start
+#' @author Nate Hall
+#'
+#' @export
+ep.eye_shift_timing <- function(ep.eye, dt = NULL){
   tryCatch.ep({
     t_start <- ep.eye$raw$time[1]
     ep.eye$metadata$t_start <- t_start
@@ -417,11 +439,21 @@ ep.eye_shift_timing <- function(ep.eye, dt){
 }
 
 
-#' split off function for conversion of between trial messages to within
+#' @title Interface with messages passed with not recording
 #'
+#' @description "Between-event messages" are messages passed to the eyetracker while the system is not actively recording. Sometimes these contain event-relevant information that you would like to pull into a recording event itself (for example, a "trial ID" message that gets passed right before the recording starts). This function allows for 1) checking of calibration and validation messages that are passed before any actual recording events are apparent in the data ("calibration_check") and 2) specific messages to be integrated into the event data depending on "move_to_within
+#'
+#' @param ep.eye An initialized ep.eye object
+#' @param inherit_btw_ev A named list taken from your config file. \code{inherit_btw_ev$calibration_check} can contain \code{$cal} and \code{$val} which are character vectors to search for in event .5 (prior to any recording event) and are checked to make sure GOOD is appended to these messages to ensure calibration and validation did not encounter any errors. The second element \code{inherit_btw_ev$calibration_check[[str/align_msg/pre_post]]} provides the opportunity to pass strings (\code{$str}) to search for amongst between-event messages, messages within events to align these messages to (\code{$align_msg}), and whether to assign between-event messages to the "pre" (e.g. moving message in 1.5 to 1) or "post" (e.g. moving message in 1.5 to 2) event (\code{$pre_post}). Elements of \code{$move_to_within} must be of the same length and will enounter error if this is not the case.
+#' @param dt descriptive text to print to log file, defaults to NULL.
+#'
+#' @return ep.eye
+#' @author Nate Hall
+#'
+#' @export
 ep.eye_inherit_btw_ev <- function(ep.eye,
                                   inherit_btw_ev,
-                                  dt){
+                                  dt = NULL){
 
   cat(dt)
 
