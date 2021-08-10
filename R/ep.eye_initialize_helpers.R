@@ -288,7 +288,7 @@ ep.eye_rm_crinfo <- function(ep.eye){
 #' @description Adds within-event messages from \code{ep.eye$msg} to \code{ep.eye$raw}.
 #' @param ep.eye An ep.eye object.
 #'
-#' @import data.table
+#' @importFrom data.table setDT
 #'
 #' @return ep.eye
 #'
@@ -343,14 +343,17 @@ ep.eye_unify_raw_msg <- function(ep.eye){
 #'
 #' @description When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.
 #'
-#' @param ep.eye An initialized ep.eye object
-#' @param gaze_events Character vector of gaze_events to unify with raw. Defaults to unifying sacc, fix, and blink but can be set to any subset of these.
+#' @param ep.eye An initialized ep.eye object.
+#' @param meta_vars Character vector of meta variables to check
+#' @param meta_vals Character vector of values to expect for the meta variables passed above
+#' @param recording_time Numeric vector of length 2 indicating the expected time of the recording session *in seconds* and the margin of error above and below the expected recording time without generating an error.
+#' @param dt descriptive text to print to log file, defaults to NULL.
 #'
-#' @return ep.eye ep.eye structure that has been tagged with gaze event numbers and validated for correspondence between raw and gaze event fields.
+#' @return ep.eye
 #' @author Nate Hall
 #'
 #' @export
-ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt){
+ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt = NULL){
   cat(dt,"\n")
 
   ### 3.10.1 meta_vars and vals
