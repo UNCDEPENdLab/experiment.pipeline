@@ -4,15 +4,21 @@
 \alias{ep.eye_meta_check}
 \title{Check ep.eye metadata}
 \usage{
-ep.eye_meta_check(ep.eye, meta_vars, meta_vals, recording_time, dt)
+ep.eye_meta_check(ep.eye, meta_vars, meta_vals, recording_time, dt = NULL)
 }
 \arguments{
-\item{ep.eye}{An initialized ep.eye object}
+\item{ep.eye}{An initialized ep.eye object.}
 
-\item{gaze_events}{Character vector of gaze_events to unify with raw. Defaults to unifying sacc, fix, and blink but can be set to any subset of these.}
+\item{meta_vars}{Character vector of meta variables to check}
+
+\item{meta_vals}{Character vector of values to expect for the meta variables passed above}
+
+\item{recording_time}{Numeric vector of length 2 indicating the expected time of the recording session *in seconds* and the margin of error above and below the expected recording time without generating an error.}
+
+\item{dt}{descriptive text to print to log file, defaults to NULL.}
 }
 \value{
-ep.eye ep.eye structure that has been tagged with gaze event numbers and validated for correspondence between raw and gaze event fields.
+ep.eye
 }
 \description{
 When loaded into the environment, an .edf file will be parsed with fields corresponding to $raw, $sacc, $fix, and $blink. Saccades, fixations, and blinks are called "gaze events" in the ep.eye nomenclature and denote the presence of an event of significance within gaze data. This function unifies raw data with gaze events by generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.
