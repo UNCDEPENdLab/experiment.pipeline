@@ -72,6 +72,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 4. Gaze preprocessing
   #########
   tic("4. gaze preproc time")
+  # BUG I am a bug
   eye_gazePre <- ep.eye_preprocess_gaze(eye_parsed,
                                         aoi = config$definitions$eye$gaze_preproc$aoi,
                                         downsample = config$definitions$eye$gaze_preproc$downsample,
