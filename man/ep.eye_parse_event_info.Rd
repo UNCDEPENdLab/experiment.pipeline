@@ -2,17 +2,33 @@
 % Please edit documentation in R/ep.eye_parse_events_helpers.R
 \name{ep.eye_parse_event_info}
 \alias{ep.eye_parse_event_info}
-\title{split off function for extracting event info}
+\title{Extract descriptive information about events based on used-defined function}
 \usage{
 ep.eye_parse_event_info(
   ep.eye,
-  extraction_method,
   extract_event_func_path,
-  csv_path,
+  csv_path = NULL,
   msg_seq,
-  dt
+  dt = NULL
 )
 }
+\arguments{
+\item{ep.eye}{ep.eye object that has been previously initialized and tidied}
+
+\item{extract_event_func_path}{Path to user-defined message parsing function here}
+
+\item{csv_path}{Path to write event .csvs to}
+
+\item{msg_seq}{List of optional message sequence arguments passed in config file. Can contain \code{msg_start}, \code{msg_end}, \code{eval_middle}, \code{ordered}. See the ep.eye_config vignette for details on these fields.}
+
+\item{dt}{descriptive text to print.}
+}
+\value{
+ep.eye appended with important event-level information included.
+}
 \description{
-split off function for extracting event info
+Extract descriptive information about events based on used-defined function
+}
+\author{
+Nate Hall
 }

@@ -6,7 +6,6 @@
 \usage{
 ep.eye_parse_events(
   ep.eye,
-  extraction_method,
   extract_event_func_path,
   csv_path,
   msg_seq,
@@ -16,7 +15,13 @@ ep.eye_parse_events(
 \arguments{
 \item{ep.eye}{ep.eye object that has been previously initialized and tidied}
 
-\item{header}{String for section header. Defaults to "4. Parse task events:"}
+\item{extract_event_func_path}{Path to user-defined message parsing function here}
+
+\item{csv_path}{Path to write event .csvs to}
+
+\item{msg_seq}{List of optional message sequence arguments passed in config file. Can contain \code{msg_start}, \code{msg_end}, \code{eval_middle}, \code{ordered}. See the ep.eye_config vignette for details on these fields.}
+
+\item{header}{String for section header. Defaults to NULL}
 }
 \value{
 ep.eye appended with important event-level information included.

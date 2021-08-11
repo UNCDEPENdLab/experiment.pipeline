@@ -109,22 +109,9 @@ ep.eye_set_config_definitions <- function(file, config, field){
       ################### PARSE MESSAGES
     if("msg_parse" %in% names(config$definitions$eye)){
       opts <- config$definitions$eye$msg_parse
-      if(!"inherit_btw_ev" %in% names(opts)) {
-        opts$inherit_btw_ev <- NULL
-      } else{
-        if(!"calibration_check" %in% names(opts$inherit_btw_ev)){
-          opts$inherit_btw_ev$cal <- NULL
-          opts$inherit_btw_ev$val <- NULL
-        }
-        if(!"move_to_within" %in% names(opts$inherit_btw_ev)) opts$inherit_btw_ev$move_to_within <- NULL
-      }
-      if(!"event_info" %in% names(opts)) opts$event_info <- NULL
-
     } else{
-      # if processing options are not specified, revert to default options.
-      opts <- list()
-      opts$inherit_btw_ev <- NULL
-      opts$event_info <- NULL
+      # if processing options are not specified, set to NULL
+      opts <- NULL
     }
     config[["definitions"]][["eye"]][["msg_parse"]] <- opts
   }
