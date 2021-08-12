@@ -2,7 +2,7 @@
 ---------------------------------------------
 experiment.pipeline eye QA log for:  /Users/natehall/github_repos/experiment.pipeline/inst/extdata/raw_data/SortingMushrooms/Eye/005_EK_SortingMushrooms_Eye.edf 
 
-Processed on 2021-08-12 10:36:25
+Processed on 2021-08-12 11:32:15
 ---------------------------------------------
 ---------------------------------------------
 sessionInfo:
@@ -22,30 +22,30 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] experiment.pipeline_0.1.0 devtools_2.4.2            usethis_2.0.1             todor_0.1.2               data.table_1.14.0        
- [6] lubridate_1.7.10          rprojroot_2.0.2           knitr_1.33                forcats_0.5.1             stringr_1.4.0            
-[11] dplyr_1.0.7               purrr_0.3.4               readr_2.0.0               tidyr_1.1.3               tibble_3.1.3             
-[16] ggplot2_3.3.5             tidyverse_1.3.1          
+ [1] tictoc_1.0.1              experiment.pipeline_0.1.0 devtools_2.4.2            usethis_2.0.1             todor_0.1.2              
+ [6] data.table_1.14.0         lubridate_1.7.10          rprojroot_2.0.2           knitr_1.33                forcats_0.5.1            
+[11] stringr_1.4.0             dplyr_1.0.7               purrr_0.3.4               readr_2.0.0               tidyr_1.1.3              
+[16] tibble_3.1.3              ggplot2_3.3.5             tidyverse_1.3.1          
 
 loaded via a namespace (and not attached):
   [1] colorspace_2.0-2        ellipsis_0.3.2          htmlTable_2.2.1         base64enc_0.1-3         fs_1.5.0                rstudioapi_0.13        
   [7] farver_2.1.0            remotes_2.4.0           fansi_0.5.0             xml2_1.3.2              splines_4.1.0           cachem_1.0.5           
  [13] polyclip_1.10-0         pkgload_1.2.1           Formula_1.2-4           jsonlite_1.7.2          broom_0.7.9             cluster_2.1.2          
- [19] dbplyr_2.1.1            png_0.1-7               ggforce_0.3.3           compiler_4.1.0          httr_1.4.2              tictoc_1.0.1           
- [25] backports_1.2.1         assertthat_0.2.1        Matrix_1.3-4            fastmap_1.1.0           cli_3.0.1               tweenr_1.0.2           
- [31] htmltools_0.5.1.1       prettyunits_1.1.1       tools_4.1.0             gtable_0.3.0            glue_1.4.2              Rcpp_1.0.7             
- [37] cellranger_1.1.0        lomb_2.0                rhdf5filters_1.4.0      vctrs_0.3.8             RHRV_4.2.6              xfun_0.24              
- [43] ps_1.6.0                rsleep_1.0.3            testthat_3.0.4          rvest_1.0.1             lifecycle_1.0.0         eyelinker_0.2.1        
- [49] MASS_7.3-54             zoo_1.8-9               scales_1.1.1            hms_1.1.0               rex_1.2.0               rhdf5_2.36.0           
- [55] RColorBrewer_1.1-2      yaml_2.2.1              quantmod_0.4.18         curl_4.3.2              memoise_2.0.0           gridExtra_2.3          
- [61] rpart_4.1-15            latticeExtra_0.6-29     stringi_1.7.3           tseries_0.10-48         desc_1.3.0              checkmate_2.0.0        
- [67] TTR_0.24.2              pkgbuild_1.2.0          intervals_0.15.2        rlang_0.4.11            pkgconfig_2.0.3         lattice_0.20-44        
- [73] Rhdf5lib_1.14.2         htmlwidgets_1.5.3       processx_3.5.2          tidyselect_1.1.1        magrittr_2.0.1          R6_2.5.0               
- [79] generics_0.1.0          Hmisc_4.5-0             DBI_1.1.1               pillar_1.6.2            haven_2.4.3             foreign_0.8-81         
- [85] withr_2.4.2             xts_0.12.1              survival_3.2-11         nnet_7.3-16             modelr_0.1.8            crayon_1.4.1           
- [91] utf8_1.2.2              waveslim_1.8.2          tzdb_0.1.2              jpeg_0.1-9              grid_4.1.0              readxl_1.3.1           
- [97] callr_3.7.0             nonlinearTseries_0.2.11 reprex_2.0.1            digest_0.6.27           signal_0.7-7            munsell_0.5.0          
-[103] sessioninfo_1.1.1       quadprog_1.5-8         
+ [19] dbplyr_2.1.1            png_0.1-7               ggforce_0.3.3           compiler_4.1.0          httr_1.4.2              backports_1.2.1        
+ [25] assertthat_0.2.1        Matrix_1.3-4            fastmap_1.1.0           cli_3.0.1               tweenr_1.0.2            htmltools_0.5.1.1      
+ [31] prettyunits_1.1.1       tools_4.1.0             gtable_0.3.0            glue_1.4.2              Rcpp_1.0.7              cellranger_1.1.0       
+ [37] lomb_2.0                rhdf5filters_1.4.0      vctrs_0.3.8             RHRV_4.2.6              xfun_0.24               ps_1.6.0               
+ [43] rsleep_1.0.3            testthat_3.0.4          rvest_1.0.1             lifecycle_1.0.0         eyelinker_0.2.1         MASS_7.3-54            
+ [49] zoo_1.8-9               scales_1.1.1            hms_1.1.0               rex_1.2.0               rhdf5_2.36.0            RColorBrewer_1.1-2     
+ [55] yaml_2.2.1              quantmod_0.4.18         curl_4.3.2              memoise_2.0.0           gridExtra_2.3           rpart_4.1-15           
+ [61] latticeExtra_0.6-29     stringi_1.7.3           tseries_0.10-48         desc_1.3.0              checkmate_2.0.0         TTR_0.24.2             
+ [67] pkgbuild_1.2.0          intervals_0.15.2        rlang_0.4.11            pkgconfig_2.0.3         lattice_0.20-44         Rhdf5lib_1.14.2        
+ [73] htmlwidgets_1.5.3       processx_3.5.2          tidyselect_1.1.1        magrittr_2.0.1          R6_2.5.0                generics_0.1.0         
+ [79] Hmisc_4.5-0             DBI_1.1.1               pillar_1.6.2            haven_2.4.3             foreign_0.8-81          withr_2.4.2            
+ [85] xts_0.12.1              survival_3.2-11         nnet_7.3-16             modelr_0.1.8            crayon_1.4.1            utf8_1.2.2             
+ [91] waveslim_1.8.2          tzdb_0.1.2              jpeg_0.1-9              grid_4.1.0              readxl_1.3.1            callr_3.7.0            
+ [97] nonlinearTseries_0.2.11 reprex_2.0.1            digest_0.6.27           signal_0.7-7            munsell_0.5.0           sessioninfo_1.1.1      
+[103] quadprog_1.5-8         
 
 ---------------------------------------------
 ---------------------------------------------
@@ -82,7 +82,7 @@ loaded via a namespace (and not attached):
 ------
 1.3 Setup msg_parse options: SUCCESS
 ------ msg_parse config options:
-- extract_event_func_path = character 1= ~/github_repos/experiment.pipeline/inst/extdata/ep_configs/SortingMushrooms/gen_SortingMushrooms_eye_events.R 
+- extract_event_func_path = character 1= ~/github_repos/experiment.pipeline/inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms_extract_ev.R 
 - csv_dir_path = character 1= ~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/eye_event_csvs 
 - msg_seq = list 4
 -- msg_start = character 4= !MODE RECORD CR 1000 2 1 R TRIALID SYNCTIME DISPLAY ON 
@@ -125,3 +125,32 @@ loaded via a namespace (and not attached):
 1.6 Setup qa options: SUCCESS
 ------ qa config options:
 ------
+1.7 Build block/event-specific expected message sequences: SUCCESS
+1. setup config time: 0.159 sec elapsed
+--------------
+ 2. Initialize ep.eye object: 
+--------------
+- 2.1 Read EDF file: SUCCESS
+- 2.2 Check expected fields: SUCCESS
+- 2.3 Initialize ep.eye list structure: SUCCESS
+- 2.4 Document recording session length (32M 29S): SUCCESS
+- 2.5 Check for continuity in raw data: SUCCESS
+- 2.6 Unify gaze events(sacc, fix, blink) and raw data:
+-- 2.6.1 sacc:
+--- 2.6.1.1 Search for events without gaze events: WARNING (1)
+-- 2.6.2 fix:
+--- 2.6.2.1  Search for events without gaze events: SUCCESS
+-- 2.6.3 blink:
+--- 2.6.3.1 Search for events without gaze events: WARNING (95)
+-- 2.6.4 Confirm accurate tagging of raw data with gaze event numbers: SUCCESS
+- 2.7 Store between-event messages: SUCCESS
+- 2.8 Remove cr.info column from raw data: SUCCESS
+- 2.9 Unify et.msgs into raw data: SUCCESS
+- 2.10 Check ep.eye metadata: 
+-- 3.10.1 Compare .edf info (session parameters) to expectations: SUCCESS
+-- 3.10.2 Compare recording time (session length) to expectations: WARNING (session length (1948.799) outside of expected bounds: 840, 1560)
+- 2.11 Shift timestamps to 0 start point: SUCCESS
+- 2.12 Inherit between-event messages, calibration checks:
+-- 3.12.1 Calibration/validation checks:
+--- 3.12.1.1 Calibration: SUCCESS
+--- 3.12.1.2 Validation: SUCCESS

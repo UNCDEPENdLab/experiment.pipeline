@@ -1,8 +1,8 @@
-gen_SortingMushrooms_eye_events <- function(ep.eye, csv_path = NULL){
+SortingMushrooms_extract_ev <- function(ep.eye_init, csv_path = NULL){
 
   ## need block, block_trial, event, eventn, et.msg, and time variables
 
-  tr_id_msgs <- ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>%
+  tr_id_msgs <- ep.eye_init$raw %>% filter(grepl("TRIALID", et.msg)) %>%
                     mutate(x = sub("TRIALID ", "", et.msg)) %>%
                     separate(x, c("block",
                                 #   "phase",
