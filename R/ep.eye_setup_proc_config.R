@@ -45,7 +45,7 @@ ep.eye_setup_proc_config <- function(file, config_path, header = NULL){
   }
 
   #### Build block and event-specific message sequences.
-  config[["definitions"]][["eye"]] <- config %>% ep.eye_build_msg_seq()
+  config[["definitions"]][["eye"]] <- config %>% ep.eye_build_msg_seq(dt = paste0("1.", count+1, " Build block/event-specific expected message sequences:"))
 
 return(config)
 }

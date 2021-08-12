@@ -40,10 +40,16 @@ ep.eye_parse_event_info <- function(ep.eye,
       info_msgs <- ev_f(ep.eye)
     }
 
+    # convert columns to numeric if applicable
+    info_msgs <- suppressWarnings(info_msgs %>%
+                                    mutate_all(type.convert) %>%
+                                    mutate_if(is.factor, as.character))
+
   },describe_text = dt1)
 
   tryCatch.ep({
     dt2 <- "-- 3.1.2 Merge trial/event info to eye data:"
+
     non_join_colnames <- colnames(info_msgs)[which(!colnames(info_msgs) %in% c("eventn", "et.msg", "time"))]
 
     # In some cases, user functions will add messages where they do not appear in the standard messages. E.g. padding a trial ID from a between-trial message that contains important information. Take care of this here
@@ -106,22 +112,22 @@ ep.eye_validate_msg_seq <- function(ep.eye,
 
   }, describe_text = "-- 3.2.1 Check requested messages per event:")
 
-# Check ordering of messages. This should be skipped unless you are exactly sure that message ordering is exactly as planned.
+  # Check ordering of messages. This should be skipped unless you are exactly sure that message ordering is exactly as planned.
   dt <- "-- 3.2.2 Check message sequencing:"
   if(msg_seq$ordered){
     tryCatch.ep({
-        msg_check_ordered <- data.frame()
-        for(i in unique(ep.eye$raw$eventn)){
-          if(!i %in% missing_eventnum){
-            df <- ep.eye_check_msg_order(ep.eye,
-                                        msg_seq = msg_seq,
-                                        msg_check = msg_check,
-                                        eventnum = i)
-          }
-          msg_check_ordered <- rbind(msg_check_ordered, df)
+      msg_check_ordered <- data.frame()
+      for(i in unique(ep.eye$raw$eventn)){
+        if(!i %in% missing_eventnum){
+          df <- ep.eye_check_msg_order(ep.eye,
+                                       msg_seq = msg_seq,
+                                       msg_check = msg_check,
+                                       eventnum = i)
         }
-        seq_mismatch <- msg_check_ordered %>% filter(!seq_match)
-        if(nrow(seq_mismatch) != 0) ep.eye$metadata[["validate_msg_seq"]][["seq_mismatch"]] <- seq_mismatch
+        msg_check_ordered <- rbind(msg_check_ordered, df)
+      }
+      seq_mismatch <- msg_check_ordered %>% filter(!seq_match)
+      if(nrow(seq_mismatch) != 0) ep.eye$metadata[["validate_msg_seq"]][["seq_mismatch"]] <- seq_mismatch
     }, describe_text = dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
@@ -130,8 +136,8 @@ ep.eye_validate_msg_seq <- function(ep.eye,
   # print either success or point to sequence/message mismatches.
   tryCatch.ep({
     if(!is.null(ep.eye$metadata[["validate_msg_seq"]])){
-          warning("IMPERFECT MESSAGE SEQUENCES FOUND IN: 'ep.eye$metadata$validate_msg_seq'")
-        }
+      warning("IMPERFECT MESSAGE SEQUENCES FOUND IN: 'ep.eye$metadata$validate_msg_seq'")
+    }
   }, describe_text = "Message Validation:")
 
 
@@ -168,7 +174,7 @@ ep.eye_check_requested_msg <- function(ep.eye,
   # Perform comparison of expected and extracted messages. This generated a df with columns c("requested", "match", and "extracted") which provide a mapping between all messages that should be within a given event and the actual message that is extracted from the .edf file. all(match) == TRUE indicates that all requested messages are contained within the et.msgs in the .edf file (good thing).
   # Note. Output df will be ordered according to the ordering of expected messages encoded in check_these. Though, extracted will be mutated "to" the user's expectations, thus the ordering of extracted messages could be incorrect.
   if(!is.null(extracted_msgs)){
-      cvec <- sapply(check_these, function(x) grepl(x, extracted_msgs))
+    cvec <- sapply(check_these, function(x) grepl(x, extracted_msgs))
     df <- data.frame(apply(cvec, 2, function(x) any(x))) %>% rownames_to_column() # right column will throw FALSE if there are no matches in the extracted strings, meaning the message is missing in the .edf file.
     colnames(df) <- c("requested", "match")
     df <- df %>% group_by(requested) %>%  mutate(extracted = ifelse(match, extracted_msgs[grepl(requested, extracted_msgs)], NA)) %>% ungroup() %>% mutate(eventn = eventnum) %>% select(eventn, requested, match, extracted)
@@ -192,23 +198,23 @@ ep.eye_check_msg_order <- function(ep.eye,
                                    msg_seq,
                                    msg_check,
                                    eventnum){
-    # Create df with new column that expects the sequences of messages to match in order, this will be reset to FALSE if later checks denote a discrepancy.
-    df <- msg_check %>% filter(eventn == eventnum) %>% mutate(seq_match = TRUE)
+  # Create df with new column that expects the sequences of messages to match in order, this will be reset to FALSE if later checks denote a discrepancy.
+  df <- msg_check %>% filter(eventn == eventnum) %>% mutate(seq_match = TRUE)
 
 
-    # Check start and end message sequence. Messages passed in the middle of the event will be evaluated with respect to start and end expectancies in the second step.
-    # User must specify msg_seq$msg_start and msg_seq$msg_end for this check to run. This assumes that messages are passed to the eyetracker in the exact order they are specified in these two fields.
-    start_end_seq <- c(msg_seq$msg_start, msg_seq$msg_end)
+  # Check start and end message sequence. Messages passed in the middle of the event will be evaluated with respect to start and end expectancies in the second step.
+  # User must specify msg_seq$msg_start and msg_seq$msg_end for this check to run. This assumes that messages are passed to the eyetracker in the exact order they are specified in these two fields.
+  start_end_seq <- c(msg_seq$msg_start, msg_seq$msg_end)
 
-    # Get ordering of requested messages as they appear in raw data.
-    raw_seq <- ep.eye$raw %>% filter(eventn == eventnum, et.msg != ".") %>% pull(et.msg) %>% unique()
-    raw_seq_start_end <- raw_seq[which(grepl(paste(start_end_seq, collapse="|"), raw_seq))]
+  # Get ordering of requested messages as they appear in raw data.
+  raw_seq <- ep.eye$raw %>% filter(eventn == eventnum, et.msg != ".") %>% pull(et.msg) %>% unique()
+  raw_seq_start_end <- raw_seq[which(grepl(paste(start_end_seq, collapse="|"), raw_seq))]
 
-    for(j in 1:length(raw_seq_start_end)){
-      df[df$requested == start_end_seq[j], "seq_match"] <- grepl(start_end_seq[j], raw_seq_start_end[j])
-    }
+  for(j in 1:length(raw_seq_start_end)){
+    df[df$requested == start_end_seq[j], "seq_match"] <- grepl(start_end_seq[j], raw_seq_start_end[j])
+  }
 
-    ## N.B. This does not check "mid_msgs"
+  ## N.B. This does not check "mid_msgs"
 
   return(df)
 }

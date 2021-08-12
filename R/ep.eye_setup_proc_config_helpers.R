@@ -133,7 +133,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
 ep.eye_build_msg_seq <- function(config, dt = NULL){
   tryCatch.ep({
     c.e <- config[["definitions"]][["eye"]]
-    event_info <- c.e[["msg_parse"]][["event_info"]]
+    event_info <- c.e[["msg_parse"]]
 
     if("msg_seq" %in% names(event_info)){
       if("eval_middle" %in% names(event_info[["msg_seq"]])){
@@ -143,7 +143,7 @@ ep.eye_build_msg_seq <- function(config, dt = NULL){
             ev_m <- config[["blocks"]][[i]][["events"]][[j]][["eye"]]
             if(event_info[["msg_seq"]][["eval_middle"]]){
               msg_vec <- c(event_info[["msg_seq"]][["msg_start"]], ev_m[["mid_msg"]], event_info[["msg_seq"]][["msg_end"]])
-              c.e[["msg_parse"]][["event_info"]][["msg_seq"]][[i]][[j]] <- msg_vec
+              c.e[["msg_parse"]][["msg_seq"]][[i]][[j]] <- msg_vec
             }
           }
         }
