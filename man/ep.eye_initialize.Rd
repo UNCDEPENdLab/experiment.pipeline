@@ -39,7 +39,7 @@ ep.eye_initialize(
 This is a  generic function for initializing an \code{ep.eye} object and performing basic internal checks on the eye data, while remaining agnostic to task/behavior structure.
 }
 \note{
-TODO: perhaps even store key variables (e.g. some measure of pupil fluctuation, or saccade velocity/acceleration) from prior subjects in separate circumscribed csv (which values get appended to) and plot distributions for every new subject. This would be akin to constructing a sort of empirical null distribution and performing informal (visual)"hypothesis tests" where we would hope certain variables in a given subject are not "significantly different" than the group distribution. Also this could include validation/ computing very basic data quality (large variance in gaze distribution, excessive blinks, large jumps in eye position, etc).
+# TODO perhaps even store key variables (e.g. some measure of pupil fluctuation, or saccade velocity/acceleration) from prior subjects in separate circumscribed csv (which values get appended to) and plot distributions for every new subject. This would be akin to constructing a sort of empirical null distribution and performing informal (visual)"hypothesis tests" where we would hope certain variables in a given subject are not "significantly different" than the group distribution. Also this could include validation/ computing very basic data quality (large variance in gaze distribution, excessive blinks, large jumps in eye position, etc).
 }
 \author{
 Nate Hall

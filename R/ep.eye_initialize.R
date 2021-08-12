@@ -12,8 +12,9 @@
 #'
 #' @return \code{ep.eye}. A single list object of class ep.eye, that has been read in, initialized, and integrated into the experiment.pipeline eye structure. Contains fields
 #'
-#' @note TODO: perhaps even store key variables (e.g. some measure of pupil fluctuation, or saccade velocity/acceleration) from prior subjects in separate circumscribed csv (which values get appended to) and plot distributions for every new subject. This would be akin to constructing a sort of empirical null distribution and performing informal (visual)"hypothesis tests" where we would hope certain variables in a given subject are not "significantly different" than the group distribution. Also this could include validation/ computing very basic data quality (large variance in gaze distribution, excessive blinks, large jumps in eye position, etc).
+#' @note # TODO perhaps even store key variables (e.g. some measure of pupil fluctuation, or saccade velocity/acceleration) from prior subjects in separate circumscribed csv (which values get appended to) and plot distributions for every new subject. This would be akin to constructing a sort of empirical null distribution and performing informal (visual)"hypothesis tests" where we would hope certain variables in a given subject are not "significantly different" than the group distribution. Also this could include validation/ computing very basic data quality (large variance in gaze distribution, excessive blinks, large jumps in eye position, etc).
 #' @importFrom lubridate seconds_to_period
+#' @import dplyr
 #'
 #' @author Nate Hall
 #'
@@ -30,25 +31,25 @@ ep.eye_initialize <- function(file,
                               header = NULL,
                               ...){
   ## debugging setup
-  library(tidyverse)
-  library(knitr)
-  library(rprojroot)
-  library(lubridate)
-  library(data.table)
-  library(experiment.pipeline)
-
-  edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE); print(edf_files)
-  edf_path <-edf_files[1] # extract a single subject for example case
-  config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
-
-  file <- edf_path
-  expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
-  task = config$task
-  gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events
-  confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence
-  meta_check = config$definitions$eye$initialize$meta_check
-  inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
-  header = "2. Initialize ep.eye object:"
+  # library(tidyverse)
+  # library(knitr)
+  # library(rprojroot)
+  # library(lubridate)
+  # library(data.table)
+  # library(experiment.pipeline)
+  #
+  # edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE)
+  # edf_path <-edf_files[1] # extract a single subject for example case
+  # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
+  #
+  # file <- edf_path
+  # expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
+  # task = config$task
+  # gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events
+  # confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence
+  # meta_check = config$definitions$eye$initialize$meta_check
+  # inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
+  # header = "2. Initialize ep.eye object:"
 
 
   log_chunk_header(header)
@@ -105,11 +106,11 @@ ep.eye_initialize <- function(file,
 
   ### 2.10 Check metadata
   dt <- "- 2.10 Check ep.eye metadata:"
-  if("meta_check" %in% names(config$definitions$eye$initialize)){
+  if(!is.null(meta_check)){
     ep.eye <- ep.eye_meta_check(ep.eye,
-                                meta_vars = config$definitions$eye$initialize$meta_check$meta_vars,
-                                meta_vals = config$definitions$eye$initialize$meta_check$meta_vals,
-                                recording_time = config$definitions$eye$initialize$meta_check$recording_time,
+                                meta_vars = meta_check$meta_vars,
+                                meta_vals = meta_check$meta_vals,
+                                recording_time = meta_check$recording_time,
                                 dt)
   } else{
     cat(paste0(dt, " SKIP\n"))

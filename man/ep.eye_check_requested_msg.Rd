@@ -4,10 +4,12 @@
 \alias{ep.eye_check_requested_msg}
 \title{Compare requested (from config) and extracted (from ep.eye$raw) messages for completeness within a single event}
 \usage{
-ep.eye_check_requested_msg(ep.eye, eventnum)
+ep.eye_check_requested_msg(ep.eye, msg_seq, eventnum)
 }
 \arguments{
 \item{ep.eye}{ep.eye object that has been previously initialized and tidied}
+
+\item{msg_seq}{List of optional message sequence arguments passed in config file. Can contain \code{msg_start}, \code{msg_end}, \code{eval_middle}, \code{ordered}. See the ep.eye_config vignette for details on these fields.}
 
 \item{eventnum}{numeric value of the event number to check}
 }

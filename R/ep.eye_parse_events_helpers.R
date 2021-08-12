@@ -100,7 +100,7 @@ ep.eye_validate_msg_seq <- function(ep.eye,
   tryCatch.ep({
     msg_check <- data.frame()
     for(i in unique(ep.eye$raw$eventn)){
-      df <- ep.eye_check_requested_msg(ep.eye, eventnum = i)
+      df <- ep.eye_check_requested_msg(ep.eye, msg_seq, eventnum = i)
       msg_check <- rbind(msg_check, df)
     }
 
@@ -149,13 +149,14 @@ ep.eye_validate_msg_seq <- function(ep.eye,
 #'
 #' @param ep.eye ep.eye object that has been previously initialized and tidied
 #' @param eventnum numeric value of the event number to check
-#'
+#' @param msg_seq List of optional message sequence arguments passed in config file. Can contain \code{msg_start}, \code{msg_end}, \code{eval_middle}, \code{ordered}. See the ep.eye_config vignette for details on these fields.
 #' @return df a data.frame with columns c("requested", "match", and "extracted") which provide a mapping between all messages that should be within a given event and the actual message that is extracted from the .edf file. all(match) == TRUE indicates that all requested messages are contained within the et.msgs in the .edf file (good thing).
 #'
 #' @author Nate Hall
 #' @export
 
 ep.eye_check_requested_msg <- function(ep.eye,
+                                       msg_seq,
                                        eventnum){
   eblock <- ep.eye$raw  %>% dplyr::filter(eventn == eventnum)
 

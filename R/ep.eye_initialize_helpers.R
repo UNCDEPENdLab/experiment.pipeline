@@ -136,6 +136,7 @@ ep.eye_raw_sample_continuity_check <- function(ep.eye){
 #' @param ep.eye An initialized ep.eye object
 #' @param gaze_events Character vector of gaze_events to unify with raw. Defaults to unifying sacc, fix, and blink but can be set to any subset of these.
 #'
+#'
 #' @return ep.eye ep.eye structure that has been tagged with gaze event numbers and validated for correspondence between raw and gaze event fields.
 #' @author Nate Hall
 #'
@@ -146,7 +147,7 @@ ep.eye_unify_gaze_events <- function(ep.eye,
                                      ){
 
   # Generate new columns to add gaze event information if requested.
-  ep.eye$raw <- cbind(ep.eye$raw, setNames(data.frame(matrix(0, ncol = length(gaze_events), nrow = length(ep.eye$raw$time))), paste0(gaze_events, "n"))) %>% tibble()
+  ep.eye$raw <- cbind(ep.eye$raw, setNames(data.frame(matrix(0, ncol = length(gaze_events), nrow = length(ep.eye$raw$time))), paste0(gaze_events, "n"))) #%>% tibble()
 
   issues <- list()
   substep <- 0
