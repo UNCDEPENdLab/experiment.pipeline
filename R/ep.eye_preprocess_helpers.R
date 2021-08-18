@@ -55,6 +55,7 @@ ep.eye_add_aois <- function(ep.eye,
                             tag_raw = FALSE
                             ){
   ### 4.1.1 pull AOI information into new columns by eventn
+  # TODO add extraction_method = "data.frame" to allow user to pass pre-defined AOI information per event (e.g. if extracting via a regex isn't feasible)
   aoi_ref <- ep.eye_gen_aoi_ref(ep.eye,
                          indicator,
                          extract_coords,

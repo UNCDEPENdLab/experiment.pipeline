@@ -114,6 +114,52 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts <- NULL
     }
     config[["definitions"]][["eye"]][["msg_parse"]] <- opts
+  } else if(field == "gaze_preproc"){
+    ################### Preprocess Gaze
+    if("gaze_preproc" %in% names(config$definitions$eye)){
+      opts <- config$definitions$eye$gaze_preproc
+
+      ### AOIs
+      if(!"aoi" %in% names(opts)) {
+        opts[["aoi"]][["indicator"]] <- "!V IAREA RECTANGLE"
+        opts[["aoi"]][["extraction_method"]] <- "regex"
+        opts[["aoi"]][["extraction_coords"]] <- "\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"
+        opts[["aoi"]][["extract_labs"]] <- "[a-z]+$"
+        opts[["aoi"]][["split_coords"]] <- " "
+        opts[["aoi"]][["tag_raw"]] <- FALSE
+      } else{
+        ### if a specific aoi field is missing, set to default
+        if(!"indicator" %in% names(opts$aoi)) {opts[["aoi"]][["indicator"]] <- "!V IAREA RECTANGLE"}
+        if(!"extraction_method" %in% names(opts$aoi)) {opts[["aoi"]][["extraction_method"]] <- "regex"}
+        if(!"extraction_coords" %in% names(opts$aoi)) {opts[["aoi"]][["extraction_coords"]] <- "\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"}
+        if(!"extract_labs" %in% names(opts$aoi)) {opts[["aoi"]][["extract_labs"]] <- "[a-z]+$"}
+        if(!"split_coords" %in% names(opts$aoi)) {opts[["aoi"]][["split_coords"]] <- " "}
+        if(!"tag_raw" %in% names(opts$aoi)) {opts[["aoi"]][["tag_raw"]] <- FALSE}
+      }
+
+      ### Downsampling
+      if(!"downsample" %in% names(opts)) {
+        opts[["downsample"]][["factor"]] <- 20
+        opts[["downsample"]][["method"]] <- "mean"
+      } else{
+        ### if a specific downsample field is missing, set to default
+        if(!"factor" %in% names(opts$downsample)) {opts[["downsample"]][["factor"]] <- 20}
+        if(!"method" %in% names(opts$downsample)) {opts[["downsample"]][["method"]] <- "mean"}
+      }
+
+    } else{
+      # if processing options are not specified, set to defaults
+      opts <- list()
+      opts[["aoi"]][["indicator"]] <- "!V IAREA RECTANGLE"
+      opts[["aoi"]][["extraction_method"]] <- "regex"
+      opts[["aoi"]][["extraction_coords"]] <- "\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"
+      opts[["aoi"]][["extract_labs"]] <- "[a-z]+$"
+      opts[["aoi"]][["split_coords"]] <- " "
+      opts[["aoi"]][["tag_raw"]] <- FALSE
+      opts[["downsample"]][["factor"]] <- 20
+      opts[["downsample"]][["method"]] <- "mean"
+    }
+    config[["definitions"]][["eye"]][["gaze_preproc"]] <- opts
   }
 
  return(config)
