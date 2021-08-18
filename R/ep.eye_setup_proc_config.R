@@ -21,6 +21,7 @@ ep.eye_setup_proc_config <- function(file, config_path, header = NULL){
   config <- validate_exp_yaml(config_path)
 
   #### start by pulling in global options which will launch an .elog file if requested.
+  # TODO add verbose argument to suppress output (perhaps just default to verbose = FALSE, unless gen_log == TRUE).
   config <- ep.eye_set_config_definitions(file, config, "global")
   if(!is.null(header)){
     log_chunk_header(header)

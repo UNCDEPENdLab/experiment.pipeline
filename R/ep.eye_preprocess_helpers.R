@@ -18,6 +18,13 @@
 # - ep.eye_baseline_correct()
 ############################
 
+#' Remove values outside of screen dimensions
+#'
+#' @param ep.eye an ep.eye object
+#' @param dt descriptive text to print to log file, defaults to NULL.
+#'
+#' @export
+
 ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
   tryCatch.ep({
     ep.eye$raw <- ep.eye$raw %>% mutate(xp = ifelse(xp >= ep.eye$metadata$screen.x | xp <= 0, NA, xp),
@@ -29,7 +36,18 @@ ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
   return(ep.eye)
 }
 
-ep.eye_add_aois <- function(ep.eye, 
+#' Add AOI information to gaze data
+#'
+#' @param ep.eye an ep.eye object
+#' @param indicator a regex containing string to search for across messages for AOI information
+#' @param extract_coords a regex for extracting AOI coordinates
+#' @param extract_labs a regex for extracting AOI labels
+#' @param split_coords string denoting what separator is being used to split AOI coordinates
+#' @param tag_raw logical. tag raw data with AOI specific information? Default to FALSE.
+#'
+#' @export
+
+ep.eye_add_aois <- function(ep.eye,
                             indicator,
                             extract_coords,
                             extract_labs,
@@ -52,6 +70,16 @@ ep.eye_add_aois <- function(ep.eye,
 
   return(ep.eye)
 }
+
+#' Generate AOI-reference object
+#'
+#' @param ep.eye an ep.eye object
+#' @param indicator a regex containing string to search for across messages for AOI information
+#' @param extract_coords a regex for extracting AOI coordinates
+#' @param extract_labs a regex for extracting AOI labels
+#' @param split_coords string denoting what separator is being used to split AOI coordinates
+#'
+#' @export
 
 ep.eye_gen_aoi_ref <- function(ep.eye,
                                indicator,
@@ -84,7 +112,17 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
   return(aoi_ref)
 }
 
+#' Attaches AOI information to gaze data
+#'
+#' @param ep.eye an ep.eye object
+#' @param aoi_ref data.frame containing AOI information
+#' @param tag_raw logical. tag raw data with AOI specific information? Default to FALSE.
+#' @param dt descriptive text to print to log file, defaults to NULL.
+#'
+#' @export
+
 ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
+  # TODO allow for user to pass their own AOI_ref object
   cat(dt, "\n")
   if(tag_raw){ ## leaving in as an option, though I think it is probably more important to gauge which AOIs were the focus during saccades (to/from) and fixations.
     dt <- "--- 4.2.2.0 Appending AOIs to raw data"
@@ -101,7 +139,7 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
         }
       }
     },describe_text = dt)
-  } 
+  }
 
   # saccades
   dt <- "--- 4.2.2.1 Appending AOIs to saccade data"
@@ -163,8 +201,9 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
   return(ep.eye)
 }
 
-#' collapse timing to one row per time (paste multiple messages in a single et.msg)
-#'
+#' Collapse timing to one row per time (paste multiple messages in a single et.msg)
+#' @param ep.eye an ep.eye object
+#' @param dt descriptive text to print to log file, defaults to NULL.
 #'
 ep.eye_collapse_time <- function(ep.eye, dt){
   tryCatch.ep({
@@ -182,13 +221,22 @@ ep.eye_collapse_time <- function(ep.eye, dt){
   return(ep.eye)
 }
 
-
-ep.eye_downsample <- function(df, 
+#' Downsample gaze and/or pupil data
+#'
+#' @param df data.table to downsample (usually this is ep.eye$raw)
+#' @param downsample_factor Numeric value indicating degree of downsampling. A factor of 50, collapses 50 measurements into 1, so it is important to be mindful of your sampling rate when selecting this value. Defaults to 50 (which moves a second of recording at 1000Hz to 20 measurements).
+#' @param digital_channels Character vector of columns in df that are integer values that should not be combined but blocked by.
+#' @param analog_channels Character vector of columns in df that are continually varying and should be summarized within the downsampling procdure (incl x and y gaze position and pupil size)
+#' @param char_channels Character vector of columns in df that represent values that should be combined if there are unique values within a downsampling block. If there are multiples within a downsampling block will paste them together with " || "
+#' @param method String "mean" or "subsample" determining whether to perform subsampling (keep every n measurement) or mean-based downsampling.
+#'
+#' @export
+ep.eye_downsample <- function(df,
                               downsample_factor=50,
-                              digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"), # integer values of trial, event, and gevs.
-                              analog_channels = c("xp", "yp", "ps"), # gaze and pupil measurements
-                              char_channels = c("et.msg", "block", "event"), # characters, if there are unique values within a block, will paste them together with " || "
-                              # min_samps = 10, # FEATURE WISH-LIST: could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA.
+                              digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"),
+                              analog_channels = c("xp", "yp", "ps"),
+                              char_channels = c("et.msg", "block", "event"),
+                              # TODO could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA. min_samps = 10, #
                               method = "mean") {
   ### debug
   # df <- ep.eye$raw
@@ -321,8 +369,8 @@ downsample_chars <- function(dt, dfac=1L){
 }
 
 
-ep.eye_extend_blinks <- function(ep.eye, 
-                                 ms_before = 100, 
+ep.eye_extend_blinks <- function(ep.eye,
+                                 ms_before = 100,
                                  ms_after = 100){
 
   ### extract pupil size from raw.
@@ -355,7 +403,7 @@ ep.eye_extend_blinks <- function(ep.eye,
 }
 
 
-ep.eye_smooth_pupil <- function(ep.eye, 
+ep.eye_smooth_pupil <- function(ep.eye,
                                 method = "movingavg",
                                 window_length = 50){
 
@@ -381,7 +429,7 @@ ep.eye_smooth_pupil <- function(ep.eye,
 
 movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
   ### this is taken from the pracma package with added na.rm functionality
-  
+
   stopifnot(is.numeric(x), is.numeric(n), is.character(type))
   if (length(n) != 1 || ceiling(n != floor(n)) || n <= 1)
     stop("Window length 'n' must be a single integer greater 1.")
@@ -432,22 +480,34 @@ movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
 }
 
 
-ep.eye_interp_pupil <- function(ep.eye, 
+
+#' Interpolate over missing pupil data
+#'
+#' @param ep.eye ep.eye object containing ps_smooth as a column in pupil data.
+#' @param algor preferred interpolation algorithm, see imputeTS::na_interpolation for options
+#' @param maxgap Maximum amount of missing *time (in ms)* to interpolate over. Anything above this will be left NA. Converts internally from time to nmeasurements if data is not sampled at 1000Hz.
+#'
+#' @import imputeTS
+#'
+#'
+#' @export
+
+ep.eye_interp_pupil <- function(ep.eye,
                                 algor = "linear",
                                 maxgap =  1000){
 
   ### convert to ntimepoints depending on sampling rate if not 1000
   sr <- ep.eye$metadata$sample.rate
-  maxgap <- maxgap
+  # maxgap <- maxgap
 
   if(sr != 1000){
     conv_ms <- 1000/sr
     maxgap <- maxgap/conv_ms
   }
-                                  
+
   all_t <- seq(0,max(ep.eye$raw$time))
 
-  ##### if there are missing timepoints, they need to be included so we dont interpolate over periods where the tracker is off.
+  ##### N.B. if there are missing timepoints, they need to be included so we dont interpolate over periods where the tracker is off.
   paddf <- data.table(eventn = NA,
                       time = which(!all_t %in% ep.eye$raw$time) -1,
                       ps = NA,
@@ -464,15 +524,15 @@ ep.eye_interp_pupil <- function(ep.eye,
 
   temp <- rbind(ep.eye$pupil$preprocessed, paddf) %>% arrange(time)
 
-  temp$ps_interp <- na_interpolation(temp$ps_smooth, option = algor, maxgap = maxgap)
-  
+  temp$ps_interp <- imputeTS::na_interpolation(temp$ps_smooth, option = algor, maxgap = maxgap)
+
   ep.eye$pupil$preprocessed <- temp %>% filter(!is.na(eventn)) %>% data.table()
 
   return(ep.eye)
 }
 
 
-ep.eye_baseline_correct <- function(ep.eye, 
+ep.eye_baseline_correct <- function(ep.eye,
                                     method = "subtract",
                                     dur_ms = 100,
                                     center_on){

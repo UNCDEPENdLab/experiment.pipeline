@@ -1,9 +1,31 @@
+#' @title Preprocess gaze data
+#' @description Performs AOI tagging (within gaze event fields) and downsampling (within raw gaze data) of gaze data.
+#'
+#' @param ep.eye Path to a single \code{.edf} file using \code{read_edf()}.
+#' @param aoi list of AOI options
+#' @param task Character value with task name. Contains $indicator, $extract_coords, $extract_labs, $split_coords
+#' @param downsample list of downsampling options. Contains $factor, and $method.
+#'
+#'
+#' @return ep.eye an ep.eye object that has gaze data preprocessed.
+#'
+#' @import dplyr
+#' @importFrom data.table data.table
+#'
+#' @author Nate Hall
+#'
+#' @export
 
-ep.eye_preprocess_gaze <- function(ep.eye, 
+ep.eye_preprocess_gaze <- function(ep.eye,
                                    aoi,
                                    downsample,
                                    header = NULL){
- 
+  ## setup debug
+  # ep.eye <- eye_parsed
+  aoi = config$definitions$eye$gaze_preproc$aoi
+  downsample = config$definitions$eye$gaze_preproc$downsample
+  header = "4. Preprocess gaze data:"
+
   log_chunk_header(header)
 
   ### 4.1 Remove impossible values (outside of screen dimensions)
@@ -13,7 +35,7 @@ ep.eye_preprocess_gaze <- function(ep.eye,
   ### 4.2 Assign AOIs
   if (!is.null(aoi)) {
     cat("- 4.2 Assign AOIs to gaze data\n")
-    ep.eye <- ep.eye_add_aois(ep.eye, 
+    ep.eye <- ep.eye_add_aois(ep.eye,
                        indicator = aoi$indicator,
                        extract_coords = aoi$extract_coords,
                        extract_labs = aoi$extract_labs,

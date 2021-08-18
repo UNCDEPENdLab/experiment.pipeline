@@ -28,6 +28,12 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   #  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Sorting_Mushrooms.yaml"
   # Neighborhood - UNC
 
+  #inst files come with package
+  edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE)
+  file <- edf_files[1] # extract a single subject for example case
+  config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
+  library(tictoc)
+
   ########################
 
   ######
@@ -60,11 +66,11 @@ ep.eye_process_subject <- function(file, config_path, ...) {
     cat("3. Parse task events: SKIP (Only generic read/validation of ep.eye object applied. No user-specified message parsing)")
   } else{
     tic("3. parse time")
-    eye_parsed <- ep.eye_parse_events(eye_init,
-                                      extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
-                                      csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
-                                      msg_seq = config$definitions$eye$msg_parse$msg_seq,
-                                      header = "3. Parse task events:")
+    eye_parsed  <- ep.eye_parse_events(eye_init,
+                                       extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
+                                       csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
+                                       msg_seq = config$definitions$eye$msg_parse$msg_seq,
+                                       header = "3. Parse task events:")
     toc()
   }
 
@@ -72,11 +78,10 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   ### 4. Gaze preprocessing
   #########
   tic("4. gaze preproc time")
-  # BUG I am a bug
   eye_gazePre <- ep.eye_preprocess_gaze(eye_parsed,
-                                        aoi = config$definitions$eye$gaze_preproc$aoi,
-                                        downsample = config$definitions$eye$gaze_preproc$downsample,
-                                        header = "4. Preprocess gaze data:")
+                                                  aoi = config$definitions$eye$gaze_preproc$aoi,
+                                                  downsample = config$definitions$eye$gaze_preproc$downsample,
+                                                  header = "4. Gaze preprocessing:")
   toc()
 
   ######
@@ -91,10 +96,10 @@ ep.eye_process_subject <- function(file, config_path, ...) {
                                         downsample = config$definitions$eye$pupil_preproc$downsample,
                                         header = "5. Pupil preprocessing:")
   toc()
-
-  ######
-  ### 6 Cleanup.
-  ######
+  #
+  # ######
+  # ### 6 Cleanup.
+  # ######
   tic("6. cleanup time")
   ep.eye_clean <- ep.eye_cleanup(eye_gaze_pupilPre,
                                  globals = config$definitions$eye$global,

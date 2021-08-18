@@ -37,7 +37,7 @@ To get us started, we can extract the path to a single subject's `.edf` file fro
 library(experiment.pipeline)
 
 edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE); print(edf_files)
-edf_path <-edf_files[1] # extract a single subject for example case
+edf_path <- edf_files[1] # extract a single subject for example case
 config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
 ```
 
@@ -477,9 +477,9 @@ config$definitions$eye$msg_parse
 
 ### subfield descriptions and default options
 
-I'll provide an example of how one might go about specifying these options below but first here is a description of relevant subfields. Note that all options default to NULL, and if this field is missing entirely from the config file, `ep.eye_process_subject.R` will attempt to skip parsing event-related information and continue to preprocessing. 
+The most important option at this stage is the path to your "event extraction function". I've written up some documentation on how to implement this in [a separate walkthrough](doc/ev_extract.html)  Note that all options default to NULL, and if this field is missing entirely from the config file, `ep.eye_process_subject.R` will attempt to skip parsing event-related information and continue to preprocessing. 
 
-- **`extract_event_func_path`**: Path to user-defined message parsing function here. Used as argument to `ep.eye_parse_events.R`.
+- **`extract_event_func_path`**: Path to user-defined message parsing function here. Used as argument to `ep.eye_parse_events.R`. See [here](doc/ev_extract.html) for more information.
   - **Defaults** to NULL.
 - **`csv_path`**: Path to write event csvs to. Used as argument to `ep.eye_parse_events.R`. As a sanity check it is generally good idea to write and review at least a couple csvs to ensure the event extraction and renaming is working internally.
   - **Defaults** to NULL.
@@ -493,110 +493,22 @@ I'll provide an example of how one might go about specifying these options below
   - **`ordered`**: Logical. If FALSE, enforce in message sequence checks that the messages specified in `msg_start` and `msg_end` should be exactly in the order you specify them. Otherwise, message validation will just ensure the presence of `msg_start` and `msg_end` strings. *Note* that currently, `ordered = TRUE` will only check the ordering of `msg_start` and `msg_end` and will not evaluate the ordering of block-specific messages. 
     - **Defaults** to NULL.
     
-### worked example of setting up an event extraction function
-
-Here, I demonstrate what the desired output from a user defined function will look like, for a more formal introduction to functional programming see [here](https://r4ds.had.co.nz/functions.html) and [here](http://adv-r.had.co.nz/Functional-programming.html).
-
-Importantly, `ep.eye_parse_events.R` is setup work on an `ep.eye` object that has been initialized above. So, to get the input for your function, perform configuration setup and initialize your `ep.eye` object:
-
-```{r cache = TRUE}
-## these two calls are extracted right from the body pf ep.eye_process_subject.R
-config <- ep.eye_setup_proc_config(edf_path,
-                                   config_path,
-                                   header = "1. Setup Processing Options:")
-
-ep.eye <- ep.eye_initialize(edf_path,
-                              expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
-                              task = config$task,
-                              gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
-                              confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
-                              meta_check = config$definitions$eye$initialize$meta_check,
-                              inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
-                              header = "2. Initialize ep.eye object:")
-sink()
-```
-
-At this point I would advise printing `eye_init` and examining its structure, since this is what you will use to draft a function to extract event-related information. Your function will have two arguments: `ep.eye` (which will be an initialized object) and `csv.path`. Here is the body of our function, taking ep.eye as input and exporting a `data.frame` that contains eventn-level information on the ep.eye hierarchy (must export at least block, block_trial, eventn, et.msg, and time columns): 
-
-```{r eval= FALSE}
-# don't run.
-## this code is stored in config$definitions$eye$msg_parse$extract_event_func_path
-
-gen_SortingMushrooms_eye_events <- function(ep.eye, csv_path = NULL){
-  
-  ## need block, block_trial, event, eventn, et.msg, and time variables
-
-  tr_id_msgs <- ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
-                    mutate(x = sub("TRIALID ", "", et.msg)) %>%  
-                    separate(x, c("block", 
-                                #   "phase", 
-                                  "block_trial",
-                                  "eventn",
-                                  "event"), sep = "_") %>% 
-                    mutate(trial = cumsum(block_trial != lag(block_trial, default=""))) %>%
-                    select(block, trial, block_trial, event, eventn, time, et.msg) %>% 
-                    mutate(block = sub("approach-", "", block)) 
-    
-    
-  if(!is.null(csv_path)) {
-    write.csv(tr_id_msgs, file = csv_path, row.names = FALSE)
-  } 
-    
-  return(tr_id_msgs)
-}
-```
-
-To break down what is happening in this function, we extract information that contains "TRIALID", this may be different depending on where event-level information is stored in `ep.eye$et.msg` and use `dplyr::separate` to separate important event-level descriptive information that is coded by values that are separated by "_"
-
-```{r}
-#isolate trial-id messages
-ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% head() 
-
-#isolate string to separate
-ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
-                    mutate(x = sub("TRIALID ", "", et.msg)) %>% head()
-
-# separate the isolated string and with labels that match the correct level of description from the ep hierarchy
-ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
-                    mutate(x = sub("TRIALID ", "", et.msg)) %>%  
-                    separate(x, c("block", 
-                                #   "phase", 
-                                  "block_trial",
-                                  "eventn",
-                                  "event"), sep = "_") %>% head()
-
-## tidy the data a bit more by adding trial column, rearranging column ordering and isolating block information that is most relevant 
-ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
-                    mutate(x = sub("TRIALID ", "", et.msg)) %>%  
-                    separate(x, c("block", 
-                                #   "phase", 
-                                  "block_trial",
-                                  "eventn",
-                                  "event"), sep = "_") %>% 
-                    mutate(trial = cumsum(block_trial != lag(block_trial, default=""))) %>%
-                    select(block, trial, block_trial, event, eventn, time, et.msg) %>% 
-                    mutate(block = sub("approach-", "", block)) %>% head() # block ins indicates that we are in an instrumental learning block
-
-```
-This information is then exported for further use in the message parsing script, now we know what block, trial, block_trial, and event are paired with each unique event number!
-
-The exact body of your user-defined function will vary depending on what format your data comes off of the eyetracker, which is why I've decided to employ this approach to allow for flexible handling of different experimental setups. For example, if you store event-relevant information in another `.csv` or `.RData` file (e.g. perhaps you didn't pass `TRIALID` messages as we've done in this task), you'll likely want your function to read them in and combine with the `eventn` field of your data, the only thing that matters is that the output minimally contains the above values (can include additional columns if they are relevant such as run, phase, subject id, etc).
-
-
 ## `gaze_preproc`
 
-`gaze_preproc` definitions are all utilized in Step 4: Preprocess gaze data (`ep.eye_preprocess_gaze.R`). Currently, this is setup to extract areas of interest from the sequence of eyetracker messages and tag the data with information about whether certain aois were being looked at. Additionally, you can specify downsampling parameters for your gaze data here.  Here is an example from the Sorting Mushrooms task:
+`gaze_preproc` definitions are all utilized in Step 4: Gaze preprocessing (`ep.eye_preprocess_gaze.R`). Currently, this is setup to extract areas of interest from the sequence of eyetracker messages and tag the data with information about whether certain AOIs were being looked at. Additionally, you can specify downsampling parameters for your gaze data here.  Here is an example from the Sorting Mushrooms task:
 
 ```{r, eval = FALSE}
 ################################
-  gaze_preproc:
+definitions:
+  eye: &eye  
+    gaze_preproc:
       aoi:
         indicator: ["!V IAREA RECTANGLE"]
         extraction_method: regex
         extract_coords: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
         extract_labs: ["[a-z]+$"]
         split_coords: " "
-        tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
+        tag_raw: FALSE 
       downsample:
         factor: 20
         method: "mean"
@@ -611,4 +523,62 @@ config$definitions$eye$gaze_preproc
 
 ### subfield descriptions and default options
 
+- **`aoi`**: Areas of interest (AOIs) are bounded locations in a stimulus display that denote a portion of the visual display that a task manipulates in order to influence a subject's gaze. In other words, AOIs are something important that a subject might look at. These should be passed as messages to the eyetracker during the experiment so we can reconstruct what stimuli are being attended to during task performance. All options below allow for the reconstruction of AOIs in gaze data.  
+  - **`indicator`**: 
+    - **Defaults** to `["!V IAREA RECTANGLE"]`, which is SR Research's standardized message for passing information on a rectangular AOI see [here (pg96.)](http://sr-research.jp/support/manual/EyeLink%20Programmers%20Guide.pdf). Note that currently only rectangular AOIs are supported.
+  - **`extraction_method`**: regex
+  - **`extract_coords`**: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
+  - **`split_coords`**: " "
+  - **`extract_labs`**: ["[a-z]+$"]
+  - **`tag_raw`**: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
+- **`downsample`**:
+  - **`factor`**: 20
+  - **`method`**: "mean"
 
+## `pupil_preproc`
+
+`pupil_preproc` definitions are all utilized in Step 5: Preprocess gaze data (`ep.eye_preprocess_gaze.R`). Currently, this is setup to extract areas of interest from the sequence of eyetracker messages and tag the data with information about whether certain aois were being looked at. Additionally, you can specify downsampling parameters for your gaze data here.  Here is an example from the Sorting Mushrooms task:
+
+```{r, eval = FALSE}
+################################
+definitions:
+  eye: &eye  
+    pupil_preproc:
+      blink_corr:
+        ms_before: 150
+        ms_after: 150
+      filter:
+        method: "movingavg" #right now only moving average supported
+        window_length: 20 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
+      interpolate:
+        algor: "linear"
+        maxgap: 1000 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
+      baseline_correction:
+        method: "subtract"
+        dur_ms: 100
+        center_on: "DISPLAY ON"
+      downsample:
+        factor: 50
+        method: "mean"
+################################
+```
+
+which is read into the R session as:
+
+```{r}
+config$definitions$eye$gaze_preproc
+```
+
+### subfield descriptions and default options
+
+- **`aoi`**: Areas of interest (AOIs) are bounded locations in a stimulus display that denote a portion of the visual display that a task manipulates in order to influence a subject's gaze. In other words, AOIs are something important that a subject might look at. These should be passed as messages to the eyetracker during the experiment so we can reconstruct what stimuli are being attended to during task performance. All options below allow for the reconstruction of AOIs in gaze data.  
+  - **`indicator`**: 
+    - **Defaults** to `["!V IAREA RECTANGLE"]`, which is SR Research's standardized message for passing information on a rectangular AOI see [here (pg96.)](http://sr-research.jp/support/manual/EyeLink%20Programmers%20Guide.pdf). Note that currently only rectangular AOIs are supported.
+  - **`extraction_method`**: regex
+  - **`extract_coords`**: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
+  - **`split_coords`**: " "
+  - **`extract_labs`**: ["[a-z]+$"]
+  - **`tag_raw`**: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
+- **`downsample`**:
+  - **`factor`**: 20
+  - **`method`**: "mean"

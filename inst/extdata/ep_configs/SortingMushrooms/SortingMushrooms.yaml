@@ -24,7 +24,7 @@ definitions:
   eye: &eye
     global:
       prefix: "\\d{3}_[[:upper:]]+"
-      gen_log: TRUE
+      gen_log: FALSE
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_preproc: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
@@ -67,14 +67,14 @@ definitions:
         method: "mean"
     pupil_preproc:
       blink_corr:
-        ms_before: 100
-        ms_after: 100
+        ms_before: 150
+        ms_after: 150
       filter:
         method: "movingavg" #right now only moving average supported
-        window_length: 50 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
+        window_length: 20 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
       interpolate:
-        algor: "spline"
-        maxgap: 1000 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
+        algor: "stine"
+        maxgap: 250 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
       baseline_correction:
         method: "subtract"
         dur_ms: 100

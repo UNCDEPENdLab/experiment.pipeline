@@ -2,10 +2,15 @@
 % Please edit documentation in R/ep.eye_preprocess_helpers.R
 \name{ep.eye_collapse_time}
 \alias{ep.eye_collapse_time}
-\title{collapse timing to one row per time (paste multiple messages in a single et.msg)}
+\title{Collapse timing to one row per time (paste multiple messages in a single et.msg)}
 \usage{
 ep.eye_collapse_time(ep.eye, dt)
 }
+\arguments{
+\item{ep.eye}{an ep.eye object}
+
+\item{dt}{descriptive text to print to log file, defaults to NULL.}
+}
 \description{
-collapse timing to one row per time (paste multiple messages in a single et.msg)
+Collapse timing to one row per time (paste multiple messages in a single et.msg)
 }
