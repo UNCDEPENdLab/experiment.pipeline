@@ -96,7 +96,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
                                         downsample = config$definitions$eye$pupil_preproc$downsample,
                                         header = "5. Pupil preprocessing:")
   toc()
-  #
+
   # ######
   # ### 6 Cleanup.
   # ######

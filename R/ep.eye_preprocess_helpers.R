@@ -249,6 +249,7 @@ ep.eye_downsample <- function(df,
   # # dt = NULL
 
   #### checks
+  try({suppressWarnings(setDT(ep.eye$raw))}, silent = TRUE) # set df to data.table if not already.
   assert_data_table(df) #for now, we are using data.table objects, so DT syntax applies
   assert_count(downsample_factor)
 
@@ -419,6 +420,7 @@ ep.eye_smooth_pupil <- function(ep.eye,
     maw <- maw/conv_ms
   }
 
+  # TODO expand to other movingavg types and incl hanning filter (https://github.com/dr-JT/pupillometry/blob/master/R/pupil_smooth.R)
   ep.eye$pupil$preprocessed$ps_smooth <- movavg.ep(ep.eye$pupil$preprocessed$ps_blinkex, window_length, "s")
 
   ## average will run through the deblinked trials. Ensure these remain NA'ed
@@ -545,6 +547,8 @@ ep.eye_baseline_correct <- function(ep.eye,
 
   ret_bc <- data.table()
 
+
+  # TODO allow for multiple center_on messages to get passed simultaneously (e.g. stimulus onset and choice)
   for(ev in unique(ep.eye$pupil$preprocessed$eventn)){
 
     st <- ep.eye$pupil$preprocessed %>% filter(eventn == ev) %>% tibble()
@@ -559,13 +563,22 @@ ep.eye_baseline_correct <- function(ep.eye,
       baset <- baset[1] # this could be considered for an argument to put in config file.
     }
 
+
+    sr <- ep.eye$metadata$sample.rate
+
+    ### convert to ntimepoints depending on sampling rate if not 1000
+    if(sr != 1000){
+      conv_ms <- 1000/sr
+      dur_ms <- dur_ms/conv_ms
+    }
+
     #### if no baseline message passed on this event, set baseline measurement to the first in the event
     if(length(baset) == 0){
       bl <- st$ps_interp[1]
       baset <- st$time[1]
       missing_baseline <- c(missing_baseline, ev)
     } else{
-      bpos <- which(st$time %in% seq(baset - 100, baset))
+      bpos <- which(st$time %in% seq(baset - dur_ms, baset))
       bl <- median(st$ps_interp[bpos], na.rm = TRUE)
     }
 
@@ -575,6 +588,7 @@ ep.eye_baseline_correct <- function(ep.eye,
                           time_bc = time -baset) %>% data.table()
     } else{
       message("Currently only subtrative ('subtract') baseline correction supported")
+      # TODO implement divisive baseline correction (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7544668/#FN5)
     }
 
     ret_bc <- rbind(ret_bc, st)

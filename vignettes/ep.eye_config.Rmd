@@ -523,21 +523,30 @@ config$definitions$eye$gaze_preproc
 
 ### subfield descriptions and default options
 
-- **`aoi`**: Areas of interest (AOIs) are bounded locations in a stimulus display that denote a portion of the visual display that a task manipulates in order to influence a subject's gaze. In other words, AOIs are something important that a subject might look at. These should be passed as messages to the eyetracker during the experiment so we can reconstruct what stimuli are being attended to during task performance. All options below allow for the reconstruction of AOIs in gaze data.  
-  - **`indicator`**: 
+- **`aoi`**: Areas of interest (AOIs) are bounded locations in a stimulus display that denote a portion of the visual display that a task manipulates in order to influence a subject's gaze. In other words, AOIs are something important that a subject might look at. These should be passed as messages to the eyetracker during the experiment so we can reconstruct what stimuli are being attended to during task performance. All options below allow for the reconstruction of AOIs in gaze data (in order to determine where subjects are looking during an event).  
+  - **`indicator`**: String to search for amongst eye messages to denote that AOI parameters are being passed. Other options below essentially contain additional commands to extract the proper information from this message
     - **Defaults** to `["!V IAREA RECTANGLE"]`, which is SR Research's standardized message for passing information on a rectangular AOI see [here (pg96.)](http://sr-research.jp/support/manual/EyeLink%20Programmers%20Guide.pdf). Note that currently only rectangular AOIs are supported.
-  - **`extraction_method`**: regex
-  - **`extract_coords`**: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
-  - **`split_coords`**: " "
-  - **`extract_labs`**: ["[a-z]+$"]
-  - **`tag_raw`**: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
-- **`downsample`**:
-  - **`factor`**: 20
-  - **`method`**: "mean"
+  - **`extraction_method`**: AOI parsing method, currently only `regex` is supported.
+    - **Defaults** to `regex`. At current writing, this is the only supported extraction method. Future versions of the task can allow for a separate data.frame or csv to be passed that would contain the coordinates and labels for AOIs on the stimulus display.
+  - **`extract_coords`**: A regex used to pull AOI coordinates from an AOI message.
+    - **Defaults** to `["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]`, thereby extracting 4 series of (whitespace separated) digits that are either 3 or 4 characters in length.
+  - **`split_coords`**: String denoting a character that separates AOI coordinates (uses `stringr::str_split` internally).
+    - **Defaults** to `" "`, denoting whitespace separation.
+  - **`extract_labs`**: A regex used to pull a descriptive label from the AOI message string.
+    - **Defaults** to `["[a-z]+$"]`, denoting characters at the end of the AOI message string.
+  - **`tag_raw`**: Logical. If set to TRUE, will populate ep.eye$raw with information about which AOI is being looked at. It is generally recommended that this be set to FALSE unless there is some strong reason you need super-high resolution information on which AOI is currently being looked at (e.g. moving AOIs, which are not currently supported)
+    - **Defaults** to `FALSE`.
+- **`downsample`**: Raw gaze data are optionally downsampled in order to substantially cut down on the size of the resulting ep.eye project.
+  - **`factor`**: The numeric "downsampling factor" applied to gaze data. The downsampling machinery of ep.eye preprocessing will reduce n measurements to a single downsampled measurement.
+    - **Defaults** to `20`. In other words, compress 20 raw measurements into one. If data are originally sampled at 1000Hz, this returns a sampling frequency of 50Hz.
+  - **`method`**: String "mean" or "subsamp" to denote the downsampling procedure to use. Mean denotes taking the mean(na.rm = TRUE) of all measurements in a downsampling block, where subsamp simply keeps every nth observation (depending on `factor`) 
+    - **Defaults** to "mean" for mean downsampling.
+    
+**N.B** All of our configuration options for the Sorting Mushrooms Task are set to defaults so we can entirely omit this portion of the config file and the preprocessing will execute the same.
 
 ## `pupil_preproc`
 
-`pupil_preproc` definitions are all utilized in Step 5: Preprocess gaze data (`ep.eye_preprocess_gaze.R`). Currently, this is setup to extract areas of interest from the sequence of eyetracker messages and tag the data with information about whether certain aois were being looked at. Additionally, you can specify downsampling parameters for your gaze data here.  Here is an example from the Sorting Mushrooms task:
+`pupil_preproc` definitions are all utilized in Step 5: Preprocess gaze data (`ep.eye_preprocess_gaze.R`). Currently, pupil prerocessing includes blink corrections, smoothing/filtering, interpolation, baseline correction, and downsampling.
 
 ```{r, eval = FALSE}
 ################################
@@ -566,19 +575,138 @@ definitions:
 which is read into the R session as:
 
 ```{r}
-config$definitions$eye$gaze_preproc
+config$definitions$eye$pupil_preproc
 ```
 
 ### subfield descriptions and default options
 
-- **`aoi`**: Areas of interest (AOIs) are bounded locations in a stimulus display that denote a portion of the visual display that a task manipulates in order to influence a subject's gaze. In other words, AOIs are something important that a subject might look at. These should be passed as messages to the eyetracker during the experiment so we can reconstruct what stimuli are being attended to during task performance. All options below allow for the reconstruction of AOIs in gaze data.  
-  - **`indicator`**: 
-    - **Defaults** to `["!V IAREA RECTANGLE"]`, which is SR Research's standardized message for passing information on a rectangular AOI see [here (pg96.)](http://sr-research.jp/support/manual/EyeLink%20Programmers%20Guide.pdf). Note that currently only rectangular AOIs are supported.
-  - **`extraction_method`**: regex
-  - **`extract_coords`**: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
-  - **`split_coords`**: " "
-  - **`extract_labs`**: ["[a-z]+$"]
-  - **`tag_raw`**: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
-- **`downsample`**:
-  - **`factor`**: 20
-  - **`method`**: "mean"
+- **`blink_corr`**: Blinks necessarily distort measurements of pupil diameter, since while the eye is closed pupil size is undetectable. Further, blinks tend to destabilize pupilometry measurements for a brief period of time surrounding the blink (75-200ms pre and post-blink). A first step in preprocessing pupilometry data for analysis to to perform "blink correction" by extending periods of missing data around a detected blink to remove artifacts in pupil size measurements, which are smoothed over at the next step of preprocessing.  
+  - **`ms_before`**: Length of time before blink event to remove.
+    - **Defaults** to `150`.
+  - **`ms_after`**: Length of time after blink event to remove.
+    - **Defaults** to `150`.
+  - **`filter:`**: Smooth over de-blinked data to remove noisy pupil measurements. 
+    - **`method`**: Smoothing method to apply to pupil data. Right now only simple moving average supported, but can be expanded later to include other types of moving average calculations including weighted, triangular, and exponential moving averages (implemented in `pracma::movaavg`), or Hanning filter (as in https://github.com/dr-JT/pupillometry/blob/master/R/pupil_smooth.R). 
+      - **Defaults** to `"movingavg"`. 
+    - **`window_length`**: Length of the moving average window (n ms to lookback while smoothing), gets passed to `pracma::movavg`. Given in ms and converted internally to n measurements with the help of `ep.eye$metadata$sample.rate`.
+      - **Defaults** to `20`.
+  - **`interpolate`**: Fill in missing periods of data with an interpolation function taken from the `imputeTS` package (`imputeTS::na_interpolation`).
+    - **`algor`**: Interpolation algorithm to use. Can take values `"linear"`, `"spline"`, or `"stine"`. See `imputeTS` documentation for more info.
+      - **Defaults** to `"linear"`.
+    - **`maxgap`**:  Maximum amount of time to interpolate over (in ms). If a run of NA values exceeds maxgap, they will remain missing.
+      - **Defaults** to `1000`.
+  - **`baseline_correction`**: Perform baseline correction before a stimulus onset or other event in the pupil data (useful for pooling and comparing dilation across events and trials)
+    - **`method`**: Subtractive (`"subtract"`, or divisive (`"div"`) baseline correction? Currently only subtractive is supported, as it is more common in the literature, though [Geller, Winn, Mahr & Mirman 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7544668/#FN5) provide some evidence that divisive may be well-motivated.
+      - **Defaults** to `"subtract"`.
+    - **`dur_ms`**: Amount of time (in ms) to calculate baseline period over. Baseline will be calculated by taking the median pupil size for this period of time before the event of interest.
+      - **Defaults** to `100`.
+    - **`center_on`**: Eyetracking message to baseline correct to (regex).
+      - **Defaults** to `"DISPLAY ON"`
+  - **`downsample`**: Raw pupil data are downsampled in order to substantially cut down on the size of the resulting ep.eye project.
+    - **`factor`**: The numeric "downsampling factor" applied to pupil data. The downsampling machinery of ep.eye preprocessing will reduce n measurements to a single downsampled measurement.
+      - **Defaults** to `50`. In other words, compress 50 raw measurements into one. If data are originally sampled at 1000Hz, this returns a sampling frequency of 20Hz.
+    - **`method`**: String "mean" or "subsamp" to denote the downsampling procedure to use. Mean denotes taking the mean(na.rm = TRUE) of all measurements in a downsampling block, where subsamp simply keeps every nth observation (depending on `factor`) 
+      - **Defaults** to `"mean"` for mean downsampling.
+    
+
+**N.B** All of our pupil configuration options for the Sorting Mushrooms Task are set to defaults so we can entirely omit this portion of the config file and the preprocessing will execute the same.
+
+## A shortened version of eye definitions 
+
+Now that all relevant ep.eye definitions have been decribed and their defaults specified, we could shorten the overall definitions field of the configuration file to reduce confusion
+
+```{r eval = FALSE}
+################################
+definitions:
+  eye: &eye
+    global:
+      prefix: "\\d{3}_[[:upper:]]+"
+      log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/elog'
+      preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/preproc'
+      return_raw: TRUE 
+    initialize:
+      meta_check:
+        meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+        meta_vals: ['1000', 'EyeLink 1000', 'TRUE', 'AREA', '1920', '1080', '4.594']
+        recording_time: [1200, 360] 
+      inherit_btw_ev: # do certain between-trial messages need to be extracted for any reason? If left out, will skip
+        calibration_check:
+          cal: ["!CAL CALIBRATION HV9"]
+          val: ["!CAL VALIDATION HV9"]
+        move_to_within:
+          str: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "END_RECORDING", "TRIAL "]
+          align_msg: ["", "!MODE RECORD CR 1000 2 1 R", "TRIAL_OUTCOME", "TRIAL_OUTCOME"]
+          pre_post: ["post", "pre", "post", "post"]
+    msg_parse:
+      extract_event_func_path: '~/github_repos/experiment.pipeline/inst/extdata/ep_configs/SortingMushrooms/gen_SortingMushrooms_eye_events.R'   
+      csv_dir_path: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/eye_event_csvs' 
+      msg_seq: 
+        msg_start: ["!MODE RECORD CR 1000 2 1 R", "TRIALID", "SYNCTIME", "DISPLAY ON"]
+        msg_end: [ "TRIAL_OUTCOME ", "TRIAL "]
+        eval_middle: TRUE #smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
+        ordered: TRUE
+################################
+```
+
+# Blocks 
+
+Finally, if there are block or event-specific messages in your eyetracking data that you would like to validate, they can be included in the blocks subfield:
+
+```{r eval = FALSE}
+################################
+blocks:
+  approach-ins:
+    ntrials: [48, 72]
+    behav: *behav
+    events:
+      shroom:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "mouse on", "DISPLAY OFF"] #these will be event-specific messages that will fall between msg_start and msg_end
+      feedback:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "DISPLAY OFF",] 
+  approach-pav:
+    ntrials: 60
+    behav: *behav
+    events:
+      fractal:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1"]
+      feedback:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "DISPLAY OFF"]
+  approach-feedback:
+    ntrials: 10
+    behav: *behav
+    events:
+      fractals:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "mouse on", "DISPLAY OFF"]
+  approach-pit:
+    ntrials: 90
+    behav: *behav
+    events:
+      compound:
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "mouse on", "DISPLAY OFF"]
+```
+
+In this section, you may choose to specify `mid_msg` fields nested within blocks and events that allow for event-specific messages that ought to appear in between the event-general `msg_start` and `msg_end` sequences. If mid-msgs are specified in the blocks field, the script will automatically check that on specific event types, all `msg_start`, `msg_end` and `mid_msg` are included within a recording event. It is useful to add these messages to ensure that certain stimulus onset messages, choices, or other event-specific events occur within your data.
+
+# Putting it all together: Processing a single subject
+
+All being said, once your configuration file is setup correctly, you can run all processing options on a single subject by running:
+
+```{r}
+ep.eye_preproc <- ep.eye_process_subject(edf_path, config_path)
+```
+
+This will export a preprocessed ep.eye object that looks like this:
+
+```{r}
+ep.eye_preproc
+```
+
+Which you can elect to pass off to QA checks and diagnostics or go ahead and start analyzing!
+
+Happy ep.eye-ing!

@@ -160,6 +160,79 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts[["downsample"]][["method"]] <- "mean"
     }
     config[["definitions"]][["eye"]][["gaze_preproc"]] <- opts
+  } else if(field == "pupil_preproc"){
+    ################### Preprocess Gaze
+    if("pupil_preproc" %in% names(config$definitions$eye)){
+      opts <- config$definitions$eye$pupil_preproc
+
+      ### Blink-correction
+      if(!"blink_corr" %in% names(opts)) {
+        opts[["blink_corr"]][["ms_before"]] <- 150
+        opts[["blink_corr"]][["ms_after"]] <- 150
+      } else{
+        ### if a specific blink_corr field is missing, set to default
+        if(!"ms_before" %in% names(opts$blink_corr)) {opts[["blink_corr"]][["ms_before"]] <- 150}
+        if(!"ms_after" %in% names(opts$blink_corr)) {opts[["blink_corr"]][["ms_after"]] <- 150}
+      }
+
+      ### filtering/smoothing
+      if(!"filter" %in% names(opts)) {
+        opts[["filter"]][["method"]] <- "movingavg"
+        opts[["filter"]][["window_length"]] <- 20
+      } else{
+        ### if a specific filter field is missing, set to default
+        if(!"method" %in% names(opts$filter)) {opts[["filter"]][["method"]] <- "movingavg"}
+        if(!"window_length" %in% names(opts$filter)) {opts[["filter"]][["window_length"]] <- 20}
+      }
+
+      ### interpolation
+      if(!"interpolate" %in% names(opts)) {
+        opts[["interpolate"]][["algor"]] <- "linear"
+        opts[["interpolate"]][["maxgap"]] <- 1000
+      } else{
+        ### if a specific interpolate field is missing, set to default
+        if(!"algor" %in% names(opts$interpolate)) {opts[["interpolate"]][["algor"]] <- "linear"}
+        if(!"maxgap" %in% names(opts$interpolate)) {opts[["interpolate"]][["maxgap"]] <- 1000}
+      }
+
+      ### baseline correction
+      if(!"baseline_correction" %in% names(opts)) {
+        opts[["baseline_correction"]][["method"]] <- "subtract"
+        opts[["baseline_correction"]][["dur_ms"]] <- 100
+        opts[["baseline_correction"]][["center_on"]] <- "DISPLAY_ON"
+      } else{
+        ### if a specific baseline_correction field is missing, set to default
+        if(!"method" %in% names(opts$baseline_correction)) {opts[["baseline_correction"]][["method"]] <- "subtract"}
+        if(!"dur_ms" %in% names(opts$baseline_correction)) {opts[["baseline_correction"]][["dur_ms"]] <- 100}
+        if(!"center_on" %in% names(opts$baseline_correction)) {opts[["baseline_correction"]][["center_on"]] <- "DISPLAY_ON"}
+      }
+
+      ### Downsampling
+      if(!"downsample" %in% names(opts)) {
+        opts[["downsample"]][["factor"]] <- 50
+        opts[["downsample"]][["method"]] <- "mean"
+      } else{
+        ### if a specific downsample field is missing, set to default
+        if(!"factor" %in% names(opts$downsample)) {opts[["downsample"]][["factor"]] <- 50}
+        if(!"method" %in% names(opts$downsample)) {opts[["downsample"]][["method"]] <- "mean"}
+      }
+
+    } else{
+      # if processing options are not specified, set to defaults
+      opts <- list()
+      opts[["blink_corr"]][["ms_before"]] <- 150
+      opts[["blink_corr"]][["ms_after"]] <- 150
+      opts[["filter"]][["method"]] <- "movingavg"
+      opts[["filter"]][["window_length"]] <- 20
+      opts[["interpolate"]][["algor"]] <- "linear"
+      opts[["interpolate"]][["maxgap"]] <- 1000
+      opts[["baseline_correction"]][["method"]] <- "subtract"
+      opts[["baseline_correction"]][["dur_ms"]] <- 100
+      opts[["baseline_correction"]][["center_on"]] <- "DISPLAY_ON"
+      opts[["downsample"]][["factor"]] <- 50
+      opts[["downsample"]][["method"]] <- "mean"
+    }
+    config[["definitions"]][["eye"]][["pupil_preproc"]] <- opts
   }
 
  return(config)
