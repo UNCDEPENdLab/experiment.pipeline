@@ -3,9 +3,7 @@ Type: Package
 Title: Generates data markdown for NeuroMap Task
 Version: 0.1.0
 Authors@R: c(person("Michael", "Hallquist", role = c("aut", "cre"),
-    email = "michael.hallquist@gmail.com"),
-    person("Eric", "Roeum", role = "aut",
-    email = "evr5285@psu.edu"))
+    email = "michael.hallquist@gmail.com"))
 Maintainer: Michael Hallquist <michael.hallquist@gmail.com>
 License: GPL-2 | GPL-3
 Description: Generates a markdown or human readable format for
