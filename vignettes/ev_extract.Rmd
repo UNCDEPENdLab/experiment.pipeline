@@ -1,0 +1,105 @@
+---
+title: "Writing your own event extraction function"
+author: "Nate Hall"
+
+date: "`r Sys.Date()`"
+
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+      # theme: united
+vignette: >
+  %\VignetteIndexEntry{Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+### worked example of setting up an event extraction function
+
+Here, I demonstrate what the desired output from a user defined function will look like, for a more formal introduction to functional programming see [here](https://r4ds.had.co.nz/functions.html) and [here](http://adv-r.had.co.nz/Functional-programming.html).
+
+Importantly, `ep.eye_parse_events.R` is setup work on an `ep.eye` object that has been initialized above. So, to get the input for your function, perform configuration setup and initialize your `ep.eye` object:
+
+```{r cache = TRUE, echo=FALSE}
+## these two calls are extracted right from the body pf ep.eye_process_subject.R
+config <- ep.eye_setup_proc_config(edf_path,
+                                   config_path,
+                                   header = "1. Setup Processing Options:")
+
+ep.eye <- ep.eye_initialize(edf_path,
+                              expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
+                              task = config$task,
+                              gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
+                              confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
+                              meta_check = config$definitions$eye$initialize$meta_check,
+                              inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
+                              header = "2. Initialize ep.eye object:")
+sink()
+```
+
+At this point I would advise printing `eye_init` and examining its structure, since this is what you will use to draft a function to extract event-related information. Your function will have two arguments: `ep.eye` (which will be an initialized object) and `csv.path`. Here is the body of our function, taking ep.eye as input and exporting a `data.frame` that contains eventn-level information on the ep.eye hierarchy (must export at least block, block_trial, eventn, et.msg, and time columns): 
+
+```{r eval= FALSE}
+# don't run.
+## this code is stored in config$definitions$eye$msg_parse$extract_event_func_path
+
+gen_SortingMushrooms_eye_events <- function(ep.eye, csv_path = NULL){
+  
+  ## need block, block_trial, event, eventn, et.msg, and time variables
+
+  tr_id_msgs <- ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
+                    mutate(x = sub("TRIALID ", "", et.msg)) %>%  
+                    separate(x, c("block", 
+                                #   "phase", 
+                                  "block_trial",
+                                  "eventn",
+                                  "event"), sep = "_") %>% 
+                    mutate(trial = cumsum(block_trial != lag(block_trial, default=""))) %>%
+                    select(block, trial, block_trial, event, eventn, time, et.msg) %>% 
+                    mutate(block = sub("approach-", "", block)) 
+    
+    
+  if(!is.null(csv_path)) {
+    write.csv(tr_id_msgs, file = csv_path, row.names = FALSE)
+  } 
+    
+  return(tr_id_msgs)
+}
+```
+
+To break down what is happening in this function, we extract information that contains "TRIALID", this may be different depending on where event-level information is stored in `ep.eye$et.msg` and use `dplyr::separate` to separate important event-level descriptive information that is coded by values that are separated by "_"
+
+```{r}
+#isolate trial-id messages
+ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% head() 
+
+#isolate string to separate
+ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
+                    mutate(x = sub("TRIALID ", "", et.msg)) %>% head()
+
+# separate the isolated string and with labels that match the correct level of description from the ep hierarchy
+ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
+                    mutate(x = sub("TRIALID ", "", et.msg)) %>%  
+                    separate(x, c("block", 
+                                #   "phase", 
+                                  "block_trial",
+                                  "eventn",
+                                  "event"), sep = "_") %>% head()
+
+## tidy the data a bit more by adding trial column, rearranging column ordering and isolating block information that is most relevant 
+ep.eye$raw %>% filter(grepl("TRIALID", et.msg)) %>% 
+                    mutate(x = sub("TRIALID ", "", et.msg)) %>%  
+                    separate(x, c("block", 
+                                #   "phase", 
+                                  "block_trial",
+                                  "eventn",
+                                  "event"), sep = "_") %>% 
+                    mutate(trial = cumsum(block_trial != lag(block_trial, default=""))) %>%
+                    select(block, trial, block_trial, event, eventn, time, et.msg) %>% 
+                    mutate(block = sub("approach-", "", block)) %>% head() # block ins indicates that we are in an instrumental learning block
+
+```
+This information is then exported for further use in the message parsing script, now we know what block, trial, block_trial, and event are paired with each unique event number!
+
+The exact body of your user-defined function will vary depending on what format your data comes off of the eyetracker, which is why I've decided to employ this approach to allow for flexible handling of different experimental setups. For example, if you store event-relevant information in another `.csv` or `.RData` file (e.g. perhaps you didn't pass `TRIALID` messages as we've done in this task), you'll likely want your function to read them in and combine with the `eventn` field of your data, the only thing that matters is that the output minimally contains the above values (can include additional columns if they are relevant such as run, phase, subject id, etc).
+

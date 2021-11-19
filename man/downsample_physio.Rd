@@ -8,7 +8,7 @@ downsample_physio(
   ep.physio,
   downsample_factor = 1,
   digital_channels = c("ttl_code", "ttl_onset", "Digital.*"),
-  method = "decimate"
+  method = "subsample"
 )
 }
 \arguments{
@@ -19,9 +19,9 @@ downsample_physio(
 \item{digital_channels}{Column names or positions containing digital channels, These will be downsampled using the
 \code{downsample_digital_timeseries} function to use the within-chunk mode, rather than blind subsampling.}
 
-\item{method}{How to downsample the signal. The default is \code{"decimate"}, which calls \code{signal::decimate}.
-This applies a low-pass filter before downsampling to avoid aliasing. The alternative is \code{"subsample"}, which
-simply takes every nth sample from the original time series.}
+\item{method}{How to downsample the signal. The default is \code{"subsample"}, which
+simply takes every nth sample from the original time series. The alternative is \code{"decimate"}, which calls \code{signal::decimate}.
+This applies a low-pass filter before downsampling to avoid aliasing. At the moment, there are big ringing artifacts at the beginning...}
 }
 \description{
 This function reduces the

@@ -4,7 +4,13 @@
 \alias{edf2asc}
 \title{Call SRR "edf2asc" command line utility to do some work.}
 \usage{
-edf2asc(edf_files, edf2asc_opts = "-y", asc_output_dir = NULL, gzip_asc = TRUE)
+edf2asc(
+  edf_files,
+  edf2asc_opts = "-y",
+  asc_output_dir = NULL,
+  gzip_asc = TRUE,
+  running = "mac"
+)
 }
 \arguments{
 \item{edf_files}{Character vector of *edf file names to be converted. File names should include

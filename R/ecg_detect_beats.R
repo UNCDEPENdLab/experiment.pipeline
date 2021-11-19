@@ -136,7 +136,16 @@ ecg_detect_beats <- function(ecg_trace, freq=1000, wfdb_out_file=file.path(tempd
                                    smooth_window_size=shift_allowance,
                                    peak_dir='up')
 
+    if (any(duplicated(shifted_peaks))) {
+      which_dupes <- which(duplicated(shifted_peaks))
+      message("Duplicate beats occurred after correct_peaks. These are probably false positives in the annotator algorithm.")
+      message("Dropping these from the shifted annotation.")
+      message("Possible false beats at times: ", paste(round(ecg_df$time[shifted_peaks[which_dupes]], 2), collapse = ", "))
+      shifted_peaks <- shifted_peaks[-which_dupes]
+    }
+
     beat_times <- get_hrv_dt(ecg_df$time[shifted_peaks], freq = freq)
+    
     beat_times[, "pos" := shifted_peaks]
     beat_times[, "annotator" := paste0(annotator, "_shift")] #tag source of annotation
 
