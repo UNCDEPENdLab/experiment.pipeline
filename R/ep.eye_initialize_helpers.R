@@ -513,7 +513,7 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
 
         if(mtw$align_msg[m] == ""){
           ## no alignment message, pull into raw data in first or last "." position depending on pre_post.
-          if(mtw$pre_post[m] == "pre"){
+          if(mtw$pre_post[m] == "post"){
             for(i in unique(instances$eventn)){
               first_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == min(time)) %>% pull(time)
               ep.eye$raw[which(ep.eye$raw$time == first_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
