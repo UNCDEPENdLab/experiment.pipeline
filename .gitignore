@@ -51,3 +51,7 @@ inst/doc
 
 # Nidhi local space
 ND_local
+*.edf
+*.acq
+*.csv
+*.elog
