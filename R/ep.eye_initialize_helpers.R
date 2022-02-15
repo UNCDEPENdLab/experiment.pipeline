@@ -357,8 +357,8 @@ ep.eye_unify_raw_msg <- function(ep.eye){
 ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt = NULL){
   cat(dt,"\n")
 
-  ### 3.10.1 meta_vars and vals
-  dt1 <- "-- 3.10.1 Compare .edf info (session parameters) to expectations:"
+  ### 2.10.1 meta_vars and vals
+  dt1 <- "-- 2.10.1 Compare .edf info (session parameters) to expectations:"
   tryCatch.ep({
 
     stopifnot(!(is.null(meta_vars) | is.null(meta_vals))) # stop if either are null, need both.
@@ -383,8 +383,8 @@ ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt 
   },
   describe_text = dt1)
 
-  ### 3.10.2 confirm acceptable session length
-  dt2 <- "-- 3.10.2 Compare recording time (session length) to expectations:"
+  ### 2.10.2 confirm acceptable session length
+  dt2 <- "-- 2.10.2 Compare recording time (session length) to expectations:"
   tryCatch.ep({
     stopifnot(!is.null(recording_time))
 
@@ -461,11 +461,11 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
 
   cat(dt)
 
-  ### 3.12.1 Calibration/validation check
+  ### 2.12.1 Calibration/validation check
   if(!is.null(inherit_btw_ev$calibration_check)){
-    cat("-- 3.12.1 Calibration/validation checks:\n")
+    cat("-- 2.12.1 Calibration/validation checks:\n")
 
-    dt1 <- "--- 3.12.1.1 Calibration:"
+    dt1 <- "--- 2.12.1.1 Calibration:"
     tryCatch.ep({
       c.check <- inherit_btw_ev$calibration_check$cal
       cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
@@ -478,7 +478,7 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
     },
     describe_text = dt1)
 
-    dt2 <- "--- 3.12.1.2 Validation:"
+    dt2 <- "--- 2.12.1.2 Validation:"
     tryCatch.ep({
       v.check <- inherit_btw_ev$calibration_check$val
       val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
@@ -491,12 +491,12 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
     },
     describe_text = dt2)
   } else{
-     cat("-- 3.12.1 Calibration/validation checks: SKIP\n")
+     cat("-- 2.12.1 Calibration/validation checks: SKIP\n")
   }
 # browser()
-  ### 3.12.2 Move requested messages to correct eventn depending on if it preceeds the event ("pre") or follows the event("post")
+  ### 2.12.2 Move requested messages to correct eventn depending on if it preceeds the event ("pre") or follows the event("post")
   if(!is.null(inherit_btw_ev$move_to_within)){
-  dt3 <- "-- 3.12.2 Pull requested messages into measured data:"
+  dt3 <- "-- 2.12.2 Pull requested messages into measured data:"
     tryCatch.ep({
       mtw <- inherit_btw_ev$move_to_within
       stopifnot(all.equal(length(mtw$str), length(mtw$align_msg), length(mtw$pre_post)))
