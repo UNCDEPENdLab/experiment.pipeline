@@ -506,7 +506,7 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
         # grab instances of string in between-event messages
         instances <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(ms, text)) %>%
           group_by(eventn) %>% mutate(eventn = ifelse(!eventn%%1==0, # update 11/12/20: only update eventn if value is not divisible by 0
-                                                      ifelse(mtw$pre_post[m] == "pre", # update event depending on pre-post designation
+                                                      ifelse(mtw$pre_post[m] == "post", # update event depending on pre-post designation
                                                              (eventn + .5),
                                                              eventn - .5),
                                                       eventn)) %>% data.table()
