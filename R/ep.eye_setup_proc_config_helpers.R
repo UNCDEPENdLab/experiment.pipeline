@@ -49,6 +49,18 @@ ep.eye_set_config_definitions <- function(file, config, field){
     }
     opts[["prefix"]] <- prefix
 
+    ### Set subjectID string. If a regex string is provided, extract from file name otherwise set to the prefix regex expression value
+    if (exists("subID")){
+      if (!is.null(subID)){
+        subID <- str_extract(basename(file), subID)
+      } else {
+        subID <- str_extract(basename(file), prefix)
+      }
+    } else {
+      subID <- str_extract(basename(file), prefix)
+    }
+    opts[["subID"]] <- subID
+
     ### Setup ep.eye log: initialize log file if requested. Otherwise will print feedback while running checks.
     ## N.B. right now this will overwrite existing files, can come back to later.
     if(exists("gen_log")) {
