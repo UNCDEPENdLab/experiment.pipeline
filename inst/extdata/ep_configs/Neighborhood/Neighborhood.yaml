@@ -31,6 +31,7 @@ definitions:
       save_preproc: TRUE
       preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       # preproc_out: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      return_raw: TRUE # set to FALSE when processing multiple subjects to save memory in ep.eye_preproc data saved
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
       unify_gaze_events:
@@ -58,9 +59,6 @@ definitions:
         msg_end: ["!V TRIAL_VAR", "TRIAL RESULT", "TRIAL "]
         eval_middle: TRUE # smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
         ordered: TRUE 
-      qa: # checks to be performed 
-        block_seq: TRUE # check if the block names extracted by the extract_event_fun is in sequence as in the blocks section below
-        event_seq: TRUE # check if the event names extracted by the extract_event_fun is in sequence based on the sequence mentioned in the blocks section
     gaze_preproc:
       aoi:
         indicator: ["!V IAREA RECTANGLE"]
@@ -70,7 +68,7 @@ definitions:
         split_coords: " "
         tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
       downsample:
-        factor: 20
+        downsampled_freq: 20 # factor: 20
         method: "mean"
     pupil_preproc:
       blink_corr:
@@ -87,9 +85,12 @@ definitions:
         dur_ms: 100
         center_on: "DISPLAY ON"
       downsample:
-        factor: 50
+        downsampled_freq: 20 # factor: 50
         method: "mean"
     # qa: #coming soon!
+    #   msg_parse:
+    #     block_seq: TRUE # check if the block names extracted by the extract_event_fun is in sequence as in the blocks section below
+    #     event_seq: TRUE # check if the event names extracted by the extract_event_fun is in sequence based on the sequence mentioned in the blocks section
     #   gaze:
     #     na:
     #       check: ["raw", "downsample"]
@@ -99,7 +100,7 @@ definitions:
     #     na:
     #       check: ["downsample"]
     #       perc: 30
-    #       cols: ["ps_bc"]
+    #       cols: ["ps_bc"] 
   phys:
 ################################
 blocks:

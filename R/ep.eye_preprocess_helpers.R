@@ -225,7 +225,8 @@ ep.eye_collapse_time <- function(ep.eye, dt){
 #' Downsample gaze and/or pupil data
 #'
 #' @param df data.table to downsample (usually this is ep.eye$raw)
-#' @param downsample_factor Numeric value indicating degree of downsampling. A factor of 50, collapses 50 measurements into 1, so it is important to be mindful of your sampling rate when selecting this value. Defaults to 50 (which moves a second of recording at 1000Hz to 20 measurements).
+#' @param sample.rate sampling rate of the eyetracker in Hz
+#' @param downsampled_freq Frequency of the downsampled data indicating degree of downsampling. It is important to be mindful of your sampling rate when selecting this value. Defaults to 20 (which moves a second of recording at 1000Hz to 20 measurements).
 #' @param digital_channels Character vector of columns in df that are integer values that should not be combined but blocked by.
 #' @param analog_channels Character vector of columns in df that are continually varying and should be summarized within the downsampling procdure (incl x and y gaze position and pupil size)
 #' @param char_channels Character vector of columns in df that represent values that should be combined if there are unique values within a downsampling block. If there are multiples within a downsampling block will paste them together with " || "
@@ -233,7 +234,8 @@ ep.eye_collapse_time <- function(ep.eye, dt){
 #'
 #' @export
 ep.eye_downsample <- function(df,
-                              downsample_factor=50,
+                              sample.rate=1000,
+                              downsampled_freq=20,
                               digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"),
                               analog_channels = c("xp", "yp", "ps"),
                               char_channels = c("et.msg", "block", "event"),
@@ -249,20 +251,20 @@ ep.eye_downsample <- function(df,
   # # dt = NULL
 
   #### checks
-  try({suppressWarnings(setDT(ep.eye$raw))}, silent = TRUE) # set df to data.table if not already.
+  try({suppressWarnings(setDT(df))}, silent = TRUE) # set df to data.table if not already.
   assert_data_table(df) #for now, we are using data.table objects, so DT syntax applies
-  assert_count(downsample_factor)
+  # assert_count(downsample_factor)
 
 
   t_cols <- c("time", "time_ev") #hard code single time column for now, dont see how this would need to be different. 4/2/21 include event-lock time start.
   d_cols <- digital_channels
   a_cols <- analog_channels
   c_cols <- char_channels
+  downsample_factor <- round(sample.rate/downsampled_freq, 0)
 
   ret_allevs <- data.table()
   for(ev in unique(df$eventn)){
     df_ev <- df %>% filter(eventn == ev) %>% mutate(time_ev = seq(0,n()-1, 1))
-
 
     #### Downsample time
     # tryCatch.ep({

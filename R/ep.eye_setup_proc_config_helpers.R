@@ -151,11 +151,11 @@ ep.eye_set_config_definitions <- function(file, config, field){
 
       ### Downsampling
       if(!"downsample" %in% names(opts)) {
-        opts[["downsample"]][["factor"]] <- 20
+        opts[["downsample"]][["downsampled_freq"]] <- 50 # in Hz
         opts[["downsample"]][["method"]] <- "mean"
       } else{
         ### if a specific downsample field is missing, set to default
-        if(!"factor" %in% names(opts$downsample)) {opts[["downsample"]][["factor"]] <- 20}
+        if(!"downsampled_freq" %in% names(opts$downsample)) {opts[["downsample"]][["downsampled_freq"]] <- 50}
         if(!"method" %in% names(opts$downsample)) {opts[["downsample"]][["method"]] <- "mean"}
       }
 
@@ -168,7 +168,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts[["aoi"]][["extract_labs"]] <- "[a-z]+$"
       opts[["aoi"]][["split_coords"]] <- " "
       opts[["aoi"]][["tag_raw"]] <- FALSE
-      opts[["downsample"]][["factor"]] <- 20
+      opts[["downsample"]][["downsampled_freq"]] <- 50
       opts[["downsample"]][["method"]] <- "mean"
     }
     config[["definitions"]][["eye"]][["gaze_preproc"]] <- opts
@@ -221,11 +221,11 @@ ep.eye_set_config_definitions <- function(file, config, field){
 
       ### Downsampling
       if(!"downsample" %in% names(opts)) {
-        opts[["downsample"]][["factor"]] <- 50
+        opts[["downsample"]][["downsampled_freq"]] <- 20
         opts[["downsample"]][["method"]] <- "mean"
       } else{
         ### if a specific downsample field is missing, set to default
-        if(!"factor" %in% names(opts$downsample)) {opts[["downsample"]][["factor"]] <- 50}
+        if(!"downsampled_freq" %in% names(opts$downsample)) {opts[["downsample"]][["downsampled_freq"]] <- 20}
         if(!"method" %in% names(opts$downsample)) {opts[["downsample"]][["method"]] <- "mean"}
       }
 
@@ -241,7 +241,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts[["baseline_correction"]][["method"]] <- "subtract"
       opts[["baseline_correction"]][["dur_ms"]] <- 100
       opts[["baseline_correction"]][["center_on"]] <- "DISPLAY_ON"
-      opts[["downsample"]][["factor"]] <- 50
+      opts[["downsample"]][["downsampled_freq"]] <- 20
       opts[["downsample"]][["method"]] <- "mean"
     }
     config[["definitions"]][["eye"]][["pupil_preproc"]] <- opts
