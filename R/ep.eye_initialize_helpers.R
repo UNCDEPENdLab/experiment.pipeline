@@ -372,14 +372,14 @@ ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt 
     mismatch <- c() # append if any discrepancies.
     for(i in 1:nrow(meta_ref)){
       # message(eye$metadata[[meta_ref[i,"meta_vars"]]], " ", meta_ref[i,"meta_vals"])
-      if(!ep.eye$metadata[[meta_ref[i,"meta_vars"]]] == meta_ref[i,"meta_vals"]){mismatch <- c(mismatch, i)}
+      if(!ep.eye$metadata[[meta_ref[i,"meta_vars"]]] == meta_ref[i,"meta_vals"]){mismatch <- c(mismatch, meta_ref[i,"meta_vars"])}
     }
 
     if(!is.null(mismatch)){
+      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- mismatch
       warning(mismatch,call. = FALSE)
-      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismacth"]] <- mismatch
     } else {
-      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- 0
+      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- "NONE"
     }
 
   },

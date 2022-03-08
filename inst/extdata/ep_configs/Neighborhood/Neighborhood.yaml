@@ -26,11 +26,13 @@ definitions:
       prefix: "\\d{3}_[[:upper:]]+"
       subID: "^\\d{3}"
       gen_log: TRUE 
-      log_dir: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
+      # log_dir: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
       # log_dir: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
+      log_dir: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
       save_preproc: TRUE
-      preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      # preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       # preproc_out: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      preproc_out: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       return_raw: TRUE # set to FALSE when processing multiple subjects to save memory in ep.eye_preproc data saved
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
@@ -50,10 +52,12 @@ definitions:
           align_msg: ["", "!MODE RECORD CR 1000 2 0 L"]
           pre_post: ["post", "post"]
     msg_parse:  
-      extract_event_func_path: '~/GitHub/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R'   # if extraction method == "function" pass path to the function here.
-      # extract_event_func_path: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R'   # if extraction method == "function" pass path to the function here.
-      csv_dir_path: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
-      # csv_dir_path: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+      # extract_event_func_path: '~/GitHub/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R' # if extraction method == "function" pass path to the function here.
+      # extract_event_func_path: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R'
+      extract_event_func_path: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R'
+      # csv_dir_path: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+      # csv_dir_path: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs'
+      csv_dir_path: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs'
       msg_seq:
         msg_start: ["!MODE RECORD CR 1000 2 0 L", "TRIALID", "SYNCTIME", "!V IMGLOAD"]
         msg_end: ["!V TRIAL_VAR", "TRIAL RESULT", "TRIAL "]
@@ -68,7 +72,7 @@ definitions:
         split_coords: " "
         tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
       downsample:
-        downsampled_freq: 20 # factor: 20
+        downsampled_freq: 50 # factor: 20
         method: "mean"
     pupil_preproc:
       blink_corr:
