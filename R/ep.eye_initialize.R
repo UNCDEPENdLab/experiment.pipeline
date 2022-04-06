@@ -68,7 +68,7 @@ ep.eye_initialize <- function(file,
 
   ### 2.3 initialize basic eye object structure
   tryCatch.ep({
-    ep.eye <- ep.eye_setup_structure(eye, task = task, subID = subID)
+    ep.eye <- ep.eye_setup_structure(eye, task = task, subID = as.numeric(subID))
   }, describe_text = "- 2.3 Initialize ep.eye list structure:")
 
   ### 2.4 document entire recording session length (if this is very different from BAU this should get flagged later)

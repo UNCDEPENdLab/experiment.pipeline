@@ -54,7 +54,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   eye_init <- ep.eye_initialize(file,
                                 expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
                                 task = config$task,
-                                subID = config$definitions$eye$global$subID,
+                                subID = as.numeric(config$definitions$eye$global$subID),
                                 gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
                                 confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
                                 meta_check = config$definitions$eye$initialize$meta_check,
