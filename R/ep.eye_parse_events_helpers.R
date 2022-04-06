@@ -44,6 +44,8 @@ ep.eye_parse_event_info <- function(ep.eye,
     info_msgs <- suppressWarnings(info_msgs %>%
                                     mutate_all(type.convert) %>%
                                     mutate_if(is.factor, as.character))
+    # add info_msgs to metadata
+    ep.eye$metadata[["eye_trial_msgs"]] <- info_msgs
 
   },describe_text = dt1)
 
