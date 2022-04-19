@@ -192,18 +192,18 @@ ep.eye_unify_gaze_events <- function(ep.eye,
         ## pull from raw data
         r <- ep.eye$raw[ep.eye$raw$time %in% etimes,]
 
-        # check 1: confirm timestamps are equal and present in raw and gaze_event data
-        if(#!(length(r$time) == length(etimes)) | #if number of measurements dont match
-          !all(r$time == etimes)    # this supersedes the above, forcing number of measurements to be exact and have timestamps be strictly equal
-        ){
-          counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
-        }
+          # check 1: confirm timestamps are equal and present in raw and gaze_event data
+          if(#!(length(r$time) == length(etimes)) | #if number of measurements dont match
+            !all(r$time == etimes)    # this supersedes the above, forcing number of measurements to be exact and have timestamps be strictly equal
+          ){
+            counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
+          }
 
-        #check 2: confirm same event numbering between raw and gaze_event data.
-        if(!ev$eventn == unique(r$eventn)){
-          b_mismatch <- data.table("gaze_event" = i, "gaze_event_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
-          counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
-        }
+          #check 2: confirm same event numbering between raw and gaze_event data.
+          if(!ev$eventn == unique(r$eventn)){
+            b_mismatch <- data.table("gaze_event" = i, "gaze_event_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
+            counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
+          }
 
         #tag raw data with event number
         ep.eye$raw[which(ep.eye$raw$time %in% etimes), paste0(i,"n")] <- j
@@ -297,7 +297,26 @@ ep.eye_rm_crinfo <- function(ep.eye){
 #'
 #' @export
 ep.eye_unify_raw_msg <- function(ep.eye){
-  # browser()
+
+  ### Update 4/19/22: when data is sampled at <1000Hz, merging messages to the raw data may fail since eyelink messages send at 1000Hz precision despite the eye data being sampled slower. 
+  ### Added functionality to match message times with the closest timestamp that has an entry in the raw data, which gets stored in an updated $time column in ep.eye$msg. Original timestamps are stored in ep.eye$msg$time_native.
+  if(ep.eye$metadata$sample.rate != 1000){
+    #this identified mismatch between timestamps for messages and raw data (if not collected at 1000Hz)
+    # raw_time <- ep.eye$raw %>% filter(eventn == 33) %>% pull(time)
+    # msg_time <- ep.eye$msg %>% filter(eventn == 33) %>% pull(time)
+
+    #store old message times in separate name (time_native)
+    ep.eye$msg$time_native <- ep.eye$msg$time
+
+    ## add matched timestamps that exist in raw data, must include all.inside = TRUE to ensure vector lengths are equal.
+    ep.eye$msg$time_update <- raw_times[findInterval(msg_times, raw_times, all.inside = TRUE)]
+    
+    ep.eye$msg <- ep.eye$msg %>% mutate(time = ifelse(btw_ev == 1, time_native, time_update))    
+    
+    ## spot check. looks good to me.
+    # x %>% filter(eventn == 33) %>% print(n = 200)
+  }
+
   ep.eye$raw <- ep.eye$raw %>%
     left_join(dplyr::filter(ep.eye$msg, btw_ev == 0), by = c("eventn", "time")) %>% dplyr::select(-btw_ev) %>%
     dplyr::rename(`et.msg` = `text`) %>%
