@@ -297,21 +297,26 @@ ep.eye_rm_crinfo <- function(ep.eye){
 #'
 #' @export
 ep.eye_unify_raw_msg <- function(ep.eye){
-
+  # browser()
   ### Update 4/19/22: when data is sampled at <1000Hz, merging messages to the raw data may fail since eyelink messages send at 1000Hz precision despite the eye data being sampled slower. 
   ### Added functionality to match message times with the closest timestamp that has an entry in the raw data, which gets stored in an updated $time column in ep.eye$msg. Original timestamps are stored in ep.eye$msg$time_native.
-  if(ep.eye$metadata$sample.rate != 1000){
+  # if(ep.eye$metadata$sample.rate != 1000){
+  raw_times <- ep.eye$raw$time
+  mismatch_msg_times <- ep.eye$msg %>% filter(btw_ev == 0) %>% pull(time)
+  mismatch_msg_indx <- !mismatch_msg_times %in% raw_times
+  if (sum(mismatch_msg_indx) > 0){
     #this identified mismatch between timestamps for messages and raw data (if not collected at 1000Hz)
     # raw_time <- ep.eye$raw %>% filter(eventn == 33) %>% pull(time)
     # msg_time <- ep.eye$msg %>% filter(eventn == 33) %>% pull(time)
 
     #store old message times in separate name (time_native)
     ep.eye$msg$time_native <- ep.eye$msg$time
-
+    msg_times <- ep.eye$msg$time
+    
     ## add matched timestamps that exist in raw data, must include all.inside = TRUE to ensure vector lengths are equal.
     ep.eye$msg$time_update <- raw_times[findInterval(msg_times, raw_times, all.inside = TRUE)]
     
-    ep.eye$msg <- ep.eye$msg %>% mutate(time = ifelse(btw_ev == 1, time_native, time_update))    
+    ep.eye$msg <- ep.eye$msg %>% mutate(time = ifelse(btw_ev == 1, time_native, time_update))
     
     ## spot check. looks good to me.
     # x %>% filter(eventn == 33) %>% print(n = 200)
@@ -320,7 +325,7 @@ ep.eye_unify_raw_msg <- function(ep.eye){
   ep.eye$raw <- ep.eye$raw %>%
     left_join(dplyr::filter(ep.eye$msg, btw_ev == 0), by = c("eventn", "time")) %>% dplyr::select(-btw_ev) %>%
     dplyr::rename(`et.msg` = `text`) %>%
-    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.frame()
+    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>%  select(-any_of(c("time_native", "time_update"))) %>% data.frame()
 
   # important to back-translate extracted messages to original messages due to the use of left_join. This should not fail.
   umsg <- unique(ep.eye$raw$et.msg)[which(unique(ep.eye$raw$et.msg) != ".")] #unique messages in the final output.
