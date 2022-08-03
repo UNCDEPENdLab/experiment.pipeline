@@ -199,6 +199,11 @@ splice_physio <- function(ep.physio, start_code=NULL, end_code=NULL, other_codes
 
     names(extracted) <- paste0("block", 1:block)
   }
+  
+  # TODO temporary changing the ep.physio structure to remove "block1". Need to discussed further to figure how the structure should look for multiple spliced blocks
+  if(block == 1){
+    extracted <- extracted$block1
+  }
 
   return(extracted)
 }
