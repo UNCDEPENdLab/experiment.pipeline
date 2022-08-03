@@ -148,7 +148,7 @@ augment_ttl_details <- function(ep.physio, lazy_ttl=2, zero_code=0, code_labels_
 #' @export
 splice_physio <- function(ep.physio, start_code=NULL, end_code=NULL, other_codes=NULL, strict=TRUE) {
   stopifnot(inherits(ep.physio, "ep.physio"))
-  if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
+  if (is.null(ep.physio$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
   if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
   assert_logical(strict)
   sapply(other_codes, assert_integerish, null.ok=TRUE)
