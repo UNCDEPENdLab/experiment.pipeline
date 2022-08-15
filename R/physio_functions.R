@@ -315,7 +315,7 @@ biopac_hdf5_to_dataframe <- function(hdf5file, upsample_to_max=TRUE, ttl_to_dec=
 #' @export
 downsample_physio <- function(ep.physio, downsample_factor=1, digital_channels=c("ttl_code", "ttl_onset", "Digital.*"), method="subsample") {
   stopifnot(inherits(ep.physio, "ep.physio"))
-  if (is.null(acq_data$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
+  if (is.null(ep.physio$ttl_codes)) { stop("Cannot find $ttl_codes element in ep.physio object. Run augment_ttl_details?") }
   if (is.null(ep.physio$raw)) { stop("Cannot find $raw element in ep.physio object") }
   assert_data_table(ep.physio$raw) #for now, we are using data.table objects, so DT syntax applies
   assert_count(downsample_factor)
