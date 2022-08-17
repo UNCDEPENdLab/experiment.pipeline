@@ -25,10 +25,10 @@
 #' 
 #' @export
 #' @examples TODO add examples
-ep.phys_setup_structure <- function(physio_data, 
-                                    config_ecg,
-                                    config_eda,
-                                    task = NULL){
+ep.phys_setup_data_structure <- function(physio_data, 
+                                         config_ecg,
+                                         config_eda,
+                                         task = NULL){
   ep.physio <- list(raw = physio_data$raw,
                   ecg = list(processed = data.table(),
                              qa = list()),
@@ -146,25 +146,73 @@ ep.phys_meta_checks <- function(ep.physio,
 
 #' @title Perform validation checks on the parport codes frequency and sequence
 #' @description 
-ep.phys <- ep.phys_validate_ttl_codes(ep.physio){
+#' @param ep.physio An initialized ep.physio data object.
+#' @param ttl_codes_freq tibble with ttl information with each row contains information regarding one ttl code that could be sent with the physio data and the columns contain the ttl_code, the stimuli and phase that this ttl_code will be sent in and expected frequency of this ttl_code 
+
+#' @author Nidhi Desai
+#' 
+#' @export
+ep.phys <- ep.phys_validate_ttl_codes(ep.physio, ttl_codes_freq){
   
-  ep.phys <- ep.phys_ttl_frequency_check(ep.physio)
+  ep.phys <- ep.phys_ttl_frequency_check(ep.physio, ttl_codes_freq)
   
   
   ep.phys <- ep.phys_ttl_sequence_check(ep.physio)
   
 }
 
-#' @title check the frequency of parport codes
-#' @description Check the actual frequency for each ttl_code in the output of augment_ttl_details() i.e. acq_data$ttl_codes, comparing it to the expected_freq in previous function's output. This function will latter be added to ep.phys_initialize_helpers() to perform data validations
-ep.phys_ttl_frequency_check <- function(ep.physio){
+#' @title check the frequency of ttl codes
+#' @description Checks the actual frequency for each ttl_code with the expected frequency calculated in \code{ep.phys_build_ttl_seq}
+#' @param ep.physio An initialized ep.physio data object.
+#' @param ttl_codes_freq tibble with ttl information with each row contains information regarding one ttl code that could be sent with the physio data and the columns contain the ttl_code, the stimuli and phase that this ttl_code will be sent in and expected frequency of this ttl_code 
+#' 
+#' @import dplyr filter
+#' 
+#' @return ep.physio data structure with metadata$ttl_checks$frequency_mismatch containing list of ttl codes, expected frequency and actual frequency for the ttl codes whose actual frequency does not match the expected frequency calculated using config file in \code{ep.phys_build_ttl_seq}. ep.physio$metadata$ttl_blocks_info contains a tibble with the ttl_code, corresponsding stimuli, phase, expected and actual frequency.
+#'
+#' @author Nidhi Desai, Nila Thillaivanan
+#' 
+#' @export
+ep.phys_ttl_frequency_check <- function(ep.physio, ttl_codes_freq){
+
+  actual_freq =  rep(NA, nrow(ttl_codes_freq))
+  for(i in c(1:nrow(ttl_codes_freq))){
+    actual_freq[i] <- nrow((ep.physio$ttl_codes %>% filter(ttl_code == ttl_codes_freq$ttl_code[i])))
+    
+    if (actual_freq[i] != ttl_codes_freq$expected_freq[i]){
+      mismatch_ttl <- ttl_codes_freq$ttl_code[i]
+      mismatch_expected <- ttl_codes_freq$expected_freq[i]
+      mismatch_actual <- actual_freq[i]
+      
+      ep.physio[["metadata"]][["ttl_checks"]][["frequency_mismatch"]][["tt_codes"]] <- mismatch_ttl
+      ep.physio[["metadata"]][["ttl_checks"]][["frequency_mismatch"]][["expected_frequency"]] <- mismatch_expected
+      ep.physio[["metadata"]][["ttl_checks"]][["frequency_mismatch"]][["actual_frequency"]] <- mismatch_actual
+      
+      warning(paste0("[frequency mismatch] ttl code: ", mismatch_ttl, ", expected:", mismatch_expected, ", actual:", mismatch_actual))
+    }
+  }
   
+  ttl_blocks_info <- ttl_codes_freq %>% add_column(actual_freq)
+  ep.physio[["metadata"]][["ttl_codes_info"]][["freq"]] <- ttl_codes_freq
+  
+  return(ep.physio)
 }
 
 
-#' @title check the sequence of parport codes
-#' @description check if the ttl_codes are in the right sequence
+#' @title check the sequence of ttl codes
+#' @description check if the ttl codes are in the correct sequence based on the blocks section in config file
+#' @param ep.physio An initialized ep.physio data object
+#' 
+#' @import 
+#' 
+#' @return
+#' 
+#' @author Nidhi Desai
+#' 
+#' @export
 ep.phys_ttl_sequence_check <- function(ep.physio){
+  # TODO left here
+  # ep.physio[["metadata"]][["ttl_codes_info"]][["seq"]] ## need to add the check result here
   
 }
 
