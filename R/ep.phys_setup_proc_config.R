@@ -22,7 +22,10 @@ ep.phys_setup_proc_config <- function(file, config_path, header = NULL) {
   
   config <- ep.phys_set_config_definitions(file, config, setup_config_fields)
   
-  # 1.3 Build partport codes sequence for blocks and trials from config file
+  # 1.3 
+  config <- ep.phys_get_ttl_freq(config)
+  
+  # 1.4 Build ttl codes sequence for blocks and trials from config file
   config <- ep.phys_build_ttl_seq(config)
 
   return(config)

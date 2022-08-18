@@ -3,9 +3,10 @@
 ############################
 # - ep.phys_set_config_definitions()
 # -- ep.phys_set_config_definitions_helper()
+# - ep.phys_get_ttl_freq()
 # - ep.phys_build_ttl_seq()
 ############################
-
+# TODO add testing of blocks section somewhere
 
 #' @title Add default definitions to config file
 #' @description 
@@ -203,7 +204,7 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
 }
 
 
-#' @title Build out expected ttl code eval_sequence from config file
+#' @title Get the expected frequency of each ttl_code calculated from the blocks section of the config file
 #' @description read in config file and process the blocks section so that for each ttl_code mentioned, this function outputs a tibble with columns as ttl_code (parport_code), stimuli (event in config), phase and expected_freq (ntrials in config). This table will be used in the argument code_labels_df in augment_ttl_details.
 #' @details 
 #'   The ttl_codes which should be send in the middle of the task_start and task_end codes are noted in ttl_codes_task$all_mid_codes.
@@ -214,15 +215,13 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
 #' @import stringr str_extract
 #' @import dplyr select %>%
 #' 
-#' @return tibble with ttl information with each row contains information regarding one ttl code that could be sent with the physio data and the columns contain the ttl_code, the stimuli and phase that this ttl_code will be sent in and expected frequency of this ttl_code 
+#' @return expected frequency of each ttl_code is added to config$definitions$physio$initialize$ttl_codes_task$expected_freq. A tibble with ttl information is added to config$definitions$physio$initialize$ttl_codes_task$info with each row containing information regarding one ttl code that could be sent with the physio data and the columns contain the ttl_code, the corresponding stimuli and phase.
 #' 
 #' @author Nidhi Desai, Nila Thillaivanan
 #' 
 #' @export
-# TODO Should we add code to create the eval_sequence in which the codes will be sent? Mostly yes create a list of expected eval_sequence of ttl codes
-ep.phys_build_ttl_seq <- function(config){
-  
-  # (1) Extract phase and stimuli name for ttl_code and expected frequency from blocks section of config file
+ep.phys_get_ttl_freq <- function(config){
+  # Extract phase and stimuli name for ttl_code and expected frequency from blocks section of config file
   
   # unlist the yaml blocks to access names more easily
   unlisted_blocks <- unlist(config[["blocks"]], recursive = TRUE)
@@ -253,30 +252,69 @@ ep.phys_build_ttl_seq <- function(config){
   
   config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["expected_freq"]] <- ttl_blocks_info %>% select(ttl_code, expected_freq)
 
-  
-  # (2) Extract the expected eval_sequence of ttl_codes from the blocks section of config file
-  # TODO add code for building ttl_code expected eval_sequence
-  # config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["expected_seq"]] 
-  
-  if (!is.null(config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["eval_sequence"]])){ # in not null
-    if (config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["eval_sequence"]]){ # if eval_sequence is TRUE
-      # only if these conditions are satisfied, create an expected eval_sequence of ttl_codes
-      # TODO add code here so that it works for simple cases like dtk pav and pit phase
-      
-      for (i in ttl_indx){
-        # check if the ttl_code mentioned in the config are non-numeric
-        if (grepl("\\D", unlisted_blocks[[i]])) { stop(paste(unlisted_blocks[[i]], "ttl_code is non-numeric")) }
-        
-      }
-    }
-  }
-  
   return(config)
 }
 
 
+#' @title Build out expected ttl code sequence based on the config file
+#' @description Build out expected sequence of ttl codes based on phase and event sequence from the blocks section of the config file. Read in config file and process the blocks section such that the functions creates a list of expected ttl codes in the sequence that would be expected from the actual data. 
+#'  This is created using the sequence in which blocks/phases and events are defined in the blocks section of the config file.
+#' @param config Named list extracted from config file
+#' 
+#' @return config structure with a list of ttl_codes in their expected sequence added to config$definitions$physio$initialize$ttl_codes_task$expected_seq
+#' 
+#' @author Nidhi Desai
+#' 
+#' @export
+ep.phys_build_ttl_seq <- function(config){
+  # TODO this function needs to be generalized to blocks format for different types of event sequences
+  # NOTE right now this function works for simple cases like dtk pav and pit phase and not dtk instrumental phase
+  
+  # only if eval_sequence is not null and is TRUE, create an expected expected_seq of ttl_codes
+  if (!is.null(config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["eval_sequence"]])){
+    if (config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["eval_sequence"]]){
+      
+      # check if atleast one phase exists in the blocks section 
+      if (length(names(config[["blocks"]])) == 0) { stop("blocks section in config file has no phase/block information") }
+      
+      # check if there is atleast one ttl_code in the blocks section
+      if (sum(grepl("phys.ttl_code", names(unlist(config[["blocks"]], recursive = TRUE)))) == 0){ stop("block section in config file does not have any phys$ttl_code") }
 
+      # check if each phase has an ntrials value associated with it
+      unq_phases <- names(config[["blocks"]])
+      if (sum(sapply(c(1:length(unq_phases)), function(x){is.null(config[["blocks"]][[unq_phases[x]]][["ntrials"]])})) > 0) { stop("some phases has no ntrials attribute in the blocks section of the config file") }
+      
+      # build the expected ttl code sequence
+      expected_seq <- c()
+      
+      # add task start code the the sequence of expected ttl_codes
+      if (!is.null(config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["task_start"]])){
+        expected_seq <- c(expected_seq, config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["task_start"]])
+      }
+      
+      for (p in c(1:length(unq_phases))){ # loop over the phases in the block section
+        # get the list of events in this phase
+        events_in_phase <- names(config[["blocks"]][[unq_phases[p]]][["events"]])
+        
+        # NOTE Assuming that one phase has one ntrials for all the events' ttl_codes which go in sequence with events mentioned in blocks
+        expected_freq <- as.numeric(config[["blocks"]][[unq_phases[p]]][["ntrials"]])
+        
+        # sequence of ttl_codes inside a phase for one iteration through a block of that phase
+        ttl_phase_seq <- rep(0, length(events_in_phase))
+        sapply(c(1:length(events_in_phase)), function(x){ ttl_phase_seq[x] <- config[["blocks"]][[unq_phases[p]]][["events"]][[events_in_phase[x]]][["phys"]][["ttl_code"]] })
 
-
-
+        # add sequence of ttl_code for this phase repeated for the expected frequency
+        expected_seq <- c(expected_seq, rep(ttl_phase_seq, expected_freq))
+      }
+      
+      # add task end code the the sequence of expected ttl_codes
+      if (!is.null(config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["task_end"]])){
+        expected_seq <- c(expected_seq, config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["task_end"]])
+      }
+      
+      config[["definitions"]][["physio"]][["initialize"]][["ttl_codes_task"]][["expected_seq"]] <- expected_seq
+    }
+  }
+  return(config)
+}
 
