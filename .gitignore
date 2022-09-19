@@ -55,3 +55,5 @@ ND_local
 *.csv
 *.edf
 *.elog
+*.log
+*.out
