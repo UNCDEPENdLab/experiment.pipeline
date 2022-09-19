@@ -54,7 +54,7 @@ ep.eye_add_aois <- function(ep.eye,
                             split_coords,
                             tag_raw = FALSE
                             ){
-  ### 4.1.1 pull AOI information into new columns by eventn
+  ### 4.2.1 pull AOI information into new columns by eventn
   # TODO add extraction_method = "data.frame" to allow user to pass pre-defined AOI information per event (e.g. if extracting via a regex isn't feasible)
   aoi_ref <- ep.eye_gen_aoi_ref(ep.eye,
                          indicator,
@@ -63,7 +63,7 @@ ep.eye_add_aois <- function(ep.eye,
                          split_coords,
                          dt = "-- 4.2.1 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
 
-  ### 4.1.2 tag gaze data with AOI_look field
+  ### 4.2.2 tag gaze data with AOI_look field
   ep.eye <- ep.eye_gen_aoi_look(ep.eye,
                          aoi_ref,
                          tag_raw,
@@ -94,12 +94,14 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
     aoi_ref <- data.frame()
 
     for(i in unique(ep.eye$raw$eventn)){
+      # i <- 1
       ev <- ep.eye$raw %>% dplyr::filter(eventn == i)
       aois <- ev$et.msg[grepl(indicator ,ev$et.msg)]
 
       # N.B. currently aoi coords are tagged as x1, y1, x2, y2 according to the extract_coords specification. This is not very flexible and will want to revisit this for sure.
       for (a in aois) {
-        coords <- as.numeric(do.call(c, str_split(str_extract(a, extract_coords), split_coords)))
+        # a <- aois[2]
+        # coords <- as.numeric(do.call(c, str_split(str_extract(a, extract_coords), split_coords)))
         lab <- str_extract(a, extract_labs)
         aoi_ref <- rbind(aoi_ref, data.frame(eventn = i,
                                              aoi_msg = a,
@@ -149,7 +151,7 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
     ep.eye$gaze$sacc$aoi_end <- "."
     for (i in 1:nrow(ep.eye$gaze$sacc)) {
       # print(i)
-      i <- 1
+      # i <- 1
 
       evn <- ep.eye$gaze$sacc[[i,"eventn"]]
 
