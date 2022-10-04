@@ -4,9 +4,12 @@
 \alias{create.block}
 \title{Create a block object}
 \usage{
-create.block(block.name, callback = function(l) {
-    return(l)
-})
+create.block(
+  block.name,
+  callback = function(l) {
+     return(l)
+ }
+)
 }
 \arguments{
 \item{block.name}{Name of block}

@@ -52,6 +52,7 @@ ep.eye_initialize <- function(file,
   # meta_check = config$definitions$eye$initialize$meta_check
   # inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
   # header = "2. Initialize ep.eye object:"
+  subID
 
 
   log_chunk_header(header)

@@ -8,8 +8,8 @@ ibi_qa(
   ecg_ts,
   time_ts,
   Hz = 1000,
- 
-    outlier_arg = "ibi_diff >  upper_quartile_ibi_diff + 2*iqr_ibi_diff | ibi_diff < lower_quartile_ibi_diff - 2*iqr_ibi_diff",
+  outlier_arg =
+    "ibi_diff >  upper_quartile_ibi_diff + 2*iqr_ibi_diff | ibi_diff < lower_quartile_ibi_diff - 2*iqr_ibi_diff",
   time_bin = 100
 )
 }

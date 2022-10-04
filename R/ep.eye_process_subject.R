@@ -14,7 +14,7 @@
 #' @author Nate Hall
 #'
 #' @importFrom tictoc tic toc
-#' @importFrom readr parse_numeric
+#' @importFrom readr parse_number
 #'
 #' @export
 ep.eye_process_subject <- function(file, config_path, ...) {
