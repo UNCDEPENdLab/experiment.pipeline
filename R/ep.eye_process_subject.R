@@ -14,6 +14,7 @@
 #' @author Nate Hall
 #'
 #' @importFrom tictoc tic toc
+#' @importFrom readr parse_numeric
 #'
 #' @export
 ep.eye_process_subject <- function(file, config_path, ...) {
@@ -29,12 +30,12 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   # Neighborhood - UNC
 
   #inst files come with package
-  edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/Neighborhood/Eye"), full.names = TRUE)
-  # edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE)
+  # edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/Neighborhood/Eye"), full.names = TRUE)
+  edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE)
   file <- edf_files[3] # extract a single subject for example case
-  config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/Neighborhood/Neighborhood.yaml")
-  # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
-#  library(tictoc)
+  # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/Neighborhood/Neighborhood.yaml")
+  config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
+ library(tictoc)
 
   ########################
 
@@ -54,7 +55,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   eye_init <- ep.eye_initialize(file,
                                 expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
                                 task = config$task,
-                                subID = as.numeric(config$definitions$eye$global$subID),
+                                subID = parse_number(config$definitions$eye$global$subID),
                                 gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
                                 confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
                                 meta_check = config$definitions$eye$initialize$meta_check,
