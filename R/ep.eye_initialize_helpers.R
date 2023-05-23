@@ -554,27 +554,36 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
                 ep.eye$raw[which(ep.eye$raw$time == last_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
               }
             }
-          } else{
+          } else {
             raw_align <- ep.eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], ep.eye$raw$et.msg))
             # every instance of the message in question must have an alignment target.
             stopifnot(nrow(raw_align) == nrow(instances))
             # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
             for(i in 1:nrow(raw_align)){
-              t1 <- as.numeric(raw_align[i, "time"])
-              msg <- ep.eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
-              while (msg != "."){ # search down until hitting first "."
-                t1 <- t1 + 1
-                msg <- ep.eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
+              # print(i)
+              # t1 <- as.numeric(raw_align[i, "time"])
+
+              evn <- raw_align[i,"eventn"] %>% pull()
+
+              df <- ep.eye$raw %>%
+                dplyr::filter(eventn == evn)
+
+              idx_end <- which(df$et.msg == mtw$align_msg[m])
+
+              if(length(idx_end) > 0 && idx_end[length(idx_end)] != nrow(df)) {  # if "END_RECORDING" is not the last message
+                t1_dot <- df$time[idx_end[length(idx_end)] + 1]  # take the time of the message after "END_RECORDING"
+              } else if(length(idx_end) > 0 && idx_end[length(idx_end)] == nrow(df)) {  # if "END_RECORDING" is the last message
+                t1_dot <- df$time[max(which(df$et.msg == "."))]  # take the time of the last "." message
+              } else {
+                t1_dot <- NA  # assign NA
+                warning("Problem incorporating ")
               }
-              instances[i,"time"] <- t1
+
+              instances[i, "time"] <- t1_dot
             }
             ep.eye$raw <- ep.eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
           }
-
-
         }
-
-
       }
       ep.eye$raw <- ep.eye$raw %>% select(-contains("btw_ev"))
     },
@@ -582,3 +591,4 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
   }
   return(ep.eye)
 }
+
