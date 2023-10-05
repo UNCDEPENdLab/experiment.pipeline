@@ -277,7 +277,7 @@ ep.eye_store_between_event_messages <- function(ep.eye){
 #' @export
 ep.eye_rm_crinfo <- function(ep.eye){
   cr <- unique(ep.eye$raw$cr.info)
-  if(length(cr) == 1 & cr == "..."){
+  if(length(cr) == 1 & "..." %in% cr){
     ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
   } else{
     message(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))

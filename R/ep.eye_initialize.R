@@ -103,13 +103,7 @@ ep.eye_initialize <- function(file,
     ep.eye <- ep.eye_backup <- ep.eye_rm_crinfo(ep.eye)
   }, "- 2.8 Remove cr.info column from raw data:")
 
-  cr <- unique(ep.eye$raw$cr.info)
-  if(length(cr) == 1 & cr == "..."){
-    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
-  } else{
-    message(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
-    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
-  }
+
 
 
   ### 2.9 Unify et.msgs into raw data.
