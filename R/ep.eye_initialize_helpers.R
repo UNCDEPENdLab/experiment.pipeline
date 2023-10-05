@@ -280,7 +280,8 @@ ep.eye_rm_crinfo <- function(ep.eye){
   if(length(cr) == 1 & cr == "..."){
     ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
   } else{
-    stop(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
+    message(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
+    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
   }
   return(ep.eye)
 }

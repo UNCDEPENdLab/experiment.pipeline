@@ -22,9 +22,9 @@ ep.eye_preprocess_gaze <- function(ep.eye,
                                    header = NULL){
   ## setup debug
   # ep.eye <- eye_parsed
-  aoi = config$definitions$eye$gaze_preproc$aoi
-  downsample = config$definitions$eye$gaze_preproc$downsample
-  header = "4. Preprocess gaze data:"
+  # aoi = config$definitions$eye$gaze_preproc$aoi
+  # downsample = config$definitions$eye$gaze_preproc$downsample
+  # header = "4. Preprocess gaze data:"
 
   log_chunk_header(header)
 

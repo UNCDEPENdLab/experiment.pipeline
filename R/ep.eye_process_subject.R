@@ -35,7 +35,7 @@ ep.eye_process_subject <- function(file, config_path, ...) {
   file <- edf_files[3] # extract a single subject for example case
   # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/Neighborhood/Neighborhood.yaml")
   config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
- library(tictoc)
+  pacman::p_load(tictoc, experiment.pipeline)
 
   ########################
 

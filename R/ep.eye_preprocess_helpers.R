@@ -101,7 +101,7 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
       # N.B. currently aoi coords are tagged as x1, y1, x2, y2 according to the extract_coords specification. This is not very flexible and will want to revisit this for sure.
       for (a in aois) {
         # a <- aois[2]
-        # coords <- as.numeric(do.call(c, str_split(str_extract(a, extract_coords), split_coords)))
+        coords <- as.numeric(do.call(c, str_split(str_extract(a, extract_coords), split_coords)))
         lab <- str_extract(a, extract_labs)
         aoi_ref <- rbind(aoi_ref, data.frame(eventn = i,
                                              aoi_msg = a,

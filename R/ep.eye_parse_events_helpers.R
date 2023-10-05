@@ -28,8 +28,8 @@ ep.eye_parse_event_info <- function(ep.eye,
   cat(dt)
 
   ### 4.2.1: Generate data frame
-  tryCatch.ep({
     dt1 <- paste0("-- 3.1.1 Extracting eye events from user-supplied function (",basename(extract_event_func_path) ,"):")
+  tryCatch.ep({
 
     ev_f <- source(extract_event_func_path)$value
     # if csv_path is specified, save the outputs of function into this directory as csvs, otherwise, just read. As a sanity check it is good idea to write and review a couple csvs to see how the event extraction and renaming is working internally. If you are confident the extraction works in your function, go ahead and skip the write.
@@ -49,8 +49,8 @@ ep.eye_parse_event_info <- function(ep.eye,
 
   },describe_text = dt1)
 
-  tryCatch.ep({
     dt2 <- "-- 3.1.2 Merge trial/event info to eye data:"
+  tryCatch.ep({
 
     non_join_colnames <- colnames(info_msgs)[which(!colnames(info_msgs) %in% c("eventn", "et.msg", "time"))]
 

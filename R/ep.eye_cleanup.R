@@ -1,3 +1,23 @@
+#' Eye Data Preprocessing and Cleanup
+#'
+#' This function processes eye tracking data for use in event-related potential (ERP) studies.
+#' It generates event-locked timing, removes raw data to minimize object size, tags the data
+#' with a class to indicate successful preprocessing, saves the preprocessed data, and manages log files.
+#'
+#' @param ep.eye An object containing the eye tracking data to be cleaned up.
+#' @param globals A list of global parameters defined in the config file.
+#' @param header A string used to set the chunk header for the logging. Default is NULL.
+#'
+#' @return Returns the cleaned up eye tracking data with the class "ep.eye.preproc".
+#'
+#' @examples
+#' \dontrun{
+#' cleaned_data <- ep.eye_cleanup(raw_eye_data, config$definitions$eye$global, "6. Cleanup and export ep.eye")
+#' }
+#' @export
+#'
+#' @seealso \code{\link{ep.eye_tag_event_time}}, \code{\link{ep.eye_save_preproc}}
+
 ep.eye_cleanup <- function(ep.eye,
                            globals,
                            header = NULL){

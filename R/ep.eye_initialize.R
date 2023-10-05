@@ -32,6 +32,7 @@ ep.eye_initialize <- function(file,
                               inherit_btw_ev = NULL,
                               header = NULL,
                               ...){
+  browser()
   ## debugging setup
   # library(tidyverse)
   # library(knitr)
@@ -52,7 +53,7 @@ ep.eye_initialize <- function(file,
   # meta_check = config$definitions$eye$initialize$meta_check
   # inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
   # header = "2. Initialize ep.eye object:"
-  subID
+  # subID
 
 
   log_chunk_header(header)
@@ -101,6 +102,15 @@ ep.eye_initialize <- function(file,
   tryCatch.ep({
     ep.eye <- ep.eye_backup <- ep.eye_rm_crinfo(ep.eye)
   }, "- 2.8 Remove cr.info column from raw data:")
+
+  cr <- unique(ep.eye$raw$cr.info)
+  if(length(cr) == 1 & cr == "..."){
+    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
+  } else{
+    message(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
+    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
+  }
+
 
   ### 2.9 Unify et.msgs into raw data.
   tryCatch.ep({
