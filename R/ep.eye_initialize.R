@@ -32,7 +32,7 @@ ep.eye_initialize <- function(file,
                               inherit_btw_ev = NULL,
                               header = NULL,
                               ...){
-  browser()
+  # browser()
   ## debugging setup
   # library(tidyverse)
   # library(knitr)
@@ -102,8 +102,6 @@ ep.eye_initialize <- function(file,
   tryCatch.ep({
     ep.eye <- ep.eye_backup <- ep.eye_rm_crinfo(ep.eye)
   }, "- 2.8 Remove cr.info column from raw data:")
-
-
 
 
   ### 2.9 Unify et.msgs into raw data.
