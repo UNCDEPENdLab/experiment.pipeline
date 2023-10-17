@@ -275,13 +275,18 @@ ep.eye_store_between_event_messages <- function(ep.eye){
 #' @param ep.eye An ep.eye object.
 #' @return ep.eye
 #' @export
+#' @details From Eyelink 100 manual: 4.9.3.1 Samples Recorded in Corneal Reflection Mode: If the data file being processed was recorded using corneal reflection mode, each sample line has an added 3 (monocular) or 5 (binocular) character fields after all other fields (including resolution and velocity if enabled). These fields represent warning messages for that sample relating to the corneal reflection processing.
+#'          MONOCULAR Corneal Reflection (CR) Samples
+#'            - "..." if no warning for sample
+#'            - first character is "I" if sample was interpolated second character is "C" if CR missing
+#'            - third character is "R" if CR recovery in progress
 ep.eye_rm_crinfo <- function(ep.eye){
   cr <- unique(ep.eye$raw$cr.info)
   if(length(cr) == 1 & "..." %in% cr){
     ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
   } else{
-    message(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
     ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
+    warning(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
   }
   return(ep.eye)
 }
@@ -596,4 +601,3 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
   }
   return(ep.eye)
 }
-
