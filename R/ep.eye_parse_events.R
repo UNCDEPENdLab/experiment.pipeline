@@ -17,6 +17,7 @@ ep.eye_parse_events <- function(ep.eye,
                                 csv_path,
                                 msg_seq,
                                 header = NULL) {
+  # browser()
   # debug
   # ep.eye <- eye_init
   # extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path

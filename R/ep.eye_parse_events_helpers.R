@@ -25,6 +25,7 @@ ep.eye_parse_event_info <- function(ep.eye,
                                     csv_path = NULL,
                                     msg_seq,
                                     dt = NULL) {
+  # browser()
   cat(dt)
 
   ### 4.2.1: Generate data frame
@@ -96,7 +97,7 @@ ep.eye_parse_event_info <- function(ep.eye,
 ep.eye_validate_msg_seq <- function(ep.eye,
                                     msg_seq,
                                     dt){
-
+# browser()
   cat(dt)
 
   tryCatch.ep({
@@ -160,17 +161,21 @@ ep.eye_validate_msg_seq <- function(ep.eye,
 ep.eye_check_requested_msg <- function(ep.eye,
                                        msg_seq,
                                        eventnum){
+  # browser()
   eblock <- ep.eye$raw  %>% dplyr::filter(eventn == eventnum)
 
   # Generate vector of expected/requested messages to check within eventn i.
   check_these <- msg_seq[[unique(eblock$block)]][[unique(eblock$event)]] #for every eventn there should only be one block designation and one event designation.
 
+  msg_seq[["trial"]][[unique(eblock$event)]]
+
   # Generate vector of extracted messages as they appear in the edf file.
   extracted_msgs <- c()
   for(j in check_these){
     extracted_msgs <- rbind(extracted_msgs, eblock %>% dplyr::filter(grepl(j, et.msg)) %>% select(time, et.msg)) %>%
-      arrange(time) # arrange at the end ensures that extracted messages are stored in the order they appear in continuous time rather than the order they were requested (i.e. the j iterator)
+      arrange(time) %>% distinct()# arrange at the end ensures that extracted messages are stored in the order they appear in continuous time rather than the order they were requested (i.e. the j iterator)
   }
+
   # pull just the et.msgs
   extracted_msgs <- unique(extracted_msgs$et.msg)
 
