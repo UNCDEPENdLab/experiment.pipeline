@@ -485,7 +485,7 @@ ep.eye_shift_timing <- function(ep.eye, dt = NULL){
 ep.eye_inherit_btw_ev <- function(ep.eye,
                                   inherit_btw_ev,
                                   dt = NULL){
-
+  # browser()
   cat(dt)
 
   ### 2.12.1 Calibration/validation check
@@ -558,7 +558,11 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
           } else {
             raw_align <- ep.eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], ep.eye$raw$et.msg))
             # every instance of the message in question must have an alignment target.
-            stopifnot(nrow(raw_align) == nrow(instances))
+            # stopifnot(nrow(raw_align) == nrow(instances))
+            #
+            # UPDATE 10/6/23: the above approach may be too strict. Really more, each instances just needs a joining entry in raw_align
+            stopifnot(all(instances$eventn %in% raw_align$eventn))
+
             # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
             for(i in 1:nrow(raw_align)){
               # print(i)
