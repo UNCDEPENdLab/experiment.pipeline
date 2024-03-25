@@ -17,6 +17,7 @@
 #'
 #' @param eye Loaded .edf file from \code{read_edf}
 #' @param task Task name (character)
+#' @param subID subject ID (numeric)
 #'
 #' @return ep.eye Initialized ep.eye structure. [DETAILS HERE].
 #' @author Nate Hall
@@ -24,7 +25,7 @@
 #' @importFrom data.table as.data.table data.table
 #'
 #' @export
-ep.eye_setup_structure <- function(eye, task = NULL){
+ep.eye_setup_structure <- function(eye, task = NULL, subID = NULL){
     ep.eye <- list(raw = eye$raw,
                msg = eye$msg,
                gaze = list(downsample = data.table(),
@@ -63,9 +64,10 @@ ep.eye_setup_structure <- function(eye, task = NULL){
   }
   ep.eye$msg$btw_ev <- sapply(ep.eye$msg$eventn, FUN = countDecimalPlaces)
 
-  # append edf filepath and task name to metadata
+  # append edf filepath, task name and subjectID to metadata
   ep.eye[["metadata"]][["edf_file"]] <- eye$edf_file
   if(!is.null(task)) ep.eye[["metadata"]][["task"]] <- task
+  ep.eye[["metadata"]][["subID"]] <- subID
 
   class(ep.eye) <- c(class(eye), "ep.eye") #tag with ep.eye class
   return(ep.eye)
@@ -190,18 +192,18 @@ ep.eye_unify_gaze_events <- function(ep.eye,
         ## pull from raw data
         r <- ep.eye$raw[ep.eye$raw$time %in% etimes,]
 
-        # check 1: confirm timestamps are equal and present in raw and gaze_event data
-        if(#!(length(r$time) == length(etimes)) | #if number of measurements dont match
-          !all(r$time == etimes)    # this supersedes the above, forcing number of measurements to be exact and have timestamps be strictly equal
-        ){
-          counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
-        }
+          # check 1: confirm timestamps are equal and present in raw and gaze_event data
+          if(#!(length(r$time) == length(etimes)) | #if number of measurements dont match
+            !all(r$time == etimes)    # this supersedes the above, forcing number of measurements to be exact and have timestamps be strictly equal
+          ){
+            counts_26i2[["etime_mismatch"]] <- c(counts_26i2[["etime_mismatch"]], j)
+          }
 
-        #check 2: confirm same event numbering between raw and gaze_event data.
-        if(!ev$eventn == unique(r$eventn)){
-          b_mismatch <- data.table("gaze_event" = i, "gaze_event_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
-          counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
-        }
+          #check 2: confirm same event numbering between raw and gaze_event data.
+          if(!ev$eventn == unique(r$eventn)){
+            b_mismatch <- data.table("gaze_event" = i, "gaze_event_num" = j, "ev_event" = ev$eventn, "raw_num" = unique(r$eventn))
+            counts_26i2[["event_mismatch"]] <- rbind(counts_26i2[["event_mismatch"]], b_mismatch)
+          }
 
         #tag raw data with event number
         ep.eye$raw[which(ep.eye$raw$time %in% etimes), paste0(i,"n")] <- j
@@ -273,12 +275,18 @@ ep.eye_store_between_event_messages <- function(ep.eye){
 #' @param ep.eye An ep.eye object.
 #' @return ep.eye
 #' @export
+#' @details From Eyelink 100 manual: 4.9.3.1 Samples Recorded in Corneal Reflection Mode: If the data file being processed was recorded using corneal reflection mode, each sample line has an added 3 (monocular) or 5 (binocular) character fields after all other fields (including resolution and velocity if enabled). These fields represent warning messages for that sample relating to the corneal reflection processing.
+#'          MONOCULAR Corneal Reflection (CR) Samples
+#'            - "..." if no warning for sample
+#'            - first character is "I" if sample was interpolated second character is "C" if CR missing
+#'            - third character is "R" if CR recovery in progress
 ep.eye_rm_crinfo <- function(ep.eye){
   cr <- unique(ep.eye$raw$cr.info)
-  if(length(cr) == 1 & cr == "..."){
+  if(length(cr) == 1 & "..." %in% cr){
     ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
   } else{
-    stop(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
+    ep.eye$raw <- ep.eye$raw %>% select(-cr.info)
+    warning(paste0("cr.info contains potentially important information (", paste0(cr, collapse = ","), ")"))
   }
   return(ep.eye)
 }
@@ -296,10 +304,34 @@ ep.eye_rm_crinfo <- function(ep.eye){
 #' @export
 ep.eye_unify_raw_msg <- function(ep.eye){
   # browser()
+  ### Update 4/19/22: when data is sampled at <1000Hz, merging messages to the raw data may fail since eyelink messages send at 1000Hz precision despite the eye data being sampled slower.
+  ### Added functionality to match message times with the closest timestamp that has an entry in the raw data, which gets stored in an updated $time column in ep.eye$msg. Original timestamps are stored in ep.eye$msg$time_native.
+  # if(ep.eye$metadata$sample.rate != 1000){
+  raw_times <- ep.eye$raw$time
+  mismatch_msg_times <- ep.eye$msg %>% filter(btw_ev == 0) %>% pull(time)
+  mismatch_msg_indx <- !mismatch_msg_times %in% raw_times
+  if (sum(mismatch_msg_indx) > 0){
+    #this identified mismatch between timestamps for messages and raw data (if not collected at 1000Hz)
+    # raw_time <- ep.eye$raw %>% filter(eventn == 33) %>% pull(time)
+    # msg_time <- ep.eye$msg %>% filter(eventn == 33) %>% pull(time)
+
+    #store old message times in separate name (time_native)
+    ep.eye$msg$time_native <- ep.eye$msg$time
+    msg_times <- ep.eye$msg$time
+
+    ## add matched timestamps that exist in raw data, must include all.inside = TRUE to ensure vector lengths are equal.
+    ep.eye$msg$time_update <- raw_times[findInterval(msg_times, raw_times, all.inside = TRUE)]
+
+    ep.eye$msg <- ep.eye$msg %>% mutate(time = ifelse(btw_ev == 1, time_native, time_update))
+
+    ## spot check. looks good to me.
+    # x %>% filter(eventn == 33) %>% print(n = 200)
+  }
+
   ep.eye$raw <- ep.eye$raw %>%
     left_join(dplyr::filter(ep.eye$msg, btw_ev == 0), by = c("eventn", "time")) %>% dplyr::select(-btw_ev) %>%
     dplyr::rename(`et.msg` = `text`) %>%
-    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>% data.frame()
+    mutate(et.msg = ifelse(is.na(et.msg), ".", et.msg)) %>%  select(-any_of(c("time_native", "time_update"))) %>% data.frame()
 
   # important to back-translate extracted messages to original messages due to the use of left_join. This should not fail.
   umsg <- unique(ep.eye$raw$et.msg)[which(unique(ep.eye$raw$et.msg) != ".")] #unique messages in the final output.
@@ -357,8 +389,8 @@ ep.eye_unify_raw_msg <- function(ep.eye){
 ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt = NULL){
   cat(dt,"\n")
 
-  ### 3.10.1 meta_vars and vals
-  dt1 <- "-- 3.10.1 Compare .edf info (session parameters) to expectations:"
+  ### 2.10.1 meta_vars and vals
+  dt1 <- "-- 2.10.1 Compare .edf info (session parameters) to expectations:"
   tryCatch.ep({
 
     stopifnot(!(is.null(meta_vars) | is.null(meta_vals))) # stop if either are null, need both.
@@ -370,21 +402,21 @@ ep.eye_meta_check <-  function(ep.eye, meta_vars, meta_vals, recording_time, dt 
     mismatch <- c() # append if any discrepancies.
     for(i in 1:nrow(meta_ref)){
       # message(eye$metadata[[meta_ref[i,"meta_vars"]]], " ", meta_ref[i,"meta_vals"])
-      if(!ep.eye$metadata[[meta_ref[i,"meta_vars"]]] == meta_ref[i,"meta_vals"]){mismatch <- c(mismatch, i)}
+      if(!ep.eye$metadata[[meta_ref[i,"meta_vars"]]] == meta_ref[i,"meta_vals"]){mismatch <- c(mismatch, meta_ref[i,"meta_vars"])}
     }
 
     if(!is.null(mismatch)){
+      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- mismatch
       warning(mismatch,call. = FALSE)
-      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismacth"]] <- mismatch
     } else {
-      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- 0
+      ep.eye[["metadata"]][["meta_check"]][["meta_vars_mismatch"]] <- "NONE"
     }
 
   },
   describe_text = dt1)
 
-  ### 3.10.2 confirm acceptable session length
-  dt2 <- "-- 3.10.2 Compare recording time (session length) to expectations:"
+  ### 2.10.2 confirm acceptable session length
+  dt2 <- "-- 2.10.2 Compare recording time (session length) to expectations:"
   tryCatch.ep({
     stopifnot(!is.null(recording_time))
 
@@ -458,45 +490,45 @@ ep.eye_shift_timing <- function(ep.eye, dt = NULL){
 ep.eye_inherit_btw_ev <- function(ep.eye,
                                   inherit_btw_ev,
                                   dt = NULL){
-
+  # browser()
   cat(dt)
 
-  ### 3.12.1 Calibration/validation check
+  ### 2.12.1 Calibration/validation check
   if(!is.null(inherit_btw_ev$calibration_check)){
-    cat("-- 3.12.1 Calibration/validation checks:\n")
+    cat("-- 2.12.1 Calibration/validation checks:\n")
 
-    dt1 <- "--- 3.12.1.1 Calibration:"
+    dt1 <- "--- 2.12.1.1 Calibration:"
     tryCatch.ep({
       c.check <- inherit_btw_ev$calibration_check$cal
       cal.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(c.check, text, fixed = TRUE))
       if(!all(grepl("GOOD", cal.msg$text))){
         ep.eye$metadata$cal_check <- "warning"
         warning("cal check message does not contain GOOD", call. = FALSE)
-        } else{
-          ep.eye$metadata$cal_check <- "success"
-        }
+      } else{
+        ep.eye$metadata$cal_check <- "success"
+      }
     },
     describe_text = dt1)
 
-    dt2 <- "--- 3.12.1.2 Validation:"
+    dt2 <- "--- 2.12.1.2 Validation:"
     tryCatch.ep({
       v.check <- inherit_btw_ev$calibration_check$val
       val.msg <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(v.check, text, fixed = TRUE))
       if(!all(grepl("GOOD", val.msg$text))){
         ep.eye$metadata$val_check <- "warning"
         warning("val check message does not contain GOOD", call. = FALSE)
-        } else{
-          ep.eye$metadata$val_check <- "success"
-        }
+      } else{
+        ep.eye$metadata$val_check <- "success"
+      }
     },
     describe_text = dt2)
   } else{
-     cat("-- 3.12.1 Calibration/validation checks: SKIP\n")
+    cat("-- 2.12.1 Calibration/validation checks: SKIP\n")
   }
-# browser()
-  ### 3.12.2 Move requested messages to correct eventn depending on if it preceeds the event ("pre") or follows the event("post")
+  # browser()
+  ### 2.12.2 Move requested messages to correct eventn depending on if it preceeds the event ("pre") or follows the event("post")
   if(!is.null(inherit_btw_ev$move_to_within)){
-  dt3 <- "-- 3.12.2 Pull requested messages into measured data:"
+    dt3 <- "-- 2.12.2 Pull requested messages into measured data:"
     tryCatch.ep({
       mtw <- inherit_btw_ev$move_to_within
       stopifnot(all.equal(length(mtw$str), length(mtw$align_msg), length(mtw$pre_post)))
@@ -506,39 +538,61 @@ ep.eye_inherit_btw_ev <- function(ep.eye,
         # grab instances of string in between-event messages
         instances <- ep.eye$metadata$btw_ev_msg %>% dplyr::filter(grepl(ms, text)) %>%
           group_by(eventn) %>% mutate(eventn = ifelse(!eventn%%1==0, # update 11/12/20: only update eventn if value is not divisible by 0
-                                                      ifelse(mtw$pre_post[m] == "pre", # update event depending on pre-post designation
+                                                      ifelse(mtw$pre_post[m] == "post", # update event depending on pre-post designation
                                                              (eventn + .5),
                                                              eventn - .5),
-                                                      eventn)) %>% data.table()
+                                                      eventn)) %>% data.table::data.table()
 
-        if(mtw$align_msg[m] == ""){
-          ## no alignment message, pull into raw data in first or last "." position depending on pre_post.
-          if(mtw$pre_post[m] == "pre"){
-            for(i in unique(instances$eventn)){
-              first_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == min(time)) %>% pull(time)
-              ep.eye$raw[which(ep.eye$raw$time == first_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
+        # update 5/23/23: when no matching msgs will loop indefinitely. close this up by skipping if nrow = 0
+        if(nrow(instances) == 0){
+          warning(ms, " not found in any btwn_event_messages")
+        } else {
+          if(mtw$align_msg[m] == ""){
+            ## no alignment message, pull into raw data in first or last "." position depending on pre_post.
+            if(mtw$pre_post[m] == "post"){
+              for(i in unique(instances$eventn)){
+                first_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == min(time)) %>% pull(time)
+                ep.eye$raw[which(ep.eye$raw$time == first_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
+              }
+            } else{
+              for(i in unique(instances$eventn)){
+                last_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == max(time)) %>% pull(time)
+                ep.eye$raw[which(ep.eye$raw$time == last_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
+              }
             }
-          } else{
-            for(i in unique(instances$eventn)){
-              last_dot_time <- ep.eye$raw %>% filter(eventn == i, et.msg == ".") %>% filter(time == max(time)) %>% pull(time)
-              ep.eye$raw[which(ep.eye$raw$time == last_dot_time), "et.msg"] <- instances %>% filter(eventn == i) %>% pull(text)
+          } else {
+            raw_align <- ep.eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], ep.eye$raw$et.msg))
+            # every instance of the message in question must have an alignment target.
+            # stopifnot(nrow(raw_align) == nrow(instances))
+            #
+            # UPDATE 10/6/23: the above approach may be too strict. Really more, each instances just needs a joining entry in raw_align
+            stopifnot(all(instances$eventn %in% raw_align$eventn))
+
+            # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
+            for(i in 1:nrow(raw_align)){
+              # print(i)
+              # t1 <- as.numeric(raw_align[i, "time"])
+
+              evn <- raw_align[i,"eventn"] %>% pull()
+
+              df <- ep.eye$raw %>%
+                dplyr::filter(eventn == evn)
+
+              idx_end <- which(df$et.msg == mtw$align_msg[m])
+
+              if(length(idx_end) > 0 && idx_end[length(idx_end)] != nrow(df)) {  # if "END_RECORDING" is not the last message
+                t1_dot <- df$time[idx_end[length(idx_end)] + 1]  # take the time of the message after "END_RECORDING"
+              } else if(length(idx_end) > 0 && idx_end[length(idx_end)] == nrow(df)) {  # if "END_RECORDING" is the last message
+                t1_dot <- df$time[max(which(df$et.msg == "."))]  # take the time of the last "." message
+              } else {
+                t1_dot <- NA  # assign NA
+                warning("Problem incorporating ")
+              }
+
+              instances[i, "time"] <- t1_dot
             }
+            ep.eye$raw <- ep.eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
           }
-        } else{
-          raw_align <- ep.eye$raw %>% dplyr::filter(grepl(mtw$align_msg[m], ep.eye$raw$et.msg))
-          # every instance of the message in question must have an alignment target.
-          stopifnot(nrow(raw_align) == nrow(instances))
-          # recode time to immediately after alignment message (search "down" until reaching a point with no messages (coded as "."))
-          for(i in 1:nrow(raw_align)){
-            t1 <- as.numeric(raw_align[i, "time"])
-            msg <- ep.eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
-            while (msg != "."){ # search down until hitting first "."
-              t1 <- t1 + 1
-              msg <- ep.eye$raw %>% dplyr::filter(time == t1) %>% select(et.msg) %>% as.character()
-            }
-            instances[i,"time"] <- t1
-          }
-          ep.eye$raw <- ep.eye$raw %>% left_join(instances, by = c("eventn", "time")) %>%  mutate(et.msg = ifelse(!is.na(text), text, et.msg)) %>% select(-text)
         }
       }
       ep.eye$raw <- ep.eye$raw %>% select(-contains("btw_ev"))

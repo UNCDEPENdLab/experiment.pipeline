@@ -22,9 +22,9 @@ ep.eye_preprocess_gaze <- function(ep.eye,
                                    header = NULL){
   ## setup debug
   # ep.eye <- eye_parsed
-  aoi = config$definitions$eye$gaze_preproc$aoi
-  downsample = config$definitions$eye$gaze_preproc$downsample
-  header = "4. Preprocess gaze data:"
+  # aoi = config$definitions$eye$gaze_preproc$aoi
+  # downsample = config$definitions$eye$gaze_preproc$downsample
+  # header = "4. Preprocess gaze data:"
 
   log_chunk_header(header)
 
@@ -66,7 +66,8 @@ ep.eye_preprocess_gaze <- function(ep.eye,
   if(!is.null(downsample)){
     tryCatch.ep({
       ep.eye$gaze$downsample <- ep.eye_downsample(ep.eye$raw,
-                                                  downsample_factor = downsample$factor,
+                                                  sample.rate = ep.eye$metadata$sample.rate,
+                                                  downsampled_freq = downsample$downsampled_freq,
                                                   analog_channels = c("xp", "yp"),
                                                   method = downsample$method)
     }, describe_text = "- 4.4 Downsample gaze:")

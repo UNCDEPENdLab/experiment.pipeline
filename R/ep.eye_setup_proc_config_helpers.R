@@ -49,6 +49,18 @@ ep.eye_set_config_definitions <- function(file, config, field){
     }
     opts[["prefix"]] <- prefix
 
+    ### Set subjectID string. If a regex string is provided, extract from file name otherwise set to the prefix regex expression value
+    if (exists("subID")){
+      if (!is.null(subID)){
+        subID <- str_extract(basename(file), subID)
+      } else {
+        subID <- str_extract(basename(file), prefix)
+      }
+    } else {
+      subID <- str_extract(basename(file), prefix)
+    }
+    opts[["subID"]] <- subID
+
     ### Setup ep.eye log: initialize log file if requested. Otherwise will print feedback while running checks.
     ## N.B. right now this will overwrite existing files, can come back to later.
     if(exists("gen_log")) {
@@ -66,6 +78,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
     ### Setup folder to save preprocessed data: If none provided, creates directory "preproc" in working directory.
     if(exists("preproc_out") & opts[["save_preproc"]]){
       if(!is.null(preproc_out)) {
+        stopifnot(class(preproc_out) == "character")
           if(!dir.exists(preproc_out)) dir.create(preproc_out, recursive = TRUE)
       } else {
       dir.create("preproc")
@@ -139,11 +152,11 @@ ep.eye_set_config_definitions <- function(file, config, field){
 
       ### Downsampling
       if(!"downsample" %in% names(opts)) {
-        opts[["downsample"]][["factor"]] <- 20
+        opts[["downsample"]][["downsampled_freq"]] <- 50 # in Hz
         opts[["downsample"]][["method"]] <- "mean"
       } else{
         ### if a specific downsample field is missing, set to default
-        if(!"factor" %in% names(opts$downsample)) {opts[["downsample"]][["factor"]] <- 20}
+        if(!"downsampled_freq" %in% names(opts$downsample)) {opts[["downsample"]][["downsampled_freq"]] <- 50}
         if(!"method" %in% names(opts$downsample)) {opts[["downsample"]][["method"]] <- "mean"}
       }
 
@@ -156,7 +169,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts[["aoi"]][["extract_labs"]] <- "[a-z]+$"
       opts[["aoi"]][["split_coords"]] <- " "
       opts[["aoi"]][["tag_raw"]] <- FALSE
-      opts[["downsample"]][["factor"]] <- 20
+      opts[["downsample"]][["downsampled_freq"]] <- 50
       opts[["downsample"]][["method"]] <- "mean"
     }
     config[["definitions"]][["eye"]][["gaze_preproc"]] <- opts
@@ -209,11 +222,11 @@ ep.eye_set_config_definitions <- function(file, config, field){
 
       ### Downsampling
       if(!"downsample" %in% names(opts)) {
-        opts[["downsample"]][["factor"]] <- 50
+        opts[["downsample"]][["downsampled_freq"]] <- 20
         opts[["downsample"]][["method"]] <- "mean"
       } else{
         ### if a specific downsample field is missing, set to default
-        if(!"factor" %in% names(opts$downsample)) {opts[["downsample"]][["factor"]] <- 50}
+        if(!"downsampled_freq" %in% names(opts$downsample)) {opts[["downsample"]][["downsampled_freq"]] <- 20}
         if(!"method" %in% names(opts$downsample)) {opts[["downsample"]][["method"]] <- "mean"}
       }
 
@@ -229,7 +242,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts[["baseline_correction"]][["method"]] <- "subtract"
       opts[["baseline_correction"]][["dur_ms"]] <- 100
       opts[["baseline_correction"]][["center_on"]] <- "DISPLAY_ON"
-      opts[["downsample"]][["factor"]] <- 50
+      opts[["downsample"]][["downsampled_freq"]] <- 20
       opts[["downsample"]][["method"]] <- "mean"
     }
     config[["definitions"]][["eye"]][["pupil_preproc"]] <- opts

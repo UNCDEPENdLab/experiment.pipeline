@@ -54,7 +54,7 @@ ep.eye_add_aois <- function(ep.eye,
                             split_coords,
                             tag_raw = FALSE
                             ){
-  ### 4.1.1 pull AOI information into new columns by eventn
+  ### 4.2.1 pull AOI information into new columns by eventn
   # TODO add extraction_method = "data.frame" to allow user to pass pre-defined AOI information per event (e.g. if extracting via a regex isn't feasible)
   aoi_ref <- ep.eye_gen_aoi_ref(ep.eye,
                          indicator,
@@ -63,7 +63,7 @@ ep.eye_add_aois <- function(ep.eye,
                          split_coords,
                          dt = "-- 4.2.1 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
 
-  ### 4.1.2 tag gaze data with AOI_look field
+  ### 4.2.2 tag gaze data with AOI_look field
   ep.eye <- ep.eye_gen_aoi_look(ep.eye,
                          aoi_ref,
                          tag_raw,
@@ -94,11 +94,13 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
     aoi_ref <- data.frame()
 
     for(i in unique(ep.eye$raw$eventn)){
+      # i <- 1
       ev <- ep.eye$raw %>% dplyr::filter(eventn == i)
       aois <- ev$et.msg[grepl(indicator ,ev$et.msg)]
 
       # N.B. currently aoi coords are tagged as x1, y1, x2, y2 according to the extract_coords specification. This is not very flexible and will want to revisit this for sure.
       for (a in aois) {
+        # a <- aois[2]
         coords <- as.numeric(do.call(c, str_split(str_extract(a, extract_coords), split_coords)))
         lab <- str_extract(a, extract_labs)
         aoi_ref <- rbind(aoi_ref, data.frame(eventn = i,
@@ -149,7 +151,7 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
     ep.eye$gaze$sacc$aoi_end <- "."
     for (i in 1:nrow(ep.eye$gaze$sacc)) {
       # print(i)
-      i <- 1
+      # i <- 1
 
       evn <- ep.eye$gaze$sacc[[i,"eventn"]]
 
@@ -225,7 +227,8 @@ ep.eye_collapse_time <- function(ep.eye, dt){
 #' Downsample gaze and/or pupil data
 #'
 #' @param df data.table to downsample (usually this is ep.eye$raw)
-#' @param downsample_factor Numeric value indicating degree of downsampling. A factor of 50, collapses 50 measurements into 1, so it is important to be mindful of your sampling rate when selecting this value. Defaults to 50 (which moves a second of recording at 1000Hz to 20 measurements).
+#' @param sample.rate sampling rate of the eyetracker in Hz
+#' @param downsampled_freq Frequency of the downsampled data indicating degree of downsampling. It is important to be mindful of your sampling rate when selecting this value. Defaults to 20 (which moves a second of recording at 1000Hz to 20 measurements).
 #' @param digital_channels Character vector of columns in df that are integer values that should not be combined but blocked by.
 #' @param analog_channels Character vector of columns in df that are continually varying and should be summarized within the downsampling procdure (incl x and y gaze position and pupil size)
 #' @param char_channels Character vector of columns in df that represent values that should be combined if there are unique values within a downsampling block. If there are multiples within a downsampling block will paste them together with " || "
@@ -233,7 +236,8 @@ ep.eye_collapse_time <- function(ep.eye, dt){
 #'
 #' @export
 ep.eye_downsample <- function(df,
-                              downsample_factor=50,
+                              sample.rate=1000,
+                              downsampled_freq=20,
                               digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"),
                               analog_channels = c("xp", "yp", "ps"),
                               char_channels = c("et.msg", "block", "event"),
@@ -249,20 +253,20 @@ ep.eye_downsample <- function(df,
   # # dt = NULL
 
   #### checks
-  try({suppressWarnings(setDT(ep.eye$raw))}, silent = TRUE) # set df to data.table if not already.
+  try({suppressWarnings(setDT(df))}, silent = TRUE) # set df to data.table if not already.
   assert_data_table(df) #for now, we are using data.table objects, so DT syntax applies
-  assert_count(downsample_factor)
+  # assert_count(downsample_factor)
 
 
   t_cols <- c("time", "time_ev") #hard code single time column for now, dont see how this would need to be different. 4/2/21 include event-lock time start.
   d_cols <- digital_channels
   a_cols <- analog_channels
   c_cols <- char_channels
+  downsample_factor <- round(sample.rate/downsampled_freq, 0)
 
   ret_allevs <- data.table()
   for(ev in unique(df$eventn)){
     df_ev <- df %>% filter(eventn == ev) %>% mutate(time_ev = seq(0,n()-1, 1))
-
 
     #### Downsample time
     # tryCatch.ep({

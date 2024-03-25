@@ -21,6 +21,7 @@ Here, I demonstrate what the desired output from a user defined function will lo
 Importantly, `ep.eye_parse_events.R` is setup work on an `ep.eye` object that has been initialized above. So, to get the input for your function, perform configuration setup and initialize your `ep.eye` object:
 
 ```{r cache = TRUE, echo=FALSE}
+library(experiment.pipeline)
 ## these two calls are extracted right from the body pf ep.eye_process_subject.R
 config <- ep.eye_setup_proc_config(edf_path,
                                    config_path,

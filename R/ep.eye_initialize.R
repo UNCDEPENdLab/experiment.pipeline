@@ -4,6 +4,7 @@
 #' @param file Path to a single \code{.edf} file using \code{read_edf()}.
 #' @param expected_edf_fields Character vector of field names to enforce during initialization.
 #' @param task Character value with task name.
+#' @param subID Numeric value with subject ID
 #' @param gaze_events Character vector of field names to unify with \code{ep.eye_unify_gaze_events()}.
 #' @param confirm_correspondence Logical. Check for exact correspondence of unified gaze events stored in ep.eye$raw and ep.eye$sacc/fix/blink.
 #' @param meta_check List with $meta_vars, $meta_vals, and/or $recording_time fields.
@@ -24,12 +25,14 @@
 ep.eye_initialize <- function(file,
                               expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file"),
                               task = NULL,
+                              subID = NULL,
                               gaze_events = c("sacc", "fix", "blink"),
                               confirm_correspondence = FALSE,
                               meta_check = NULL,
                               inherit_btw_ev = NULL,
                               header = NULL,
                               ...){
+  # browser()
   ## debugging setup
   # library(tidyverse)
   # library(knitr)
@@ -50,6 +53,7 @@ ep.eye_initialize <- function(file,
   # meta_check = config$definitions$eye$initialize$meta_check
   # inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev
   # header = "2. Initialize ep.eye object:"
+  # subID
 
 
   log_chunk_header(header)
@@ -66,7 +70,7 @@ ep.eye_initialize <- function(file,
 
   ### 2.3 initialize basic eye object structure
   tryCatch.ep({
-    ep.eye <- ep.eye_setup_structure(eye, task = task)
+    ep.eye <- ep.eye_setup_structure(eye, task = task, subID = as.numeric(subID))
   }, describe_text = "- 2.3 Initialize ep.eye list structure:")
 
   ### 2.4 document entire recording session length (if this is very different from BAU this should get flagged later)
@@ -98,6 +102,7 @@ ep.eye_initialize <- function(file,
   tryCatch.ep({
     ep.eye <- ep.eye_backup <- ep.eye_rm_crinfo(ep.eye)
   }, "- 2.8 Remove cr.info column from raw data:")
+
 
   ### 2.9 Unify et.msgs into raw data.
   tryCatch.ep({

@@ -1,0 +1,180 @@
+################################
+task: Neighborhood
+################################
+runs:
+################################
+variable_mapping:
+  id: id
+  run:
+  phase:
+  block: block
+  trial: trial
+  run_trial:
+  block_trial: block_trial
+  event: event
+  condition: condition
+################################
+definitions:
+  behav: &behav #shared key mapping for behavior across blocks
+    response: key_pressed
+    valid: [space, None]
+    rt: rt
+    start_time: #key_resp_10.started
+    end_time: #key_resp_10.stopped
+  eye: &eye
+    global:
+      prefix: "\\d{3}_[[:upper:]]+"
+      subID: "^\\d{3}"
+      gen_log: TRUE 
+      # log_dir: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
+      # log_dir: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
+      log_dir: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
+      save_preproc: TRUE
+      # preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      # preproc_out: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      preproc_out: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      return_raw: TRUE # set to FALSE when processing multiple subjects to save memory in ep.eye_preproc data saved
+    initialize:
+      expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
+      unify_gaze_events:
+        gaze_events: ['sacc', 'fix', 'blink']
+        confirm_correspondence: FALSE # set to FALSE if processing multiple subjects as this is time consuming
+      meta_check:
+          meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']
+          meta_vals: ['1000', 'EyeLink 1000 Plus', 'TRUE', 'DIAMETER', '1920', '1080', '5.15']
+          recording_time: [1380, 420]
+      inherit_btw_ev:
+        #calibration_check:
+          #cal: ["!CAL CALIBRATION HV9"]
+          #val: ["!CAL VALIDATION HV9"]
+        move_to_within:
+          str: ["!MODE RECORD CR 1000 2 0 L", "TRIALID"] # '!MODE RECORD CR ...' gets regularly passed right at the beginning of a recording block/event
+          align_msg: ["", "!MODE RECORD CR 1000 2 0 L"]
+          pre_post: ["post", "post"]
+    msg_parse:  
+      # extract_event_func_path: '~/GitHub/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R' # if extraction method == "function" pass path to the function here.
+      # extract_event_func_path: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R'
+      extract_event_func_path: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_configs/Neighborhood/Neighborhood_extract_ev.R'
+      # csv_dir_path: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs' # if extraction method %in% c("csv", "function")  path to extract or write event csvs to.
+      # csv_dir_path: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs'
+      csv_dir_path: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/eye_event_csvs'
+      msg_seq:
+        msg_start: ["!MODE RECORD CR 1000 2 0 L", "TRIALID", "SYNCTIME", "!V IMGLOAD"]
+        msg_end: ["!V TRIAL_VAR", "TRIAL RESULT", "TRIAL "]
+        eval_middle: TRUE # smoosh certain event-specific (taken from below) messages in between the task-general beginning and end messages.
+        ordered: TRUE 
+    gaze_preproc:
+      aoi:
+        indicator: ["!V IAREA RECTANGLE"]
+        extraction_method: regex
+        extract_coords: ["\\d{3,4} \\d{3,4} \\d{3,4} \\d{3,4}"]
+        extract_labs: ["[a-z]+$"]
+        split_coords: " "
+        tag_raw: FALSE #unless there is some strong reason to need super-high resolution on AOI position (moving AOIs, which are not currently supported), this should be FALSE. Default is FALSE if not included in config.
+      downsample:
+        downsampled_freq: 50 # factor: 20
+        method: "mean"
+    pupil_preproc:
+      blink_corr:
+        ms_before: 150
+        ms_after: 150
+      filter:
+        method: "movingavg" #right now only moving average supported
+        window_length: 20 #n measurements to lookback while smoothing, gets passed to pracma::movavg. In ms.
+      interpolate:
+        algor: "stine"
+        maxgap: 250 ### in ms, will use the original sampling frequency and downsampling factor to convert to nmeasurements.
+      baseline_correction:
+        method: "subtract"
+        dur_ms: 100
+        center_on: "DISPLAY ON"
+      downsample:
+        downsampled_freq: 20 # factor: 50
+        method: "mean"
+    # qa: #coming soon!
+    #   msg_parse:
+    #     block_seq: TRUE # check if the block names extracted by the extract_event_fun is in sequence as in the blocks section below
+    #     event_seq: TRUE # check if the event names extracted by the extract_event_fun is in sequence based on the sequence mentioned in the blocks section
+    #   gaze:
+    #     na:
+    #       check: ["raw", "downsample"]
+    #       perc: 30
+    #       cols: ["xp", "yp"]
+    #   pupil:
+    #     na:
+    #       check: ["downsample"]
+    #       perc: 30
+    #       cols: ["ps_bc"] 
+  phys:
+################################
+blocks:
+  goToWin:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          parport_code: 79
+        eye:
+          # these will be event-specific messages that will fall between msg_start and msg_end
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+      fixation:
+        eye:
+          mid_msg: ["V IAREA RECTANGLE 1", "IQMARKER 22", "IQMARKER 30"] # 50 and 60 marker are not present in the fixation event detected but the next one because of 2 separate fixITI trials in Inquisit
+      feedback:
+        phys:
+          parport_code: 87
+        eye:  
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+  noGoToWin:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          parport_code: 84
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+      fixation:
+        eye:
+          mid_msg: ["V IAREA RECTANGLE 1", "IQMARKER 22", "IQMARKER 30"]
+      feedback:
+        phys:
+          parport_code: 92
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+  goToAvoid:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          parport_code: 85
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+      fixation:
+        eye:
+          mid_msg: ["V IAREA RECTANGLE 1", "IQMARKER 22", "IQMARKER 30"] # 50 and 60 marker are not present in the fixation event detected but the next one because of 2 separate fixITI trials in Inquisit
+      feedback:
+        phys:
+          parport_code: 93
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+  noGoToAvoid:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          parport_code: 86
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+      fixation:
+        eye:
+          mid_msg: ["V IAREA RECTANGLE 1", "IQMARKER 22", "IQMARKER 30"] # 50 and 60 marker are not present in the fixation event detected but the next one because of 2 separate fixITI trials in Inquisit
+      feedback:
+        phys:
+          parport_code: 94
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "!V IAREA RECTANGLE 4", "!V IAREA RECTANGLE 5",  "IQMARKER 22", "IQMARKER 30", "IQMARKER 50", "IQMARKER 60"] 
+

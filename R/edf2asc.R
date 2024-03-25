@@ -149,14 +149,20 @@ edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=
     }
   }
 
-  for (ff in edf_files) {
-    if (grepl('mac|win|linux', info$running, ignore.case = TRUE)) {
+  for (ff in edf_files){
+    # convert edf file to asc
+    if (grepl('mac|linux', info$running, ignore.case = TRUE)){ # mac OSX, Linux
       ## see R function shQuote() for help building the command line string.
       log <- system2(exe,
                      args = shQuote(paste(edf2asc_opts, ff), type = "cmd2"),
                      stdout = TRUE)
+    } else if (grepl('win', info$running, ignore.case = TRUE)){ # windows OS
+      op <- options("useFancyQuotes" = FALSE)
+      log <- system2(exe,
+                     args = paste(edf2asc_opts, dQuote(ff, op)),
+                     stdout = TRUE)
     } else {
-      stop("Only Mac OSX and Windows are supported currently.")
+      stop("Only Mac OSX, Linux and Windows are supported currently.")
     }
 
     if(exists("logfile")) logfile <- c(logfile, log)
@@ -164,7 +170,10 @@ edf2asc <- function(edf_files, edf2asc_opts="-y", asc_output_dir=NULL, gzip_asc=
 
     asc_file <- sub("\\.edf$", ".asc", ff)
 
-    if (gzip_asc) { system(paste("gzip", asc_file)) } #gzip asc file if requested
+    # gzip asc file if requested
+    if (gzip_asc) {
+      R.utils::gzip(asc_file, destname = paste0(asc_file, ".gz"), overwrite = TRUE, remove = TRUE) # TODO test this out
+    }
   }
 
   ## should wrap this in a 'try' block.

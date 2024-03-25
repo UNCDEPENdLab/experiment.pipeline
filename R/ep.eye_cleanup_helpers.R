@@ -5,6 +5,23 @@
 # - ep.eye_save_preproc()
 ############################
 
+#' Tag Event Time for Eye Data
+#'
+#' This function tags the event time for each eye-tracking event in the provided data.
+#' The function works on raw data, downsampled gaze and pupil data, and preprocessed pupil data.
+#' It also separately processes gaze event data including saccades, fixations, and blinks.
+#'
+#' @param ep.eye An object containing the eye tracking data to be processed.
+#'
+#' @return Returns the eye tracking data with event times tagged.
+#'
+#' @examples
+#' \dontrun{
+#' tagged_data <- ep.eye_tag_event_time(raw_eye_data)
+#' }
+#' @export
+#'
+#' @seealso \code{\link{right_join}}, \code{\link{mutate}}, \code{\link{select}}, \code{\link{group_by}}, \code{\link{summarise}}
 ep.eye_tag_event_time <- function(ep.eye){
 
   ################
@@ -87,6 +104,6 @@ ep.eye_save_preproc <- function(ep.eye,
       if(!dir.exists(out_dir)) dir.create(out_dir)
       spath <- file.path(out_dir, paste0(prefix, "_ep.eye.preproc.RData"))
     }
-    save(ep.eye, file = spath); 
+    save(ep.eye, file = spath);
     return(spath)
 }

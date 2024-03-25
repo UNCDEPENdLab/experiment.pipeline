@@ -25,11 +25,12 @@ ep.eye_parse_event_info <- function(ep.eye,
                                     csv_path = NULL,
                                     msg_seq,
                                     dt = NULL) {
+  # browser()
   cat(dt)
 
   ### 4.2.1: Generate data frame
-  tryCatch.ep({
     dt1 <- paste0("-- 3.1.1 Extracting eye events from user-supplied function (",basename(extract_event_func_path) ,"):")
+  tryCatch.ep({
 
     ev_f <- source(extract_event_func_path)$value
     # if csv_path is specified, save the outputs of function into this directory as csvs, otherwise, just read. As a sanity check it is good idea to write and review a couple csvs to see how the event extraction and renaming is working internally. If you are confident the extraction works in your function, go ahead and skip the write.
@@ -44,11 +45,13 @@ ep.eye_parse_event_info <- function(ep.eye,
     info_msgs <- suppressWarnings(info_msgs %>%
                                     mutate_all(type.convert) %>%
                                     mutate_if(is.factor, as.character))
+    # add info_msgs to metadata
+    ep.eye$metadata[["eye_trial_msgs"]] <- info_msgs
 
   },describe_text = dt1)
 
-  tryCatch.ep({
     dt2 <- "-- 3.1.2 Merge trial/event info to eye data:"
+  tryCatch.ep({
 
     non_join_colnames <- colnames(info_msgs)[which(!colnames(info_msgs) %in% c("eventn", "et.msg", "time"))]
 
@@ -94,7 +97,7 @@ ep.eye_parse_event_info <- function(ep.eye,
 ep.eye_validate_msg_seq <- function(ep.eye,
                                     msg_seq,
                                     dt){
-
+# browser()
   cat(dt)
 
   tryCatch.ep({
@@ -158,17 +161,21 @@ ep.eye_validate_msg_seq <- function(ep.eye,
 ep.eye_check_requested_msg <- function(ep.eye,
                                        msg_seq,
                                        eventnum){
+  # browser()
   eblock <- ep.eye$raw  %>% dplyr::filter(eventn == eventnum)
 
   # Generate vector of expected/requested messages to check within eventn i.
   check_these <- msg_seq[[unique(eblock$block)]][[unique(eblock$event)]] #for every eventn there should only be one block designation and one event designation.
 
+  msg_seq[["trial"]][[unique(eblock$event)]]
+
   # Generate vector of extracted messages as they appear in the edf file.
   extracted_msgs <- c()
   for(j in check_these){
     extracted_msgs <- rbind(extracted_msgs, eblock %>% dplyr::filter(grepl(j, et.msg)) %>% select(time, et.msg)) %>%
-      arrange(time) # arrange at the end ensures that extracted messages are stored in the order they appear in continuous time rather than the order they were requested (i.e. the j iterator)
+      arrange(time) %>% distinct()# arrange at the end ensures that extracted messages are stored in the order they appear in continuous time rather than the order they were requested (i.e. the j iterator)
   }
+
   # pull just the et.msgs
   extracted_msgs <- unique(extracted_msgs$et.msg)
 

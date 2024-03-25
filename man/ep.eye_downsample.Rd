@@ -6,7 +6,8 @@
 \usage{
 ep.eye_downsample(
   df,
-  downsample_factor = 50,
+  sample.rate = 1000,
+  downsampled_freq = 20,
   digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"),
   analog_channels = c("xp", "yp", "ps"),
   char_channels = c("et.msg", "block", "event"),
@@ -16,7 +17,9 @@ ep.eye_downsample(
 \arguments{
 \item{df}{data.table to downsample (usually this is ep.eye$raw)}
 
-\item{downsample_factor}{Numeric value indicating degree of downsampling. A factor of 50, collapses 50 measurements into 1, so it is important to be mindful of your sampling rate when selecting this value. Defaults to 50 (which moves a second of recording at 1000Hz to 20 measurements).}
+\item{sample.rate}{sampling rate of the eyetracker in Hz}
+
+\item{downsampled_freq}{Frequency of the downsampled data indicating degree of downsampling. It is important to be mindful of your sampling rate when selecting this value. Defaults to 20 (which moves a second of recording at 1000Hz to 20 measurements).}
 
 \item{digital_channels}{Character vector of columns in df that are integer values that should not be combined but blocked by.}
 

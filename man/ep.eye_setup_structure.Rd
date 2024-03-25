@@ -4,12 +4,14 @@
 \alias{ep.eye_setup_structure}
 \title{Setup ep.eye structure}
 \usage{
-ep.eye_setup_structure(eye, task = NULL)
+ep.eye_setup_structure(eye, task = NULL, subID = NULL)
 }
 \arguments{
 \item{eye}{Loaded .edf file from \code{read_edf}}
 
 \item{task}{Task name (character)}
+
+\item{subID}{subject ID (numeric)}
 }
 \value{
 ep.eye Initialized ep.eye structure. [DETAILS HERE].
