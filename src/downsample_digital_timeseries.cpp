@@ -1,5 +1,3 @@
-#define ARMA_NO_DEBUG
-
 #include <math.h>
 #include "RcppArmadillo.h"
 using namespace Rcpp;
@@ -33,18 +31,12 @@ using namespace arma;
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::export]]
 
-Rcpp::IntegerVector downsample_digital_timeseries(arma::uvec& x, int downsamp, bool demote_zeros = true) {
+Rcpp::IntegerVector downsample_digital_timeseries(const arma::uvec& x, int downsamp, bool demote_zeros = true) {
 
   int n = x.size();
-  //int rempast = n % downsamp;
-  //int rem = (downsamp - n % downsamp) % downsamp; //how many elements until the next boundary?
-
   int nchunks = ceil(static_cast<float>(n)/downsamp); //number of chunks
 
-  //cout << "Number of chunks: " << nchunks << ", remainder: " << rem << ", size of vec: " << x.size() << endl;
-  //cout << x << endl;
-
-  //arma::urowvec result(nchunks); //use the Rcpp result to avoid a 1xn return (i.e., matrix)
+  //use an Rcpp result to avoid a 1xn return (i.e., matrix) with arma::urowvec
   Rcpp::IntegerVector result(nchunks);
 
   int mode;
@@ -55,26 +47,33 @@ Rcpp::IntegerVector downsample_digital_timeseries(arma::uvec& x, int downsamp, b
 
   for (int i = 0; i < nchunks; i++) {
     nrem = std::min(n - 1, (i+1)*downsamp - 1);
-    arma::uvec this_chunk = arma::sort( x.elem(regspace<uvec>(i*downsamp, nrem)) );
-    //arma::uvec this_chunk = arma::sort( x.elem(linspace<uvec>(i*downsamp, std::min(n, (i+1)*downsamp - 1), std::min(rempast, downsamp))) );
 
-    //cout << this_chunk << endl;
+    // grab positions in x within this chunk and place in ascending order
+    arma::uvec this_chunk = arma::sort( x.elem(regspace<uvec>(i*downsamp, nrem)) );
+
     mode = this_chunk[0]; //initialize mode of chunk to first element of sorted vector
     largest_count = 0; //number to beat within this chunk
+
+    //Rcout << "This chunk size: " << this_chunk.size() << endl;
+    //Rcout << "Operative chunk: " << endl << this_chunk << endl;
 
     int j = 0;
     while (j < this_chunk.size()) {
       number = this_chunk[j];
       start  = j;
+      //Rcout << "j1: " << j << endl;
 
       //grouped loop over all values of this number
-      while(this_chunk[j] == number && j <= this_chunk.size()) { j++; }
+      while(this_chunk[j] == number && j < this_chunk.size()) { j++; }
+
+      //Rcout << "j2: " << j << endl;
 
       int this_count = j - start;
+      //Rcout << "this_count: " << this_count << endl;
 
       if (this_count > largest_count || (demote_zeros && mode == 0)) {
-        //cout << "start: " << start << ", j: " << j << endl;
-        //cout << "largest_count is: " << largest_count << ", this_count is: " << this_count << ", mode is now: " << number << endl << endl;
+        //Rcout << "start: " << start << ", j: " << j << endl;
+        //Rcout << "largest_count is: " << largest_count << ", this_count is: " << this_count << ", mode is now: " << number << endl << endl;
         mode = number;
         largest_count = this_count;
       }
@@ -88,7 +87,15 @@ Rcpp::IntegerVector downsample_digital_timeseries(arma::uvec& x, int downsamp, b
 }
 
 /*** R
-downsample_digital_timeseries(1:105, 10)
-downsample_digital_timeseries(c(rep(0, 5), rep(5, 22), rep(3, 26), rep(0, 15), 1:3), 10, FALSE)
-downsample_digital_timeseries(c(rep(0, 5), rep(5, 22), rep(3, 26), rep(0, 15), 1:3), 10, TRUE)
+#downsample_digital_timeseries(1:105, 10)
+#downsample_digital_timeseries(c(rep(0, 5), rep(5, 22), rep(3, 26), rep(0, 15), 1:3), 10, FALSE)
+vv <- c(rep(0, 5), rep(5, 22), rep(3, 26), rep(0, 15), 1:3)
+downsample_digital_timeseries(vv, 10, TRUE)
+
+#tt <- c(rep(10, 3), rep(5, 5), rep(2, 2), rep(0,9), sample(1:9, size=25, replace=TRUE))
+#downsample_digital_timeseries(tt, 6, TRUE)
+
+#tt <- c(sample(0:9, size=100, replace=TRUE))
+#downsample_digital_timeseries(tt, 10, TRUE)
+
 */

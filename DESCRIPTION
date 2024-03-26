@@ -11,16 +11,20 @@ Description: Generates a markdown or human readable format for
   clean data, concatenate data, single analysis, total analysis,
   and markdown generation.
 Imports:
-  parallel,
-  R.matlab,
-  eyelinker,
-  logging,
+  checkmate,
   config,
+  eyelinker,
+  imputeTS,
+  parallel,
+  pkgcond,
+  logging,  
   methods,
   utils,
-  checkmate,
+  R.matlab,
   Rcpp (>= 1.0.1),
-  rsleep
+  rsleep,
+  RHRV,
+  tictoc
 LinkingTo:
   Rcpp,
   RcppArmadillo
