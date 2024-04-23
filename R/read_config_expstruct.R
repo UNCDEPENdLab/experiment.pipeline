@@ -14,18 +14,19 @@
 #' @author Nidhi Desai
 #' 
 ## ---- run for development purpose ----
-# filepath <- "C:/Users/Nidhi/OneDrive - University of North Carolina at Chapel Hill/Documents/GitHub/experiment.pipeline/exp.physio_dev"
+filepath <- "C:/Users/Nidhi/OneDrive - University of North Carolina at Chapel Hill/Documents/GitHub/experiment.pipeline/exp.physio_dev"
 # setwd("C:/Users/Nidhi/OneDrive - University of North Carolina at Chapel Hill/Desktop/exp.physio_dev_temp_parked_here_temp_18th May 2023")
-# invisible(lapply(c("read_config_supplementary.R", "read_config_expstruct_helpers.R"), source))
-# source(file.path(filepath, "R/validate_exp_yaml.R"))
-# pacman::p_load(yaml, checkmate, tidyverse, stringr)
-# config_path <- file.path(filepath, "inst/extdata/ep_configs/weather/weather_all_modality_new_structure.yaml")
-# # config <- validate_exp_yaml(file.path(filepath, "inst/extdata/ep_configs/weather/weather_all_modality_new_structure.yaml"))
-# #if (if_null(expstruct$phases[[phase]]$event_seq) == "match_behav"){
-#   behav_file_path <- file.path(filepath, "inst/extdata/raw_data/weather/255_cc_weather_behav.iqdat")
-#   behav <- read.table(behav_file_path, sep="\t", header=TRUE) # iqdat are tab seperated files
-# #}
-# event_col <- "trialcode" # TODO later add code to pull this from config file
+setwd()
+invisible(lapply(c("read_config_supplementary.R", "read_config_expstruct_helpers.R"), source))
+source(file.path(filepath, "R/validate_exp_yaml.R"))
+pacman::p_load(yaml, checkmate, tidyverse, stringr)
+config_path <- file.path(filepath, "inst/extdata/ep_configs/weather/weather_all_modality_new_structure.yaml")
+# config <- validate_exp_yaml(file.path(filepath, "inst/extdata/ep_configs/weather/weather_all_modality_new_structure.yaml"))
+#if (if_null(expstruct$phases[[phase]]$event_seq) == "match_behav"){
+  behav_file_path <- file.path(filepath, "inst/extdata/raw_data/weather/255_cc_weather_behav.iqdat")
+  behav <- read.table(behav_file_path, sep="\t", header=TRUE) # iqdat are tab seperated files
+#}
+event_col <- "trialcode" # TODO later add code to pull this from config file
 
 
 read_config_expstruct <- function(config_path, behav = NULL){

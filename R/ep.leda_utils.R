@@ -7,6 +7,7 @@
 # - refresh_data()
 # -- trough2peak_analysis()
 # - add2log()
+# - divisors()
 ############################
 
 #' @title 
@@ -28,16 +29,16 @@ get_peaks <- function(data){
   start_idx <- which(ccd != 0)[1]
 
   if (length(start_idx) == 0){ # data == zeros(1,n)
-    output <- list(cccrimin = cccrimin, 
-                    cccrimax = cccrimax)
+    output <- list(cccrimin <- cccrimin, 
+                    cccrimax <- cccrimax)
     return(output)
   }
 
   cccri <- rep(0, length(ccd)) # zeros(1, length(ccd), 'uint32');
   cccriidx <- 2
-  csi <- sign(ccd[start_idx]) # currentsignum = current slope
+  csi <- sign(ccd[start_idx]) # currentsignum <- current slope
   signvec <- sign(ccd)
-  for (i in seq(start_idx+1, length(ccd), by = 1)){
+  for (i in seq(start_idx+1, length(ccd), by <- 1)){
     if (signvec[i] != csi){
       cccri[cccriidx] <- i
       cccriidx <- cccriidx + 1
@@ -46,12 +47,12 @@ get_peaks <- function(data){
   }
   
   if (cccriidx == 2){ # no peak as data is increasing only
-    output <- list(cccrimin = cccrimin, 
-                   cccrimax = cccrimax)
+    output <- list(cccrimin <- cccrimin, 
+                   cccrimax <- cccrimax)
     return(output)
   }
   
-  # if first extrema = maximum, insert minimum before
+  # if first extrema <- maximum, insert minimum before
   if (sign(ccd[start_idx]) == 1){
     predataidx <- c(start_idx:(cccri[2] - 1))
     mn <- min(data[predataidx])
@@ -69,11 +70,11 @@ get_peaks <- function(data){
   cccri <- cccri[(1+(cccri[1]==0)) : (cccriidx-1)]
   cccri <- sort(cccri)
   
-  cccrimin <- cccri[seq(1, length(cccri), by = 2)]  # list of minima
-  cccrimax <- cccri[seq(2, length(cccri), by = 2)]  # list of maxima
+  cccrimin <- cccri[seq(1, length(cccri), by <- 2)]  # list of minima
+  cccrimax <- cccri[seq(2, length(cccri), by <- 2)]  # list of maxima
   
-  output <- list(cccrimin = cccrimin, 
-                  cccrimax = cccrimax)
+  output <- list(min = cccrimin, 
+                  max = cccrimax)
   return(output)
 }
 
@@ -151,15 +152,51 @@ trough2peak_analysis <- function(refreshed_data){
   minL <- minL[1:length(maxL)]
   
   refreshed_data$trough2peakAnalysis <- list()
-  refreshed_data$trough2peakAnalysis$onset = t[minL]
-  refreshed_data$trough2peakAnalysis$peaktime = t[maxL]
-  refreshed_data$trough2peakAnalysis$onset_idx = minL
-  refreshed_data$trough2peakAnalysis$peaktime_idx = maxL
-  refreshed_data$trough2peakAnalysis$amp = ds[maxL] - ds[minL]
+  refreshed_data$trough2peakAnalysis$onset <- t[minL]
+  refreshed_data$trough2peakAnalysis$peaktime <- t[maxL]
+  refreshed_data$trough2peakAnalysis$onset_idx <- minL
+  refreshed_data$trough2peakAnalysis$peaktime_idx <- maxL
+  refreshed_data$trough2peakAnalysis$amp <- ds[maxL] - ds[minL]
   
   return(refreshed_data)
 }
 
 
+#' @title find all divisors of input value
+#' 
+#' @param input A value for which all divisors should be found
+#' 
+#' @author Nidhi Desai
+#' 
+divisors <- function(input){
+  
+  ps <- powerset(matlab::factors(input))
+  
+  d <- rep(0, length(ps))
+  for (i in 1:length(ps)){
+    d[i] <- prod(ps[[i]])
+  }
+  d <- c(1, unique(d)) # all divisors
+  d <- d[2:(length(d)-1)] # non trivial divisors
+  
+  return(d)
+}
 
 
+#' @title title list of all combinations of input vector
+#' 
+#' @param v list of prime factors
+#' 
+#' @author Nidhi Desai
+#' 
+powerset <- function(v){
+  ps <- list()
+  for (i in 1:length(v)){
+    s <- t(utils::combn(v,i)) # Generates all combinations of v elements taken i at a time
+    for (j in 1:nrow(s)){
+      # print(s[j,])
+      ps <- c(ps, list(s[j,]))
+    }
+  }
+  return (ps)
+}

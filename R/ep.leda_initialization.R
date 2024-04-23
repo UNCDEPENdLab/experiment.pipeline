@@ -24,7 +24,23 @@ leda.initialization <- function(ep.physio, phys_config){
   
   # 1.2 Extract relevant ledalab options from config file
   # TODO get these values from ep.physio and config file and add to leda structure below
+
+  ## Filtering
+  if (!is.null(phys_config$eda_preproc$filtering$filter_order)) {
+    leda$opts$filter$filter_order <- phys_config$eda_preproc$filtering$filter_order
+  }
+  if (!is.null(phys_config$eda_preproc$filtering$minFreq)) {
+    leda$opts$filter$minFreq <- phys_config$eda_preproc$filtering$min_freq
+  }
   
+  ## Smoothing
+  if (!is.null(phys_config$eda_preproc$smoothing$type)) {
+    leda$opts$smooth$type <- phys_config$eda_preproc$smoothing$type
+  }
+  if (!is.null(phys_config$eda_preproc$smoothing$width)) {
+    leda$opts$smooth$width <- phys_config$eda_preproc$smoothing$width
+  }
+
   ## Decomposition
   if (!is.null(phys_config$eda_preproc$decomposition$scr$scr_amp_threshold)) {
     leda$set$export$SCRmin_scr_output <- phys_config$eda_preproc$decomposition$scr$scr_amp_threshold
@@ -37,14 +53,11 @@ leda.initialization <- function(ep.physio, phys_config){
     leda$set$export$SCRend <- phys_config$eda_preproc$decomposition$scr$response_window[2]
   }
   
-  ## Filtering
-  if (!is.null(phys_config$eda_preproc$filtering$filter_order)) {
-    leda$opts$filter$filter_order <- phys_config$eda_preproc$filtering$filter_order
+  ## Optimization
+  if (!is.null(phys_config$eda_preproc$optimizing$num_start_values)){
+    leda$opts$optimize$nr_iv <- phys_config$eda_preproc$optimizing$num_start_values
   }
-  if (!is.null(phys_config$eda_preproc$filtering$minFreq)) {
-    leda$opts$filter$minFreq <- phys_config$eda_preproc$filtering$min_freq
-  }
-
+  
   return(leda)
 }
 

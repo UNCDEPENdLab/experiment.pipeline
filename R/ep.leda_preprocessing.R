@@ -7,6 +7,7 @@
 # -- smooth_adapt_wrapper()
 # --- smooth_adapt()
 # ---- smooth()
+# - leda.downsamp()
 ############################
 
 #' @title low-pass filtering
@@ -68,7 +69,7 @@ smooth_adapt_wrapper <- function(time_ts, eda_ts, Hz){ # this function is named 
   
   refreshed_data <- refresh_data(time_ts, eda_ts, Hz)
   winwidth_max <-  refreshed_data$Hz * 3
-  # plot(time_ts, eda_ts, ylim = c(9.8, 11.2)) # These plots look same with matlab at this point in the code
+  # plot(time_ts, eda_ts, ylim <- c(9.8, 11.2)) # These plots look same with matlab at this point in the code
   # print("inside adaptive smoothing")
   smooth_adapt_output <- smooth_adapt(eda_ts, 'gauss', winwidth_max, .00003)
   scs <- smooth_adapt_output$scs
@@ -122,7 +123,7 @@ smooth_adapt <- function(eda_ts, type, winwidth_max, err_crit){ # smooth_adapt.m
     # print(err_crit)
     if (abs(ce[i] - ce[i-1]) < err_crit){ # if difference in successive conductance error is less than error criteria
       reach_err_crit <- i
-      success = 1
+      success <- 1
       # print("crossed err_crit")
       break
     }
@@ -193,7 +194,7 @@ smooth <- function(eda_ts, winwidth, type = 'gauss'){
 smooth_non_adaptive <- function(eda_ts, width, type){ # matches the smooth_data.m function in matlab ledalab
   
   smoothed_signal <- smooth(eda_ts, width, type) # transpose scs if needed
-  # downsampling (type factor mean) may result in an additional offset = time(1), which will not be substracted (tim = time - offset) in order not to affect event times
+  # downsampling (type factor mean) may result in an additional offset <- time(1), which will not be substracted (tim <- time - offset) in order not to affect event times
 
   leda_smooth_output <- refresh_data(time_ts, smoothed_signal, Hz)
   leda_smooth_output$time_ts <- time_ts
@@ -206,4 +207,39 @@ smooth_non_adaptive <- function(eda_ts, width, type){ # matches the smooth_data.
   
 }
 
+
+#' @title downsampling function in ledalab
+#' 
+#' @param time_ts a vector of timestamps corresponding to the EDA signal.
+#' @param eda_ts a vector containing the EDA signal.
+#' @param fac downsample the data by this factor.
+#' @param type type of downsampling to perform, options: 'step' (default), 'mean', 'gauss'
+#' 
+#' @author Nidhi Desai
+#' 
+downsamp <- function(time_ts, eda_ts, fac, type = 'step'){
+  
+  N <- length(eda_ts) # samples
+  
+  if (grepl('step', type)){
+    time_ts <- time_ts[seq(1, length(time_ts), by = fac)]
+    eda_ts <- eda_ts[seq(1, length(eda_ts), by = fac)]
+  
+  } else if (grepl('mean', type)) {
+    time_ts <- time_ts[1:(length(time_ts) - mod(N, fac))]
+    dim(time_ts) <- c(fac, (length(time_ts)/fac))
+    time_ts <- colMeans(time_ts)
+    eda_ts <- eda_ts[1:(length(eda_ts) - mod(N, fac))] # reduce samples to match a multiple of <factor>
+    dim(eda_ts) <- c(fac, (length(eda_ts)/fac))
+    eda_ts <- colMeans(eda_ts) # Mean of <factor> succeeding samples
+    
+  } else if (grepl('gauss', type)){
+    time_ts <- time_ts[seq(1, length(time_ts), by = fac)]
+    eda_ts <- smooth(eda_ts, 2^fac, 'gauss')
+    eda_ts <- eda_ts[seq(1, length(eda_ts), by = fac)]
+  }
+  
+  downsampled_data <- list(time_ts = time_ts, eda_ts = eda_ts)
+  return(downsampled_data)
+}
 
