@@ -1,7 +1,7 @@
 
 ep.eye_process_subject <- function(edf_raw,
                                    config_path,
-                                   step = NULL
+                                   step = NULL,
                                    ...) {
   # debug:
   # -------------------------
@@ -114,9 +114,9 @@ ep.eye_process_subject <- function(edf_raw,
 
 
 
-
-
-# edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
-config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
-
-x <- ep.eye_process_subject(edf_raw, config_path = config_path, step = "config")
+#
+#
+# # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
+# config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
+#
+# x <- ep.eye_process_subject(edf_raw, config_path = config_path, step = "config")
