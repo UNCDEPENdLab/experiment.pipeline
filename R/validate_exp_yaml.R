@@ -51,8 +51,8 @@ validate_exp_events <- function(event_node) {
 
 }
 
-test_block <- function(subject, block_node) {
-  #subject will have $behav, $eye, $physio
-
-}
+# test_block <- function(subject, block_node) {
+#   #subject will have $behav, $eye, $physio
+#
+# }
 

@@ -179,7 +179,7 @@ definitions:
   eye: &eye
     global:
       prefix: "\\d{3}_[[:upper:]]+"
-      gen_log: TRUE
+      log: TRUE
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_preproc: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
@@ -279,7 +279,7 @@ definitions:
   eye: &eye
     global:
       prefix: "\\d{3}_[[:upper:]]+"
-      gen_log: TRUE
+      log: TRUE
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_preproc: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
@@ -310,11 +310,11 @@ sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(edf_path))
 ```
 
 
-- **`gen_log`**: Logical to determine whether to create an `.elog` file during processing. 
+- **`log`**: Logical to determine whether to create an `.elog` file during processing. 
   - **Defaults** to TRUE. If NULL or FALSE will print processing documentation to the console.  
 
 - **`log_dir`**: Path to the directory to store `.elog` files. 
-  - **Defaults** to NULL. If NULL and `gen_log` is TRUE will write to working directory. 
+  - **Defaults** to NULL. If NULL and `log` is TRUE will write to working directory. 
 
 - **`save_preproc`**: Logical to determine whether to attempt to save the preprocessed file. 
   - **Defaults** to TRUE.
@@ -339,7 +339,7 @@ definitions:
 ################################
 ```
 
-and achieve the same result since `save_preproc` and `gen_log` both default to TRUE.
+and achieve the same result since `save_preproc` and `log` both default to TRUE.
 
 ## `initialize`
 

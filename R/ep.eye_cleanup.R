@@ -61,7 +61,7 @@ ep.eye_cleanup <- function(ep.eye,
   }
 
   ### 6.5 close .elog
-  if(globals$gen_log){
+  if(globals$log){
   cat("- 6.5 Closing .elog: ep.eye preprocessing complete!\n--------------")
   sink(); #sink()
   }

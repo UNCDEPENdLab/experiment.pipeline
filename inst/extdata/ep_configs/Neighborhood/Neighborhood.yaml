@@ -24,8 +24,8 @@ definitions:
   eye: &eye
     global:
       prefix: "\\d{3}_[[:upper:]]+"
-      subID: "^\\d{3}"
-      gen_log: TRUE 
+      id: "^\\d{3}"
+      log: TRUE 
       # log_dir: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
       # log_dir: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
       log_dir: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'

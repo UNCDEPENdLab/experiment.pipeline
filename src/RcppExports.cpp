@@ -12,12 +12,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // downsample_digital_timeseries
-Rcpp::IntegerVector downsample_digital_timeseries(arma::uvec& x, int downsamp, bool demote_zeros);
+Rcpp::IntegerVector downsample_digital_timeseries(const arma::uvec& x, int downsamp, bool demote_zeros);
 RcppExport SEXP _experiment_pipeline_downsample_digital_timeseries(SEXP xSEXP, SEXP downsampSEXP, SEXP demote_zerosSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::uvec& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type downsamp(downsampSEXP);
     Rcpp::traits::input_parameter< bool >::type demote_zeros(demote_zerosSEXP);
     rcpp_result_gen = Rcpp::wrap(downsample_digital_timeseries(x, downsamp, demote_zeros));

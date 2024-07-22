@@ -1,117 +1,122 @@
-#' @title Read and process a single .edf file.
-#' @description This is the main worker function that processes a single subject through the ep.eye preprocessing pipeline. It takes as arguments the paths to an .edf file and corresponding configuration YAML file and exports a preprocessed ep.eye object for a single subject.
-#' @param file Path to the .edf file to process.
-#' @param config_path Path to corresponding .yml configuration file with processing instructions. Instructions on how to effectively set up a configuration file can be found [HERE].
-#' @param ... Optional arguments to pass to \code{read_edf.R} function.
-#' @return A fully processed ep.eye object. [DETAILS HERE]
-#' @details This function is ideally used within the \code{ep_batch_process_eye.R}
-#' @examples
-#'  \dontrun{
-#'    file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
-#'    config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
-#'    ep.eye <- read_process_eye(file, config_path)
-#'  }
-#' @author Nate Hall
-#'
-#' @importFrom tictoc tic toc
-#' @importFrom readr parse_number
-#'
-#' @export
-ep.eye_process_subject <- function(file, config_path, ...) {
 
-  ######################### load example files for debugging. comment when running full.
+ep.eye_process_subject <- function(edf_raw,
+                                   config_path,
+                                   step = NULL
+                                   ...) {
+  # debug:
+  # -------------------------
   # source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
   #  # Neighborhood - PSU
-  # file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
+  # ---------------------
+  # edf_raw <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
   # config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
   # # Sorting Mushrooms
-  #  file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye/010_AE_SortingMushrooms_Eye.edf"
+  # -------------------
+  #  edf_raw <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye/010_AE_SortingMushrooms_Eye.edf"
   #  config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Sorting_Mushrooms.yaml"
   # Neighborhood - UNC
 
-  # Dimensions + Threat
-  # file <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
-  # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
   #inst files come with package
+  # ---------------------------
   # edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/Neighborhood/Eye"), full.names = TRUE)
   # edf_files <- list.files(file.path(rprojroot::find_package_root_file(), "inst/extdata/raw_data/SortingMushrooms/Eye"), full.names = TRUE)
-  # file <- edf_files[3] # extract a single subject for example case
+  # edf_raw <- edf_files[3] # extract a single subject for example case
   # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/Neighborhood/Neighborhood.yaml")
   # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
-  pacman::p_load(tictoc, experiment.pipeline, readr, tidyverse, data.table)
 
-  ########################
+  # Dimensions + Threat
+  # -------------------
+  # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
+  # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
+  # step <- NULL
+  # devtools::load_all()
+  # -------------------------
+
+  library(tictoc)
+  library(readr)
+  library(tidyverse)
+  library(data.table)
+  library(yaml)
+  library(checkmate)
+  library(tryCatchLog)
+  library(nate.utils)
+  library(futile.logger)
 
   ######
   ### 1. Setup processing configuration variables and build block and event-specific message sequences.
   ######
-  tic("1. setup config time")
-  config <- ep.eye_setup_proc_config(file,
-                                     config_path,
-                                     header = "1. Setup Processing Options:")
-  toc()
-
-  ######
-  ### 2. Perform basic initial validation checks and compute new variables
-  ######
-  tic("2. init time")
-  eye_init <- ep.eye_initialize(file,
-                                expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
-                                task = config$task,
-                                subID = parse_number(config$definitions$eye$global$subID),
-                                gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
-                                confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
-                                meta_check = config$definitions$eye$initialize$meta_check,
-                                inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
-                                header = "2. Initialize ep.eye object:")
-  toc()
-
-  #########
-  ### 3. Parse eye messages from experiment.pipeline config file, specified in task yaml.
-  #########
-  if (is.null(config$definitions$eye$msg_parse)) {
-    cat("3. Parse task events: SKIP (Only generic read/validation of ep.eye object applied. No user-specified message parsing)")
-  } else{
-    tic("3. parse time")
-    eye_parsed  <- ep.eye_parse_events(eye_init,
-                                       extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
-                                       csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
-                                       msg_seq = config$definitions$eye$msg_parse$msg_seq,
-                                       header = "3. Parse task events:")
+  if (is.null(step) || step == "config") {
+    tic("1. setup config time")
+    config <- ep.eye_setup_proc_config(edf_raw,
+                                       config_path,
+                                       header = c("1. Setup Processing Options:",
+                                                  "-----------------------------",
+                                                  "- Review this output carefully!",
+                                                  "- Every ep.eye processing function takes config as an input.",
+                                                  "- Thus, config controls the behavior of every part of data processing moving forward!"))
+    # ep.outpath <- file.path(config$definitions$eye$global$base_dir, config$definitions$eye$global$log$log_dir, "config", config$id)
+    #
+    # saveRDS()
     toc()
+    if (!is.null(step)) return(eye_raw)
   }
 
-  #########
-  ### 4. Gaze preprocessing
-  #########
-  tic("4. gaze preproc time")
-  eye_gazePre <- ep.eye_preprocess_gaze(eye_parsed,
-                                                  aoi = config$definitions$eye$gaze_preproc$aoi,
-                                                  downsample = config$definitions$eye$gaze_preproc$downsample,
-                                                  header = "4. Gaze preprocessing:")
-  toc()
+  if (is.null(step) || step == "init") {
+    tic("2. init time")
+    eye_init <- ep.eye_initialize(eye_raw, config)
+    toc()
+    if (!is.null(step)) return(eye_init)
+  }
 
-  ######
-  ### 5 Pupil preprocessing.
-  ######
-  tic("5. pupil time")
-  eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
-                                        blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
-                                        filter = config$definitions$eye$pupil_preproc$filter,
-                                        interpolate = config$definitions$eye$pupil_preproc$interpolate,
-                                        baseline_correction = config$definitions$eye$pupil_preproc$baseline_correction,
-                                        downsample = config$definitions$eye$pupil_preproc$downsample,
-                                        header = "5. Pupil preprocessing:")
-  toc()
+  if (is.null(step) || step == "parse") {
+    tic("3. parse time")
+    eye_parsed <- ep.eye_parse_events(eye_init,
+                                      extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
+                                      csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
+                                      msg_seq = config$definitions$eye$msg_parse$msg_seq,
+                                      header = "3. Parse task events:")
+    toc()
+    if (!is.null(step)) return(eye_parsed)
+  }
 
-  # ######
-  # ### 6 Cleanup.
-  # ######
-  tic("6. cleanup time")
-  ep.eye_clean <- ep.eye_cleanup(eye_gaze_pupilPre,
-                                 globals = config$definitions$eye$global,
-                                 header = "6. Cleanup and export ep.eye: ")
-  toc()
+  if (is.null(step) || step == "gaze_preproc") {
+    tic("4. gaze preproc time")
+    eye_gazePre <- ep.eye_preprocess_gaze(eye_parsed,
+                                          aoi = config$definitions$eye$gaze_preproc$aoi,
+                                          downsample = config$definitions$eye$gaze_preproc$downsample,
+                                          header = "4. Gaze preprocessing:")
+    toc()
+    if (!is.null(step)) return(eye_gazePre)
+  }
 
-  return(ep.eye_clean)
+  if (is.null(step) || step == "pupil_preproc") {
+    tic("5. pupil time")
+    eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
+                                                 blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
+                                                 filter = config$definitions$eye$pupil_preproc$filter,
+                                                 interpolate = config$definitions$eye$pupil_preproc$interpolate,
+                                                 baseline_correction = config$definitions$eye$pupil_preproc$baseline_correction,
+                                                 downsample = config$definitions$eye$pupil_preproc$downsample,
+                                                 header = "5. Pupil preprocessing:")
+    toc()
+    if (!is.null(step)) return(eye_gaze_pupilPre)
+  }
+
+  if (is.null(step) || step == "cleanup") {
+    tic("6. cleanup time")
+    ep.eye_clean <- ep.eye_cleanup(eye_gaze_pupilPre,
+                                   globals = config$definitions$eye$global,
+                                   header = "6. Cleanup and export ep.eye: ")
+    toc()
+    return(ep.eye_clean)
+  }
 }
+
+
+
+
+
+# edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
+config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
+
+x <- ep.eye_process_subject(edf_raw, config_path = config_path, step = "config")

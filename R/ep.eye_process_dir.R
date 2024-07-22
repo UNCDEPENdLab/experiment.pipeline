@@ -4,7 +4,7 @@ process_eye_dir <- function(dir, # directory with all edf files. Should be label
                             yaml_file, # path to yaml
                             ncores = 1, # to aid parallelization
                             id = NULL, # if a string is passed, will use str_extract to pull this information from the edf path
-                            gen_log = TRUE,
+                            log = TRUE,
                             log_dir = NULL,
                             save_preproc = TRUE,
                             out_dir = NULL,
@@ -47,7 +47,7 @@ process_eye_dir <- function(dir, # directory with all edf files. Should be label
 
 
     out <- read_process_eye(file = sub, config = config, prefix = id,
-                            gen_log = gen_log, log_dir = log_dir,
+                            log = log, log_dir = log_dir,
                             save_preproc = save_preproc, out_dir = out_dir)
     out
   }

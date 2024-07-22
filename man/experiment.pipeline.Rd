@@ -2,6 +2,7 @@
 % Please edit documentation in R/experiment.pipeline-package.R
 \docType{package}
 \name{experiment.pipeline}
+\alias{experiment.pipeline-package}
 \alias{experiment.pipeline}
 \title{R package for processing multi-modal experiment data}
 \description{

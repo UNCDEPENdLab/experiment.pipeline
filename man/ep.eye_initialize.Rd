@@ -9,7 +9,7 @@ ep.eye_initialize(
   expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button",
     "info", "asc_file", "edf_file"),
   task = NULL,
-  subID = NULL,
+  id = NULL,
   gaze_events = c("sacc", "fix", "blink"),
   confirm_correspondence = FALSE,
   meta_check = NULL,
@@ -25,7 +25,7 @@ ep.eye_initialize(
 
 \item{task}{Character value with task name.}
 
-\item{subID}{Numeric value with subject ID}
+\item{id}{Numeric value with subject ID}
 
 \item{gaze_events}{Character vector of field names to unify with \code{ep.eye_unify_gaze_events()}.}
 

@@ -43,10 +43,11 @@ init_eyelog <- function(file, log_dir = NULL, prefix = NULL){
 #' @param code Chunk of code for tryCatch to evaluate. As in the TC documentation, multiple lines of code should be contained within curly brackets[{}].
 #' @param describe_text String containing standardized information about the significance of the code being run. This will print as COMPLETE for successful execution and ERROR and WARNING is something undesirable happens, while allowing code execution to continue below.
 #'
+#' @importFrom tryCatchLog tryCatchLog
 #' @export
 
-tryCatch.ep <- function(code, describe_text = NULL){
-    o <- tryCatch(code,
+tryCatch.ep <- function(code, describe_text = NULL, ...){
+    o <- tryCatchLog(code,
                   error = function(c) {
                     if(is.null(describe_text)){
                       cat("ERROR (", gsub("Error: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")
@@ -56,7 +57,8 @@ tryCatch.ep <- function(code, describe_text = NULL){
                     if(is.null(describe_text)){
                       cat("WARNING (", gsub("simpleWarning: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")
                     } else {cat(describe_text, " WARNING (", gsub("simpleWarning: ", "",gsub("\\n", "", as.character(c))),")\n", sep = "")}
-                    return(c)}
+                    return(c)},
+                  ...
     )
   # print complete if no error or warning
   if(!any(c("error", "warning") %in% class(o)) & !is.null(describe_text)) {cat(describe_text, " SUCCESS\n", sep = "")}

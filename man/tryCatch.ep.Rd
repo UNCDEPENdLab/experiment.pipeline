@@ -4,7 +4,7 @@
 \alias{tryCatch.ep}
 \title{TryCatch function to run subroutines with ease and standardized output.}
 \usage{
-tryCatch.ep(code, describe_text = NULL)
+tryCatch.ep(code, describe_text = NULL, ...)
 }
 \arguments{
 \item{code}{Chunk of code for tryCatch to evaluate. As in the TC documentation, multiple lines of code should be contained within curly brackets[{}].}

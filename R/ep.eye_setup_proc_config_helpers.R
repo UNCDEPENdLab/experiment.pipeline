@@ -17,20 +17,31 @@
 #' @importFrom stringr str_extract
 #'
 ep.eye_set_config_definitions <- function(file, config, field){
+  # debug:
+  # -----
+  # devtools::load_all()
+  # file <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
+  # config <- validate_exp_yaml("~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml")
+  # field <- "global"
+  # -----
 
   if(field == "global"){
     ################### GLOBAL
     ################### read processing options from config into environment. This is probably more complicated than it needs to be, but works fine for now.
-    opt_names <- c("prefix", "gen_log", "log_dir", "preproc_out", "return_raw")
+    opt_names <- c("base_dir", "prefix", "save_preproc", "preproc_out", "log")
 
     if("global" %in% names(config$definitions$eye)){
       opts <- config$definitions$eye$global
     } else{
       # if processing options are not specified, revert to default options.
       opts <- list()
-      opts[["gen_log"]] <- TRUE
+      opts[["base_dir"]] <- getwd()
+      opts[["prefix"]] <- "\\d{2,3}"
       opts[["save_preproc"]] <- TRUE
-      opts[["return_raw"]] <- FALSE
+      opts[["preproc_out"]] <- ppo <- file.path(getwd(), "preproc_out")
+      opts[["log"]] <- FALSE
+      # opts[["log"]] <- TRUE
+      # opts[["return_raw"]] <- FALSE
     }
 
     invisible(list2env(opts,  envir = environment()))
@@ -49,34 +60,12 @@ ep.eye_set_config_definitions <- function(file, config, field){
     }
     opts[["prefix"]] <- prefix
 
-    ### Set subjectID string. If a regex string is provided, extract from file name otherwise set to the prefix regex expression value
-    if (exists("subID")){
-      if (!is.null(subID)){
-        subID <- str_extract(basename(file), subID)
-      } else {
-        subID <- str_extract(basename(file), prefix)
-      }
-    } else {
-      subID <- str_extract(basename(file), prefix)
-    }
-    opts[["subID"]] <- subID
-
-    ### Setup ep.eye log: initialize log file if requested. Otherwise will print feedback while running checks.
-    ## N.B. right now this will overwrite existing files, can come back to later.
-    if(exists("gen_log")) {
-        if(gen_log){
-          if(!exists("log_dir")) {
-            log_dir <- getwd()
-          }
-        init_eyelog(file, log_dir, prefix)
-      }
-    }
-
-    if(!exists("save_preproc")) opts[["save_preproc"]] <- TRUE
-
+    ### Set subject ID string. If a regex string is provided, extract from file name otherwise set to the prefix regex expression value
+    id <- str_extract(basename(file), prefix)
+    opts[["id"]] <- id
 
     ### Setup folder to save preprocessed data: If none provided, creates directory "preproc" in working directory.
-    if(exists("preproc_out") & opts[["save_preproc"]]){
+    if(exists("preproc_out")){
       if(!is.null(preproc_out)) {
         stopifnot(class(preproc_out) == "character")
           if(!dir.exists(preproc_out)) dir.create(preproc_out, recursive = TRUE)
@@ -87,6 +76,47 @@ ep.eye_set_config_definitions <- function(file, config, field){
 
       opts[["preproc_out"]] <- preproc_out
     }
+
+    ### Setup ep.eye log: initialize log file if requested. Otherwise will print feedback while running checks.
+    ## N.B. right now this will overwrite existing files, can come back to later.
+    if(exists("log")) {
+      if(!"log_dir" %in% names(log)) {
+        log$log_dir <- file.path(getwd(), "log")
+      }
+      if(!"error_dump" %in% names(log)) {
+        log$error_dump <- file.path(getwd(), "error_dump")
+      }
+      if(!"silent.messages" %in% names(log)) {
+        log$silent.messages <- TRUE
+      }
+      if(!"silent.warnings" %in% names(log)) {
+        log$silent.warnings <- TRUE
+      }
+    # init_eyelog(file, log_dir, prefix)
+    } else {
+      log <- NULL
+    }
+    opts[["log"]] <- log
+
+    if(!exists("save_preproc")) opts[["save_preproc"]] <- TRUE
+
+
+
+    ### setup tryCatchLog options
+    if(exists("log")){
+
+      options(keep.source = TRUE)        # source code file name and line number tracking
+      options("tryCatchLog.write.error.dump.file" = TRUE) # dump for post-mortem analysis
+
+      slog <- file.path(config$definitions$eye$global$log$log_dir, "test.log")
+
+      flog.appender(appender.file(slog))  # to log into a file instead of console
+      flog.threshold(INFO)    # TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+
+      opts[["preproc_out"]] <- preproc_out
+    }
+
+
 
     ### Return raw data?
     if(!exists("return_raw")) opts[["return_raw"]] <- FALSE

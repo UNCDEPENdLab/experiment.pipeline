@@ -24,7 +24,7 @@ definitions:
   eye: &eye
     global:
       prefix: "\\d{3}_[[:upper:]]+"
-      gen_log: FALSE
+      log: FALSE
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_preproc: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'

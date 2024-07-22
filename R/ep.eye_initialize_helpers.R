@@ -17,7 +17,7 @@
 #'
 #' @param eye Loaded .edf file from \code{read_edf}
 #' @param task Task name (character)
-#' @param subID subject ID (numeric)
+#' @param id subject ID (numeric)
 #'
 #' @return ep.eye Initialized ep.eye structure. [DETAILS HERE].
 #' @author Nate Hall
@@ -25,7 +25,7 @@
 #' @importFrom data.table as.data.table data.table
 #'
 #' @export
-ep.eye_setup_structure <- function(eye, task = NULL, subID = NULL){
+ep.eye_setup_structure <- function(eye, task = NULL, id = NULL){
     ep.eye <- list(raw = eye$raw,
                msg = eye$msg,
                gaze = list(downsample = data.table(),
@@ -67,7 +67,7 @@ ep.eye_setup_structure <- function(eye, task = NULL, subID = NULL){
   # append edf filepath, task name and subjectID to metadata
   ep.eye[["metadata"]][["edf_file"]] <- eye$edf_file
   if(!is.null(task)) ep.eye[["metadata"]][["task"]] <- task
-  ep.eye[["metadata"]][["subID"]] <- subID
+  ep.eye[["metadata"]][["id"]] <- id
 
   class(ep.eye) <- c(class(eye), "ep.eye") #tag with ep.eye class
   return(ep.eye)

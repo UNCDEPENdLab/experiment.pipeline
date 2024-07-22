@@ -21,6 +21,7 @@
 #'
 #' @author
 #' Michael Hallquist \email{michael.hallquist@@gmail.com},
+#' Nate Hall \email{nate.hall329@gmail.com},
 #' Eric Roeum \email{evr5285@@psu.edu}
 #'
 #' Maintainer: Michael Hallquist \email{michael.hallquist@@gmail.com}
@@ -28,4 +29,4 @@
 #' @useDynLib experiment.pipeline, .registration = TRUE
 #' @importFrom utils packageDescription
 #' @importFrom Rcpp sourceCpp
-NULL
+"_PACKAGE"

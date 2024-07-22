@@ -4,12 +4,12 @@
 \alias{ep.eye_setup_proc_config}
 \title{Read and setup processing configuration}
 \usage{
-ep.eye_setup_proc_config(file, config_path, header = NULL)
+ep.eye_setup_proc_config(edf_raw, config_path, header = NULL)
 }
 \arguments{
-\item{file}{Path to the .edf file to process.}
-
 \item{config_path}{Path to corresponding .yml configuration file with processing instructions. Instructions on how to effectively set up a configuration file can be found [HERE].}
+
+\item{file}{Path to the .edf file to process.}
 }
 \value{
 Nested list with processing options pulled from .yml configuration file.
@@ -29,4 +29,6 @@ Also generates new log file using \code{sink()}, and sets  up a new directory fo
 Nate Hall
 
 importFrom stringr str_extract
+importFrom yaml read_yaml
+importFrom nate.utils print_tree
 }
