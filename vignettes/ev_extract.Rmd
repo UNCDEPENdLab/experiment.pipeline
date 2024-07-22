@@ -9,7 +9,7 @@ output:
     toc: true
       # theme: united
 vignette: >
-  %\VignetteIndexEntry{Setting up a YAML Configuration File for an Eyetracking Study in experiment.pipeline}
+  %\VignetteIndexEntry{Writing your own event extraction function}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
