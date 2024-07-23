@@ -128,6 +128,7 @@ ep.eye_process_subject <- function(edf_raw,
   if (is.null(step) || step == "parse") {
     tic("3. parse time")
     eye_parsed <- ep.eye_parse_events(eye_init,
+                                      config,
                                       extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
                                       csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
                                       msg_seq = config$definitions$eye$msg_parse$msg_seq,
@@ -139,6 +140,7 @@ ep.eye_process_subject <- function(edf_raw,
   if (is.null(step) || step == "gaze_preproc") {
     tic("4. gaze preproc time")
     eye_gazePre <- ep.eye_preprocess_gaze(eye_parsed,
+                                          config,
                                           aoi = config$definitions$eye$gaze_preproc$aoi,
                                           downsample = config$definitions$eye$gaze_preproc$downsample,
                                           header = "4. Gaze preprocessing:")
@@ -149,6 +151,7 @@ ep.eye_process_subject <- function(edf_raw,
   if (is.null(step) || step == "pupil_preproc") {
     tic("5. pupil time")
     eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
+                                                 config,
                                                  blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
                                                  filter = config$definitions$eye$pupil_preproc$filter,
                                                  interpolate = config$definitions$eye$pupil_preproc$interpolate,
@@ -162,6 +165,7 @@ ep.eye_process_subject <- function(edf_raw,
   if (is.null(step) || step == "cleanup") {
     tic("6. cleanup time")
     ep.eye_clean <- ep.eye_cleanup(eye_gaze_pupilPre,
+                                   config,
                                    globals = config$definitions$eye$global,
                                    header = "6. Cleanup and export ep.eye: ")
     toc()

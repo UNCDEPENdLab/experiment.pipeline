@@ -1,6 +1,7 @@
 #' @title Parse task config file, extracting essential task information
 
 #' @param ep.eye ep.eye object that has been previously initialized and tidied
+#' @param config config file
 #' @param extract_event_func_path Path to user-defined message parsing function here
 #' @param csv_path Path to write event .csvs to
 #' @param msg_seq List of optional message sequence arguments passed in config file. Can contain \code{msg_start}, \code{msg_end}, \code{eval_middle}, \code{ordered}. See the ep.eye_config vignette for details on these fields.
@@ -13,6 +14,7 @@
 
 
 ep.eye_parse_events <- function(ep.eye,
+                                config,
                                 extract_event_func_path,
                                 csv_path,
                                 msg_seq,

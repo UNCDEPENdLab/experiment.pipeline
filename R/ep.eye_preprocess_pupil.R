@@ -3,6 +3,7 @@
 #' This function preprocesses pupil data by extending blinks, filtering, interpolating, performing baseline correction, and downsampling the data.
 #'
 #' @param ep.eye A data object containing eye-tracking information.
+#' @param config config
 #' @param blink_corr A list containing parameters for blink correction: `ms_before` and `ms_after` specifying the milliseconds before and after a blink to be corrected.
 #' @param filter A list containing parameters for filtering: `method` and `window_length` specifying the method and window length for filtering.
 #' @param interpolate A list containing parameters for interpolation: `algor` and `maxgap` specifying the algorithm and maximum gap for interpolation.
@@ -17,6 +18,7 @@
 #' # Assuming `ep.eye`, `blink_corr`, `filter`, `interpolate`, `baseline_correction`, and `downsample` are defined:
 #' preprocessed_data <- ep.eye_preprocess_pupil(ep.eye, blink_corr, filter, interpolate, baseline_correction, downsample)
 ep.eye_preprocess_pupil <- function(ep.eye,
+                                    config,
                                     blink_corr,
                                     filter,
                                     interpolate,

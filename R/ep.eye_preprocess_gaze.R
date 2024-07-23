@@ -2,6 +2,7 @@
 #' @description Performs AOI tagging (within gaze event fields) and downsampling (within raw gaze data) of gaze data.
 #'
 #' @param ep.eye Path to a single \code{.edf} file using \code{read_edf()}.
+#' @param config config file
 #' @param aoi list of AOI options
 #' @param task Character value with task name. Contains $indicator, $extract_coords, $extract_labs, $split_coords
 #' @param downsample list of downsampling options. Contains $factor, and $method.
@@ -17,6 +18,7 @@
 #' @export
 
 ep.eye_preprocess_gaze <- function(ep.eye,
+                                   config,
                                    aoi,
                                    downsample,
                                    header = NULL){
