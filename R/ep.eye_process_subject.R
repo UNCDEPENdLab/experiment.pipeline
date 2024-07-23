@@ -1,3 +1,23 @@
+#' @title Read and process a single .edf file.
+#' @description This is the main worker function that processes a single subject through the ep.eye preprocessing pipeline. It takes as arguments the paths to an .edf file and corresponding configuration YAML file and exports a preprocessed ep.eye object for a single subject.
+#' @param file Path to the .edf file to process.
+#' @param config_path Path to corresponding .yml configuration file with processing instructions. Instructions on how to effectively set up a configuration file can be found [HERE].
+#' @param step complete preprocessing up to which step?
+#' @param ... Optional arguments to pass to \code{read_edf.R} function.
+#' @return A fully processed ep.eye object. [DETAILS HERE]
+#' @details This function is ideally used within the \code{ep_batch_process_eye.R}
+#' @examples
+#'  \dontrun{
+#'    file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
+#'    config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+#'    ep.eye <- read_process_eye(file, config_path)
+#'  }
+#' @author Nate Hall
+#'
+#' @importFrom tictoc tic toc
+#' @importFrom readr parse_number
+#'
+#' @export
 
 ep.eye_process_subject <- function(edf_raw,
                                    config_path,
@@ -26,10 +46,10 @@ ep.eye_process_subject <- function(edf_raw,
 
   # Dimensions + Threat
   # -------------------
+  # setwd("/Users/natehall/Documents/git_archive/github_repos/experiment.pipeline")
   # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
   # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
   # step <- NULL
-  # devtools::load_all()
   # -------------------------
 
   library(tictoc)
@@ -49,21 +69,58 @@ ep.eye_process_subject <- function(edf_raw,
     tic("1. setup config time")
     config <- ep.eye_setup_proc_config(edf_raw,
                                        config_path,
-                                       header = c("1. Setup Processing Options:",
-                                                  "-----------------------------",
+                                       header = c("1. Setup ep.eye Processing [config] Options:",
+                                                  "--------------------------------------------",
                                                   "- Review this output carefully!",
                                                   "- Every ep.eye processing function takes config as an input.",
                                                   "- Thus, config controls the behavior of every part of data processing moving forward!"))
-    # ep.outpath <- file.path(config$definitions$eye$global$base_dir, config$definitions$eye$global$log$log_dir, "config", config$id)
-    #
-    # saveRDS()
+    # do some session configuring
+    setwd(config$definitions$eye$global$base_dir)
+
+    options(keep.source = TRUE)        # source code file name and line number tracking
+    options("tryCatchLog.write.error.dump.file" = TRUE) # dump for post-mortem analysis
+    options("tryCatchLog.write.error.dump.folder" = config$definitions$eye$global$log$error_dump)
+
+    log_path <- file.path(config$definitions$eye$global$log$log_dir, paste0(config$definitions$eye$global$id, ".elog"))
+    if (file.exists(log_path) & !config$definitions$eye$global$log$append) {
+      file.remove(log_path)
+      flog.appender(appender.file(log_path))  # to log into a file instead of console
+    } else{
+      # keep appending to what exists
+      flog.appender(appender.file(log_path))  # to log into a file instead of console
+    }
+
+
+    flog.threshold(INFO)    # TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+
     toc()
     if (!is.null(step)) return(eye_raw)
   }
 
   if (is.null(step) || step == "init") {
     tic("2. init time")
-    eye_init <- ep.eye_initialize(eye_raw, config)
+    eye_init <- ep.eye_initialize(edf_raw,
+                                  config,
+                                  expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
+                                  task = config$task,
+                                  id = config$definitions$eye$global$id,
+                                  gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
+                                  confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
+                                  meta_check = config$definitions$eye$initialize$meta_check,
+                                  inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
+                                  header = c("2. Initialize ep.eye object:",
+                                             "-----------------------------",
+                                             "- Checks for expected edf fields (raw, sacc, fix, blinks, etc) and gets your ep.eye object setup",
+                                             "- This function also does some simple tidying/processing such as calculating the session recording length, checking",
+                                             "  that timestamps in the raw data do not have big gaps, and unifies raw and gaze event data by merging raw data with gaze events by",
+                                             "  generating unique gaze event numbers, merges them to raw data and validates that timestamps from raw and gaze event fields are in correspondence.",
+                                             "- From here, if there are messages passed to the eyetracker between recording events, pull these into the gaze data for this subject (see",
+                                             "  ep.eye_store_between_event_messages)",
+                                             "- Unifies messages into the raw data by merging message timestamps into the raw data",
+                                             "- Performs a check of the metadata (see config documentation)",
+                                             "- Shifts timestamps in raw and gaze events data to a zero start point"
+                                             )
+                                  )
     toc()
     if (!is.null(step)) return(eye_init)
   }
@@ -114,9 +171,4 @@ ep.eye_process_subject <- function(edf_raw,
 
 
 
-#
-#
-# # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
-# config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
-#
-# x <- ep.eye_process_subject(edf_raw, config_path = config_path, step = "config")
+

@@ -28,7 +28,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
   if(field == "global"){
     ################### GLOBAL
     ################### read processing options from config into environment. This is probably more complicated than it needs to be, but works fine for now.
-    opt_names <- c("base_dir", "prefix", "save_preproc", "preproc_out", "log")
+    opt_names <- c("base_dir", "prefix", "save_steps", "preproc_out", "log")
 
     if("global" %in% names(config$definitions$eye)){
       opts <- config$definitions$eye$global
@@ -37,7 +37,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
       opts <- list()
       opts[["base_dir"]] <- getwd()
       opts[["prefix"]] <- "\\d{2,3}"
-      opts[["save_preproc"]] <- TRUE
+      opts[["save_steps"]] <- TRUE
       opts[["preproc_out"]] <- ppo <- file.path(getwd(), "preproc_out")
       opts[["log"]] <- FALSE
       # opts[["log"]] <- TRUE
@@ -98,7 +98,7 @@ ep.eye_set_config_definitions <- function(file, config, field){
     }
     opts[["log"]] <- log
 
-    if(!exists("save_preproc")) opts[["save_preproc"]] <- TRUE
+    if(!exists("save_steps")) opts[["save_steps"]] <- TRUE
 
 
 

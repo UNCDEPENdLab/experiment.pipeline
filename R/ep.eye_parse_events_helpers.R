@@ -106,7 +106,10 @@ ep.eye_parse_event_info <- function(ep.eye,
 ep.eye_validate_msg_seq <- function(ep.eye,
                                     msg_seq,
                                     dt){
-# browser()
+# debug:
+# -----
+
+# -----
   cat(dt)
 
   tryCatch.ep({
@@ -170,7 +173,12 @@ ep.eye_validate_msg_seq <- function(ep.eye,
 ep.eye_check_requested_msg <- function(ep.eye,
                                        msg_seq,
                                        eventnum){
+  # debug:
+  # -----
+  # eventnum <- 1
+  # -----
   # browser()
+
   eblock <- ep.eye$raw  %>% dplyr::filter(eventn == eventnum)
 
   # Generate vector of expected/requested messages to check within eventn i.

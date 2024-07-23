@@ -29,7 +29,7 @@ definitions:
       # log_dir: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
       # log_dir: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
       log_dir: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
-      save_preproc: TRUE
+      save_steps: TRUE
       # preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       # preproc_out: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       preproc_out: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'

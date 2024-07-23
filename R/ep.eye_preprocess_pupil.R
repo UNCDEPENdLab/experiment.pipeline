@@ -67,5 +67,16 @@ ep.eye_preprocess_pupil <- function(ep.eye,
     }, describe_text = "- 5.5 Downsample pupil:")
   }
 
+  ### save preproc'ed ep.eye object to correct folder
+  if(config$definitions$eye$global$save_steps){
+    pupil_dir <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_preproc_pupil")
+    if(!dir.exists(pupil_dir)) {dir.create(pupil_dir, recursive = TRUE)}
+    subj_path <- file.path(pupil_dir, paste0(config$definitions$eye$global$id, ".rds"))
+    tryCatch.ep({
+      saveRDS(ep.eye, subj_path)
+    },
+    describe_text = paste0("- 5.6 Save preprocessed pupil ep.eye [", subj_path,"]:"))
+  }
+
   return(ep.eye)
 }

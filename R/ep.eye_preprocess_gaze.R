@@ -73,5 +73,17 @@ ep.eye_preprocess_gaze <- function(ep.eye,
     }, describe_text = "- 4.4 Downsample gaze:")
   }
 
+  ### save preproc'ed ep.eye object to correct folder
+  if(config$definitions$eye$global$save_steps){
+    preproc_dir <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_preproc_gaze")
+    if(!dir.exists(preproc_dir)) {dir.create(preproc_dir, recursive = TRUE)}
+    subj_path <- file.path(preproc_dir, paste0(config$definitions$eye$global$id, ".rds"))
+    tryCatch.ep({
+      saveRDS(ep.eye, subj_path)
+    },
+    describe_text = paste0("- 4.5 Save preprocessed ep.eye [", subj_path,"]:"))
+  }
+
+
   return(ep.eye)
 }

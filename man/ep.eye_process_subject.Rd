@@ -4,10 +4,12 @@
 \alias{ep.eye_process_subject}
 \title{Read and process a single .edf file.}
 \usage{
-ep.eye_process_subject(edf_raw, config_path, ...)
+ep.eye_process_subject(edf_raw, config_path, step = NULL, ...)
 }
 \arguments{
 \item{config_path}{Path to corresponding .yml configuration file with processing instructions. Instructions on how to effectively set up a configuration file can be found [HERE].}
+
+\item{step}{complete preprocessing up to which step?}
 
 \item{...}{Optional arguments to pass to \code{read_edf.R} function.}
 

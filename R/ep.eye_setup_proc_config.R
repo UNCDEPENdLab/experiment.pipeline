@@ -16,7 +16,9 @@
 #'
 #' @export
 
-ep.eye_setup_proc_config <- function(edf_raw, config_path, header = NULL){
+ep.eye_setup_proc_config <- function(edf_raw,
+                                     config_path,
+                                     header = NULL){
   # debug:
   # -----
   # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"

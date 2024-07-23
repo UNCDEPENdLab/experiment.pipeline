@@ -2,6 +2,7 @@
 #' @description This is a  generic function for initializing an \code{ep.eye} object and performing basic internal checks on the eye data, while remaining agnostic to task/behavior structure.
 #'
 #' @param file Path to a single \code{.edf} file using \code{read_edf()}.
+#' @param config configuration list
 #' @param expected_edf_fields Character vector of field names to enforce during initialization.
 #' @param task Character value with task name.
 #' @param id Numeric value with subject ID
@@ -23,6 +24,7 @@
 
 
 ep.eye_initialize <- function(file,
+                              config,
                               expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file", "edf_file"),
                               task = NULL,
                               id = NULL,
@@ -45,7 +47,7 @@ ep.eye_initialize <- function(file,
   # edf_path <-edf_files[1] # extract a single subject for example case
   # config_path <- file.path(rprojroot::find_package_root_file(), "inst/extdata/ep_configs/SortingMushrooms/SortingMushrooms.yaml")
   #
-  # file <- edf_path
+  # file <- edf_raw
   # expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields
   # task = config$task
   # gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events
@@ -56,7 +58,7 @@ ep.eye_initialize <- function(file,
   # id
 
 
-  log_chunk_header(header)
+  bannerCommenter::open_box(header) %>% cat()
 
   ### 2.1 Read EDF file
   tryCatch.ep({
@@ -132,6 +134,17 @@ ep.eye_initialize <- function(file,
                                      dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
+  }
+
+  ### save initialized ep.eye object to correct folder
+  if(config$definitions$eye$global$save_steps){
+    init_dir <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_initialize")
+    if(!dir.exists(init_dir)) {dir.create(init_dir, recursive = TRUE)}
+    subj_path <- file.path(init_dir, paste0(config$definitions$eye$global$id, ".rds"))
+    tryCatch.ep({
+      saveRDS(ep.eye, subj_path)
+    },
+    describe_text = paste0("- 2.13 Save ep.eye initialized object [", subj_path,"]:"))
   }
 
   return(ep.eye)

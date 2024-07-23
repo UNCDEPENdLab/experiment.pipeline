@@ -50,12 +50,24 @@ ep.eye_cleanup <- function(ep.eye,
   }, describe_text = "- 6.3 Tag with ep.eye.preproc class")
 
   ### 6.4 Save preprocessed data
-  if(globals$save_preproc){
-    tryCatch.ep({
-        spath <- ep.eye_save_preproc(ep.eye,
-                                     prefix = globals$prefix,
-                                     out_dir = globals$preproc_out)
-    }, describe_text = paste0("- 6.4 Saving preprocessed data: saved to '", spath, "':"))
+  if(globals$save_steps){
+    # tryCatch.ep({
+    #     spath <- ep.eye_save_preproc(ep.eye,
+    #                                  prefix = globals$prefix,
+    #                                  out_dir = globals$preproc_out)
+    # }, describe_text = paste0("- 6.4 Saving preprocessed data: saved to '", spath, "':"))
+
+    ### save preproc'ed ep.eye object to correct folder
+
+      preproc_dir_clean <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_preproc_gaze")
+      if(!dir.exists(preproc_dir_clean)) {dir.create(preproc_dir_clean, recursive = TRUE)}
+      subj_path <- file.path(preproc_dir_clean, paste0(config$definitions$eye$global$id, ".rds"))
+      tryCatch.ep({
+        saveRDS(ep.eye, subj_path)
+      },
+      describe_text = paste0("- 4.5 Save preprocessed + cleaned up ep.eye [", subj_path,"]:"))
+
+
   } else{
     cat("6.4 Saving preprocessed data: SKIP\n")
   }

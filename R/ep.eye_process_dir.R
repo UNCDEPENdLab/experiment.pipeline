@@ -6,7 +6,7 @@ process_eye_dir <- function(dir, # directory with all edf files. Should be label
                             id = NULL, # if a string is passed, will use str_extract to pull this information from the edf path
                             log = TRUE,
                             log_dir = NULL,
-                            save_preproc = TRUE,
+                            save_steps = TRUE,
                             out_dir = NULL,
                             event_info = NULL  ###### if event_info$extraction_method is data.frame, pass a function that will generate a data.frame. If csv, pass path to predefined .csv.
                             ){
@@ -48,7 +48,7 @@ process_eye_dir <- function(dir, # directory with all edf files. Should be label
 
     out <- read_process_eye(file = sub, config = config, prefix = id,
                             log = log, log_dir = log_dir,
-                            save_preproc = save_preproc, out_dir = out_dir)
+                            save_steps = save_steps, out_dir = out_dir)
     out
   }
 

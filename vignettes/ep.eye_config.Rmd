@@ -181,7 +181,7 @@ definitions:
       prefix: "\\d{3}_[[:upper:]]+"
       log: TRUE
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
-      save_preproc: FALSE
+      save_steps: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
       return_raw: TRUE
     initialize:
@@ -281,7 +281,7 @@ definitions:
       prefix: "\\d{3}_[[:upper:]]+"
       log: TRUE
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
-      save_preproc: FALSE
+      save_steps: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
       return_raw: TRUE
 ################################
@@ -316,7 +316,7 @@ sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(edf_path))
 - **`log_dir`**: Path to the directory to store `.elog` files. 
   - **Defaults** to NULL. If NULL and `log` is TRUE will write to working directory. 
 
-- **`save_preproc`**: Logical to determine whether to attempt to save the preprocessed file. 
+- **`save_steps`**: Logical to determine whether to attempt to save the preprocessed file. 
   - **Defaults** to TRUE.
 
 - **`preproc_out`**: Path to directory to store preprocessed `ep.eye` files. 
@@ -339,7 +339,7 @@ definitions:
 ################################
 ```
 
-and achieve the same result since `save_preproc` and `log` both default to TRUE.
+and achieve the same result since `save_steps` and `log` both default to TRUE.
 
 ## `initialize`
 

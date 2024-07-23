@@ -18,12 +18,14 @@ ep.eye_parse_events <- function(ep.eye,
                                 msg_seq,
                                 header = NULL) {
   # browser()
-  # debug
+  # debug:
+  # -----
   # ep.eye <- eye_init
   # extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path
   # csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv"))
   # msg_seq = config$definitions$eye$msg_parse$msg_seq
   # header = "3. Parse task events:"
+  # -----
 
 
   if (!"ep.eye" %in% class(ep.eye)) { stop("parse_config_eye expects a pre-initialized ep.eye object") }
@@ -45,6 +47,17 @@ ep.eye_parse_events <- function(ep.eye,
                                       dt = dt)
   } else{
     cat(paste0(dt, " SKIP\n"))
+  }
+
+  ### save initialized ep.eye object to correct folder
+  if(config$definitions$eye$global$save_steps){
+    parse_dir <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_parse_events")
+    if(!dir.exists(parse_dir)) {dir.create(parse_dir, recursive = TRUE)}
+    subj_path <- file.path(parse_dir, paste0(config$definitions$eye$global$id, ".rds"))
+    tryCatch.ep({
+      saveRDS(ep.eye, subj_path)
+    },
+    describe_text = paste0("- 3.3 Save ep.eye with events parsed [", subj_path,"]:"))
   }
 
   return(ep.eye)
