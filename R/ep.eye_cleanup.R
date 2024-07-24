@@ -52,7 +52,7 @@ ep.eye_cleanup <- function(ep.eye,
   }, describe_text = "- 6.3 Tag with ep.eye.preproc class")
 
   ### 6.4 Save preprocessed data
-  if(globals$save_steps){
+  if(config$definitions$eye$global$save_steps){
     # tryCatch.ep({
     #     spath <- ep.eye_save_preproc(ep.eye,
     #                                  prefix = globals$prefix,
@@ -75,7 +75,7 @@ ep.eye_cleanup <- function(ep.eye,
   }
 
   ### 6.5 close .elog
-  if(globals$log){
+  if(!is.null(config$definitions$eye$global$log)){
   cat("- 6.5 Closing .elog: ep.eye preprocessing complete!\n--------------")
   sink(); #sink()
   }
