@@ -1,0 +1,332 @@
+---
+title: "Setting up a Configuration File for a Physio Study in `experiment.pipeline`:  The `ep.phys` framework"
+author: "Nidhi Desai"
+date: "`r Sys.Date()`"
+
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+---
+
+# Expected behavioral data
+
+Each row contains one event inside a trial. Each column has different information regarding the trial and response times.
+
+The behavioral data file should contain columns for name of the event, name of the phase, duration of each event, column names which will be refered to in the exp_structure section of the config file. 
+
+```{r, eval = FALSE}
+################################
+behav:
+  eventid_column: trialcode 
+  phaseid_column: phaseName
+  event_dur_column: trialDur
+  behav_subset_var: [a = pavStimuliConditioning, b = stimuliSocialOrNot]
+################################
+```
+
+# Define experimental task structure
+
+experiment.pipeline can take the task structure as input and perform quality checks and pre-process behavior, physio and eye data. Task structure includes the events which contain information about stimuli, ttl-codes, eye-messages recieved by the physio and eye data, trials, blocks and phases. These information of the tasks can be provided in the config file in the exp_structure section. Using this structure experiment pipeline will perform quality checks on the behavioral data file, eye data and eye messages, ttl-codes eg. frequency, sequence. 
+
+
+The exp_structure section contains 5 main sub-fields which describe the task at different levels of hierarchy, events, trials, blocks, phases and exp.
+
+
+```{r, eval = FALSE}
+exp_structure: # experiment task structure
+  events:
+  trials:
+  blocks:
+  phases:
+  exp:
+```
+
+## events
+
+The events section will contain information about everything that is happening in an event. Examples of events in a task are stimuli displayed, response given by the participant, inter-trial interval, feedback displayed, etc. 
+
+Under the events sub-section, an event will be defined by the name of the stimuli being displayed. Separate events should be defined for each type of stimuli, feedback, responses possible. These event names will be used in upper level of hierarchy i.e. trials to form the structure of the trial. There are multiple options available to define the specifics about the event. These can be added after placing an indentation. These will added in <type of information> = <value>. The different types of information that can be added to an event are noted below:
+
+- **`eventid_val`**: the column name in the behav file which contains this event in behav data, if eventid_val is not mentioned then the name of the event (in the following example 's_csPlus_stimuli') will be assumed to be the column name in behav data.
+
+-**`behav_subset_val`**: In order to perform checks on the data, experiment pipeline will assume that behav data is the ground truth for event and trial sequences.
+'behav_subset_val' will subset the rows of behav data which pertains to this event. This will help perform checks on frequencies and sequences of ttl-codes and eye-messages. It is defined by a psuedo variable name/letter that a particular column gets assigned in the behav$behav_subset_var option. For example [a = 1] would indicate that the 'a' column in behav data (which in this example is pavStimuliConditioning) would have the value mentioned after the equal to sign, in rows corresponding to this event. Multiple columns can be used for filtering the rows for a particular event. These can be mentioned, separated by comma: [a = 1, b = 2].
+
+-**`ttl_code`**: the value of the ttl-code sent along with the physiological data to mark the event.
+
+-**`eye_mid_msg`**: message in the eye data can be sent during each event. These can be used to send the stimuli size information, stimuli display ON and OFF, time of response, etc. It is useful to add these messages to ensure that certain stimulus onset messages, choices, or other event-specific events occur within the eye data.
+
+```{r, eval = FALSE}
+events:
+  s_csPlus_stimuli:
+    eventid_val: pavStimuli
+    behav_subset_val: [a=1, b=1]
+    ttl_code: 190
+    eye_mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "IQMARKER 20"]
+```
+
+## trials
+
+The trials section will contain information about the events inside a trial, sequence of the events, different possible responses and their expected frequency and ttl-codes that will be sent at the beginning/end of a trial. A general trial structure will be as follows:
+
+```{r, eval = FALSE}
+trials: 
+  trial_name:
+    event_name:
+      def: <name of object defined in the event's sub-section>
+    stimuli:
+      def:
+    response:
+      option1:
+        def:
+      option2:
+        def:
+    feedback:
+      def: <event_name>
+    iti: # inter-trial time
+      def:
+```
+
+Here are the hierarchical definitions that can be used to define a trial:
+- **`trial_name`**: When defining a trial, inside the 'trials' section, you will mention the trial name. If there are conceptually different types of trial, for example goToWin vs noGoToWin in the Neighborhood task, they should have separate trials defined in this section. 
+
+- **`event_name`**: After the trial name, the name of events occurring in the trial will be added in their expected sequence. If the events don't change conceptually across different trials in one phase, the event name can be the same as it was defined in the 'events' section. If the event changes across trials, they should be defined by one name eg. show_face in the Neighborhood task, so that conceptually it makes sense that the event is a face being displayed. While the trial name eg. goToWin or noGoToWin will encompasses the type of experimental conditions. An event from the event's section can be referred inside a trial by either having the same event name or adding a 'def: <name from the event's section>'. This is equivalent to copying the entire event information from the event's section as an event inside a trial defined in the trial's section. If any information from the event defined in the event's sub-section needs to be changed for this particular trial, it can be mentioned below the 'def' or after the event name with an indentation eg.:
+`{r, echo = FALSE} 
+show_both_cs:
+  def: display_both_stimuli
+  ttl_code: 54
+response:
+    eye_mid_msg: ["!V IAREA RECTANGLE 1"]
+```
+
+- **`option<number>`**: Some events might have multiple possible stimuli or feedback that could be displayed. For example, in the response event the participant might have the option to press the left or right button, or in the feedback event one out of the multiple possible feedback will be shown based on the response given by the participant. In order to accomodate these situations, 'option<number>' provides a place to note these different possible stimuli in an event. The option<number> will be added under the event name, and the name of the stimuli will be added to 'def' under option<number>. Other information about the event can be mentioned below the 'def' option. 
+
+- **`ntrials`**: (Also refer to ntrials in the blocks sub-section) The main place to note the number of trials will inside the blocks sub-section when trial is referred. When there are different options mentioned inside an event in the trials sub-section, it might be useful to perform checks on the number of trials with each of these different options. In this case, 'ntrials: <expected number of trials>' can be mentioned under the option<number>. For example, trial_csPlus has ntrials: 6 in the blocks section, this indicates that the expected count of trial is 6 i.e. stimuli, response, feedback and iti, all events would have a count of 6. But if there are 2 options under feedback with ntrials: 2 under option1 and ntrials: 4 under option2, this would indicate that 2 trials will have the option1 feedback and 4 trials will have the option2 feedback to add to 6 trials with feedback. 
+
+Here is an example of a pavlovian trial:
+```{r, eval = FALSE}
+trials:
+  trial_csPlus:
+    show_cs: # events
+      def: s_csPlus_stimuli
+    feedback:
+      option1: 
+        ntrials: 2
+        def: sunny
+      option2:
+        ntrials: 4
+        def: thunder
+    pav_iti:
+      def: fixation
+```
+
+A special case is discussed below when there are 2 different sequence of events that could occur in a trial based on the response or a lack of response to the stimuli. For example, after the stimuli is displayed the participant is expected make a response. If no response is given, the task will ask them to respond and repeat the trial again. On the other hand, if a response is made, based on the response, a feedback will be displayed, followed by inter-trial interval. These two scenarios after the stimuli is displayed, can be added to the config file by using option<number>, where option1 will contain the repeat trial event and option2 will contain the events response, feedback and iti. Here is an example of a PIT trial where option<number> is used:
+```{r, eval = FALSE}
+trial_pit:
+  show_both_cs:
+    def: display_both_stimuli
+    ttl_code: 54
+  option1:
+    repeatPitTrial: 
+      def: repeat_trial
+  option2:
+    response:
+      option1:
+        def:
+        eventid_val: pitStimuli
+        behav_subset_val: [c=1, d=1]
+        ttl_code: 150
+      option2:
+        def: ns_csPlus_stimuli
+        eventid_val: pitStimuli
+        behav_subset_val: [c=1, d=2]
+        ttl_code: 171
+    feedback:
+      option1:
+        def: sunny
+        ttl_code: 175
+        eventid_val: pitSunnyFeedback
+      option2:
+        def: thunder 
+        ttl_code: 176
+        eventid_val: pitThunderFeedback
+    iti:
+      def: fixation
+      eventid_val: pitTrialITI
+```
+
+
+## blocks
+The blocks sub-section will provide information regarding different blocks in a task with trials information belonging to the block. Under the 'blocks:' section, the names of the blocks should be mentioned. A general block structure will be as follows:
+```{r, eval = FALSE}
+blocks:
+  block_name:
+    block_begin:
+      ttl_code:
+      eye_mid_msg:
+    block_seq_val:
+    ntrials:
+    trials:
+      trial_name:
+        def: 
+    block_end:
+      ttl_code:
+      eye_mid_msg:
+ ```
+
+**`block_name`**: The block name will be used in the next phases sub-section to refer to this block. If there are conceptually different types of blocks, for example nonSocial_conditioned_stimuli vs social_conditioned_stimuli in the Weather task, they should have separate blocks defined in this section. 
+
+**`block_begin or block_end`**: In physio and eye-tracking data, a marker can be sent along with the data to mark the beginning/end of a particular block. These ttl_code and eye_mid_msg can be mentioned in this section.
+
+**`block_seq_val`**: If the sequence of blocks varies across participants, block_seq_var and block_seq_val are useful properties of the config file. The block_seq variable can be set to match_behav, match_physio, match_eye. This will assume that the block sequence is correct in either the behavioral, physio or eye data respectively. If block_seq is not mentioned in the phases section, no checks will be performed on the sequence of blocks. If block_seq is defined, the block_seq_var will be required. When block_seq is set to match_behav, a variable/column of the behav data file needs to be mentioned in the block_seq_var. The variable/column's value should be changing with different blocks. The value corresponding to each block should be mentioned in behav_seq_val. 
+#### TODO match_physio and match_eye still needs to be figured out and added to the pipeline.
+
+**`ntrials`**: The expected number of trials in a block can be mentioned here. experiment.pipeline will perform check for completeness of behav, physio, eye-tracking (if markers are sent) data using value. ntrials can be an integer, a range mentioned in the format "[min_value, max_value]", "< max_value_only", "<= max_value_only", "> min_value_only", ">= min_value_only"
+
+**`trials`**: The names of the trials should be places under this sub-section in sequence. If any part of the trial needs to be changed from their original definition in the trials section, that can be added under the trial name.
+
+Here is an example of a block:
+
+```{r, echo = FALSE}
+ns_csPlus: 
+  block_begin:
+    ttl_code: 62
+  block_seq_val: [b=2, a=1]
+  ntrials: 6
+  trials:
+    trial_csPlus:
+      show_cs:
+        def: ns_csPlus_stimuli
+        ttl_code: 96
+```
+
+Note: If there is a need to change a value in one event in a trial, the entire sequence of trial, event, stimuli and the information that needs to be changed should be added under the <block_name>$trials. For example, the trial_csPlus in the example provided below:
+```{r, echo = FALSE}
+ns_csPlus: 
+  block_begin:
+    ttl_code: 62
+  block_seq_val: [b=2, a=1]
+  ntrials: 6
+  trials:
+    trial_csPlus:
+      show_cs:
+        def: ns_csPlus_stimuli
+        ttl_code: 96
+```
+
+
+## phases
+The phases sub-section will provide information regarding different phases in a task in blocks information belonging to the phase. Under the 'phases:' section, the names of the phases should be mentioned. A general phase structure will be as follows:
+```{r, eval = FALSE}
+phases:
+  <phase_name>:
+    phys:
+      phase_begin_ttl:
+      eval_ttl_freq:
+      eval_ttl_seq:
+    block_seq:
+    block_seq_var:
+    consecutive_trials:
+    blocks:
+      <block_name>:
+        nblocks:
+```
+
+**`phase_name`**: The name of the phase will be used to the build the experiment in the next section. 
+
+**`phys`**: experiment.pipeline will perform validations on the physio data and ttl-codes. There are 4 information that can be provided under phys. These would provide information on how to evaluate ttl-codes frequency and sequence. Detailed explaination of the information that can be provided is mentioned below.
+
+**`phase_begin_ttl or phase_end_ttl`**: Markers can be sent in the physio data as ttl-codes at the beginning and end of a phase. These integer ttl-codes can be mentioned here for validation of the data.
+
+**`eval_ttl_freq`**: This option informs experiment.pipeline which datastream should be used as ground-truth to evaluate and validate frequency of the ttl-codes sent along with physio data. If this is set to match_config, the pipeline will calculate the expected frequency of ttl-codes from the task information provided in the config file and validate the actual frequency of ttl-codes against this data. If this is set to match_behav, the expected frequency will be calculated by based on the trials/phases the ttl-code are sent in which are defined in the exp_structure config file and the actual sequence of trials/phases in the behav datafile.
+
+**`eval_ttl_seq`**: experiment.pipeline checks the sequence of the ttl-codes. This option provides information about the datastream which should be considered as ground-truth while evaluating the expected ttl-code sequence. If this is set to match_config, the sequence of trials/blocks/phases and the ttl-codes defined in the exp_structure section in the config file will be used to perform the sequence checks. If this is set to match_behav, the sequence trials/blocks/phases will be used to determine the expected sequence of ttl-codes.
+
+**`block_seq`**: experiment.pipeline performs checks on the sequence of blocks in a phase if block_seq option is metioned in the config file. If this value is set to match_config, the expected sequence of blocks will be calculated using the exp_structure section of the config file. In case, the sequence of blocks changes for each participant, the match_config won't be useful. Therefore, the behav datafile can be used the calculate the expected sequence of blocks by mentioning match_behav in block_seq.
+
+**`block_seq_var`**: If block_seq is defined inside a phase and it is set to match_behav, the pipeline requires names of columns in the behav datafile which provides the information on which blocks each row of data belong to. Expected block sequence is determined by 
+
+**`consecutive_trials`**: Trials from one type of block are run in sequence with each other. But some experiments might have trials from different types of block interleaved, leading to the trial not being run sequentially. experiment.pipeline will perform checks on the sequence of trials. The consecutive_trials option is set default to TRUE. Therefore, the pipeline will throw an error if the actual trials' data is not sequential. In case the blocks are interleaved, setting consecutiv_trials to FALSE will avoid this false error.
+
+**`blocks`**: The name of the blocks should be mentioned here. If a block defined in the blocks section is referred without any changes, it should be followed by default like `r <block_name>: default`. If the sequence of blocks is fixed, they should be mentioned in that sequence. If the sequence is not fixed, please refer the description under block_seq. experiment.pipeline has a default of checking the sequence of blocks in the format they are mentioned in the blocks section of the config file. Therefore, if the blocks are not in sequence, not mentioning block_seq will lead to false issues shown in quality checks. If you would prefer not to have the sequence of blocks checked mentioned 'block_seq: None'.
+
+**`nblocks`**: nblocks can be defined under the name of each type of block. It mentions the expected number of one type of block. If nothing is mentioned, the assumption is that nblocks is 1. 
+
+
+## exp
+
+The 'exp' section is the last one in the exp_structure. This provides information regarding any data collected at the beginning/end of the task and also phases.
+The following is an example of a exp section:
+
+```{r, echo = FALSE}
+exp:
+  exp_begin: 
+    ttl_code: 160
+    eye_msg: "1055(?<subid>[0,9]{3})(?<groupid>[0,9]{2})(?<sessionid>[0,9]{1})"
+  phases:
+    pav: default
+    pit: default
+  exp_end:
+    ttl_code: 210
+    eye_msg: "70"
+```
+
+Here are the hierarchical definitions that can be used to define exp:
+
+**`exp_begin`**: markers that are sent from the task computer to other modalities like eye-tracking or physio will be noted here. This will be used to splice the data to the time periods of this task. 
+
+**`phases`**: The name of the phases defined in the phases sub-section should be added here in the correct sequence. If there are not changes to be made to the above defined phases, the name of the phase should be accompanied by default, eg. pav: default. In case there are some information about the phase that needs to be changed, it can be added below the phase name. If one information right after the phase name in phases sub-section needs to be changed, it can be added below the phase name in the exp section. For example:
+```{r, echo = FALSE}
+phase:
+  ...
+  pit:
+    block_seq_var: e
+  ...
+
+  exp:
+    phases:
+      pit:
+        block_seq_var: d
+```
+But if the information is at a more deeper hierarchical level, the entire information before it needs to be added again. For example:
+```{r, echo = FALSE}
+phase:
+  ...
+  pit:
+    phys:
+      phase_begin_ttl: 162
+      eval_ttl_freq: match_config
+      eval_ttl_seq: match_config
+
+exp:
+  phases:
+    pit:
+      phys:
+        phase_begin_ttl: 89
+        eval_ttl_freq: match_config
+        eval_ttl_seq: match_config
+```
+
+**`exp_end`**: similar to 'exp_begin', markers that are sent at the end of the task can be places here.
+
+
+
+NOTE: If an event/trial/block defined initially is referred to later on in the config file and there are no changes required in them, they can be referred using 
+```{r, echo = FALSE}
+<new trial/block/phase name>: 
+  def: <previous event/trial/block> 
+```
+
+
+
+
+THINGS NOT ADDED TO THIS DOCUMENT YET
+(1) <<: *trial_pav &trial_pav - referencing the a trial defined previously
+(2) nevents in a trial (check vending machine config)  # default nevents being 1, can be an interger, range, >, <, >=, <=
+(3) Replacing one sub-section of a trial and not the entire trial when it is referred in another trial or blocks section.
+
+
+
+
+
+behav_eventid in the exptd_trial table which comes from eventid_val in config file needs to match the behav datafile value in eventid_column column

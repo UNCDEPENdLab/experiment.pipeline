@@ -1,0 +1,108 @@
+################################
+task: Neighborhood
+################################
+runs:
+################################
+variable_mapping:
+  id: id
+  run:
+  phase:
+  block: block
+  trial: trial
+  run_trial:
+  block_trial: block_trial
+  event: event
+  condition: condition
+################################
+definitions:
+  physio:
+    global:
+      prefix: "\\d{3}_[[:upper:]]+"
+      gen_log: TRUE
+      log_dir: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/elog'
+      save_preproc: TRUE
+      preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
+      return_raw: TRUE
+    initialize:
+      ttl_code_task:
+        task_start: 157 # This will be used as input to splice_physio function to separate data for current task
+        task_end: 207
+        zero_code: 0
+        eval_middle: TRUE # smoosh certain event-specific messages (taken from blocks section below) in between the task-general beginning and end messages.
+        ordered: TRUE 
+      meta_check:
+          meta_vars: ['sampling_rate', 'max_channel_rate']
+          meta_vals: ['2000', '2000']
+          recording_time: [1300, 500] # TODO change this value based on actual task timings
+    ecg_preproc:
+      spike_algorithm:
+      spike_call:
+    eda_preproc:
+      ledalab_tau:
+      downsample:
+        factor:
+        method: 
+      filtering:
+      scl:  
+        scl_range: 2,20 # in microsiemens (uS)
+      scr:
+        amp_threshold: 0.01 # in muS
+        response window: 1,3 # in seconds
+################################
+blocks: # TODO fill eye mid_msg section when have more knowledge of eye$raw messages structure
+  goToWin:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          ttl_code: 79
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "!V IAREA RECTANGLE 3", "mouse on", "DISPLAY OFF"] #these will be event-specific messages that will fall between msg_start and msg_end
+      feedback:
+        phys:
+          ttl_code: 87
+        eye:  
+          mid_msg: ["!V IAREA RECTANGLE 1", "DISPLAY OFF",]
+  noGoToWin:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          ttl_code: 84
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1"]
+      feedback:
+        phys:
+          ttl_code: 92
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "DISPLAY OFF"]
+  goToAvoid:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          ttl_code: 85
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1"]
+      feedback:
+        phys:
+          ttl_code: 93
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "mouse on", "DISPLAY OFF"]
+  noGoToAvoid:
+    ntrials: 40
+    behav: *behav
+    events:
+      face:
+        phys:
+          ttl_code: 86
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1"]
+      feedback:
+        phys:
+          ttl_code: 94
+        eye:
+          mid_msg: ["!V IAREA RECTANGLE 1", "!V IAREA RECTANGLE 2", "mouse on", "DISPLAY OFF"]

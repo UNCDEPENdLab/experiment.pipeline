@@ -9,8 +9,10 @@ validate_exp_yaml <- function(yaml_file) {
   yy <- read_yaml(yaml_file)
 
   reqnames <- c("task", "variable_mapping",
-                "runs", "blocks")
+                "runs", "exp_structure")
 
+  # TODO add to check if other required global things exist in the yaml file
+  
   #NH: is this required to validate the yaml?
   optnames <- c("definitions") #aliases for reused snippets/nodes.
 
