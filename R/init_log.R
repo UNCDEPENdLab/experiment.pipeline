@@ -1,3 +1,17 @@
+#' @title Initializes .plog
+#' @description .plog files uses \code{sink()} to create a .txt file which will store physio-specific messages about how QA checks are going.
+#' @param file Path to the .edf file to process.
+#' @param log_dir Path to directory to store .plog. If NULL (default) will write to current directory.
+#' 
+#' @author Nidhi Desai
+#' 
+#' @export
+init_phylog <- function(file, log_dir = NULL, prefix = NULL){
+  
+}
+
+
+
 #' @title Initializes .elog
 #' @description .elog files uses \code{sink()} to create a .txt file which will store eye-specific messages about how QA checks are going.
 #' @param file Path to the .edf file to process.

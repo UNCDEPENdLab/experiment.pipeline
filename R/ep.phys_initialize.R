@@ -18,7 +18,7 @@ ep.phys_initialize <- function(file,
                                task = NULL,
                                config_ecg,
                                config_eda,
-                               ttl_code_task = NULL,
+                               ttl_codes_task = NULL, # TODO this needs the value of splice_data from initialization
                                meta_check = NULL
                                ){
   ### 2.1 Read ACQ file
@@ -27,22 +27,23 @@ ep.phys_initialize <- function(file,
                         acq2hdf5_location = "~/Library/Python/3.7/bin/acq2hdf5")
   
   ### 2.2 initialize basic physio object structure
-  ep.physio <- ep.phys_setup_structure(phys_data, 
-                                       config_ecg = config_ecg,
-                                       config_eda = config_eda,
-                                       task = task)
+  ep.physio <- ep.phys_setup_data_structure(phys_data, 
+                                            config_ecg = config_ecg,
+                                            config_eda = config_eda,
+                                            task = task)
   
   ### 2.3. Recode TTL code vector to reflect changes in the value, compute onsets and offsets, add labels to the codes
   ep.physio <- augment_ttl_details(ep.physio,
-                                   zero_code = ttl_code_task$zero_code,
-                                   code_labels_df = config$proc_config$code_labels_df) # TODO need to figure how to input this from config file config$proc_config$code_labels_df
+                                   zero_code = ttl_codes_task$zero_code,
+                                   code_labels_df = ttl_codes_task$info) # TODO need to figure how to input this from config file config$proc_config$code_labels_df
   
   ### 2.3 Splice an ep.physio object to only the current task
-  if (ttl_code_task$splice_data == 1){ # do we need to splice the data for the specific task incase of physio data collected for longer time than the task itself?
+  if (ttl_codes_task$splice_data == 1){ # do we need to splice the data for the specific task incase of physio data collected for longer time than the task itself?
     ep.physio <- splice_physio(ep.physio,
-                               start_code = ttl_code_task$start_task_code,
-                               end_code = ttl_code_task$end_task_code,
-                               other_codes = ttl_code_task$all_mid_codes)
+                               start_code = ttl_codes_task$start_task_code,
+                               end_code = ttl_codes_task$end_task_code,
+                               other_codes = ttl_codes_task$all_mid_codes)
+    # TODO in the ep.phys_build_ttl_seq() function, add mid_ttl_codes to ttl_codes_task$all_mid_codes
   }
 
   ### 2.4 calculate task recording length
@@ -63,7 +64,8 @@ ep.phys_initialize <- function(file,
   }
   
   ### 2.6 
-  ep.physio <- ep.phys_validate_ttl_codes(ep.physio)
+  ep.physio <- ep.phys_validate_ttl_codes(ep.physio, 
+                                          ttl_codes_freq = ttl_codes_task$expected_freq)
 
 
 

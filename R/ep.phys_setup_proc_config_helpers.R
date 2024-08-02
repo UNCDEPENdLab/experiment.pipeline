@@ -3,6 +3,7 @@
 ############################
 # - ep.phys_set_config_definitions()
 # -- ep.phys_set_config_definitions_helper()
+# - ep.phys_set_config_expstruct()
 # - ep.phys_get_ttl_freq()
 # - ep.phys_build_ttl_seq()
 ############################
@@ -202,6 +203,26 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
   config[["definitions"]][["physio"]][[field]] <- opts
   return(config)
 }
+
+
+
+#' @title 
+#' @description 
+#' @param 
+#' 
+#' @importFrom 
+#' 
+#' @return 
+#' 
+#' @author Nidhi Desai
+ep.phys_set_config_expstruct <- function(config){
+  # TODO we may or maynot need this function after the global read_config_expstruct() is done
+  config <- read_config_expstruct(config$exp_structure)
+  return(config)
+}
+
+
+
 
 
 #' @title Get the expected frequency of each ttl_code calculated from the blocks section of the config file
