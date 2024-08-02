@@ -16,16 +16,16 @@
 #'
 #' @author Nidhi Desai
 #'
-bateman_gauss <- funtion(time, onset, amp, tau1, tau2, sigma){
-  
+bateman_gauss <- function(time, onset, amp, tau1, tau2, sigma){
   component <- bateman(time, onset, 0, tau1, tau2)
-  
+
   if (sigma > 0){
     sr <- round(1/mean(diff(time)))
     winwidth2 <- ceiling(sr*sigma*4) # round half winwidth: 4 SD to each side
     t <- c(1:(winwidth2*2+1)) # odd number (2*winwidth-half+1)
     g <- dnorm(t, winwidth2+1, sigma*sr) # normpdf
     g <- (g/max(g)) * amp
+    
     bg <- pracma::conv(c(rep(1,winwidth2)*component[1], component, rep(1,winwidth2)*component[length(component)]), g)
     
     component <- bg[(winwidth2*2+1):(length(bg)-winwidth2*2)]
@@ -45,16 +45,15 @@ bateman_gauss <- funtion(time, onset, amp, tau1, tau2, sigma){
 #' @author Nidhi Desai
 #'
 bateman <- function(time, onset, amp, tau1, tau2){
-  
   if (tau1 < 0){
-    stop(paste("ERROR: tau1 =", toString(tau1), "< 0"))
+    stop(paste("ERROR inside bateman function: tau1 =", toString(tau1), "< 0"))
   } else if (tau2 < 0){
-    stop(paste("ERROR: tau2 =", toString(tau2), "< 0"))
+    stop(paste("ERROR inside bateman function: tau2 =", toString(tau2), "< 0"))
   } else if (tau1 == tau2) {
-    stop(paste("ERROR: tau1 == tau2 =", toString(tau1)))
+    stop(paste("ERROR inside bateman function: tau1 == tau2 =", toString(tau1)))
   }
   
-  conductance <- rep(1,length(time))
+  conductance <- rep(0,length(time))
   range <- which(time > onset)
   
   if (length(range) == 0){
@@ -62,17 +61,21 @@ bateman <- function(time, onset, amp, tau1, tau2){
   }
   
   xr <- time[range] - onset
-  
+
   if (amp > 0){
     maxx <- tau1 * tau2 * log(tau1/tau2) / (tau1 - tau2) # b' <- 0
     maxamp <- abs(exp(-maxx/tau2) - exp(-maxx/tau1))
-    c <-  amp/maxamp
+    ct <-  amp/maxamp
   } else { # amp == 0: normalized bateman, area(bateman) <- 1/sr
     sr <- round(1/mean(diff(time)))
-    c <- 1/((tau2 - tau1) * sr)
+    ct <- 1/((tau2 - tau1) * sr)
   }
   
-  conductance[range] <- ifelse(tau1 > 0, c * (exp(-xr/tau2) - exp(-xr/tau1)), c * exp(-xr/tau2))
+  if (tau1 > 0){
+    conductance[range] <- ct * (exp(-xr/tau2) - exp(-xr/tau1))
+  } else {
+    conductance[range] <- ct * exp(-xr/tau2)
+  }
   
   return(conductance)
 }
