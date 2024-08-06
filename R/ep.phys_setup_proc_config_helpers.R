@@ -1,6 +1,7 @@
 ############################
 ##### List of subsidiary functions utilized in `ep.phys_setup_proc_config()`
 ############################
+# - validate_exp_yaml()
 # - ep.phys_set_config_definitions()
 # -- ep.phys_set_config_definitions_helper()
 # - ep.phys_set_config_expstruct()
@@ -8,6 +9,33 @@
 # - ep.phys_build_ttl_seq()
 ############################
 # TODO add testing of blocks section somewhere
+
+#' @title Validate experimental config file
+#' @param yaml_file path to YAML config file (see vignette on how to set up your ep.eye config file).
+#' @importFrom yaml read_yaml
+#' @importFrom checkmate assert_int assert_count assert_subset
+#' @author Michael Hallquist
+#' @export
+validate_exp_yaml <- function(yaml_file) {
+  stopifnot(file.exists(yaml_file))
+  yy <- yaml::read_yaml(yaml_file)
+
+  reqnames <- c("task", "variable_mapping",
+                "runs", "exp_structure")
+
+  # TODO add to check if other required global things exist in the yaml file
+  
+  #NH: is this required to validate the yaml?
+  optnames <- c("definitions") #aliases for reused snippets/nodes.
+
+
+  # stopifnot(all(reqnames %in% names(yy)))
+  assert_subset(reqnames, names(yy))
+
+  return(yy)
+}
+
+
 
 #' @title Add default definitions to config file
 #' @description 
@@ -149,16 +177,16 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
       if ("spike_algorithm" %in% names(opts)){}
       if ("spike_call" %in% names(opts)){}
       
-      if (!is.null(opts[["beat_detection"]]){
-        if (is.null(opts[["beat_detection"]][["wfdb_path"]]){
+      if (!is.null(opts[["beat_detection"]])){
+        if (is.null(opts[["beat_detection"]][["wfdb_path"]])){
           opts[["beat_detection"]][["wfdb_path"]] <- "/usr/local/wfdb/bin" # TODO confirm if this should be the default value
         }
         if (is.null(opts[["beat_detection"]][["beats_detector"]])){
-          opts[["beat_detection"]][["beats_detector"] <- c("wqrs", "gqrs", "ecgpuwave", "sqrs")
+          opts[["beat_detection"]][["beats_detector"]] <- c("wqrs", "gqrs", "ecgpuwave", "sqrs")
         }
       } else {
         opts[["beat_detection"]][["wfdb_path"]] <- "/usr/local/wfdb/bin"
-        opts[["beat_detection"]][["beats_detector"] <- c("wqrs", "gqrs", "ecgpuwave", "sqrs")
+        opts[["beat_detection"]][["beats_detector"]] <- c("wqrs", "gqrs", "ecgpuwave", "sqrs")
       }
 
     } else { # if ecg_preproc is not mentioned then ecg preprocessing won't be done
@@ -173,7 +201,7 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
       opts <- config$definitions$physio$eda_preproc
       
       if ("decomposition" %in% names(opts)){
-        if (!"tau" %in% names(opts[["decomposition"]])) { opts[["decomposition"]][["tau"]] <- } # TODO add a default tau value
+        if (!"tau" %in% names(opts[["decomposition"]])) { opts[["decomposition"]][["tau"]] <- 0.1} # TODO add a default tau value, right now added a placeholder
         if (!"scl_range" %in% names(opts[["decomposition"]])) { opts[["decomposition"]][["scl_range"]] <- c(2, 20)} # in microsiemens (uS)
         if ("scr" %in% names(opts[["decomposition"]])){ 
           if (!"amp_threshold" %in% names(opts[["decomposition"]][["scr"]])) { opts[["decomposition"]][["scr"]][["amp_threshold"]] <- 0.01 } # in muS
@@ -183,7 +211,7 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
           opts[["decomposition"]][["scr"]][["response_window"]] <- c(1, 4) # in seconds
         }
       } else {
-          opts[["decomposition"]][["tau"]] <-  # TODO add a default tau value
+          opts[["decomposition"]][["tau"]] <- 0.1 # TODO add a default tau value, this is currently a placeholder
           opts[["decomposition"]][["scl_range"]] <- c(2, 20) # in microsiemens (uS)
           opts[["decomposition"]][["scr"]][["amp_threshold"]] <- 0.01 # in muS
           opts[["decomposition"]][["scr"]][["response_window"]] <- c(1, 4) # in seconds
