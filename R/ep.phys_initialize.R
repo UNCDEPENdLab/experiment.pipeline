@@ -46,13 +46,20 @@ ep.phys_initialize <- function(file,
     # TODO in the ep.phys_build_ttl_seq() function, add mid_ttl_codes to ttl_codes_task$all_mid_codes
   }
 
-  ### 2.4 calculate task recording length
+  ### 2.4. Downsample data
+  if (!is.null(config$definitions$physio$initialize$downsample_factor)){
+    phys_reduce <- downsample_physio(phys_init, 
+                                   downsample_factor = config$definitions$physio$initialize$downsample_factor,
+                                   digital_channels = c("ttl_code", "ttl_onset"))
+  }
+  
+  ### 2.5 calculate task recording length
   ep.physio <- ep.phys_get_recording_length(ep.physio)
   
   ### Calculate other things??
   
   
-  ### 2.5 Check metadata
+  ### 2.6 Check metadata
   dt <- "- 2.5 Check ep.physio metadata:"
   if(!is.null(meta_check)){
     ep.physio <- ep.phys_meta_checks(ep.physio,
@@ -63,7 +70,7 @@ ep.phys_initialize <- function(file,
     cat(paste0(dt, " SKIP\n"))
   }
   
-  ### 2.6 
+  ### 2.7
   ep.physio <- ep.phys_validate_ttl_codes(ep.physio, 
                                           ttl_codes_freq = ttl_codes_task$expected_freq)
 
