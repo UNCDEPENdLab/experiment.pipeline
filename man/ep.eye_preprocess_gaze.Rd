@@ -4,10 +4,12 @@
 \alias{ep.eye_preprocess_gaze}
 \title{Preprocess gaze data}
 \usage{
-ep.eye_preprocess_gaze(ep.eye, aoi, downsample, header = NULL)
+ep.eye_preprocess_gaze(ep.eye, config, aoi, downsample, header = NULL)
 }
 \arguments{
 \item{ep.eye}{Path to a single \code{.edf} file using \code{read_edf()}.}
+
+\item{config}{config file}
 
 \item{aoi}{list of AOI options}
 

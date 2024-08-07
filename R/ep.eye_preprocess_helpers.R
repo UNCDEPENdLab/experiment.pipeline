@@ -269,7 +269,7 @@ ep.eye_downsample <- function(df,
     df_ev <- df %>% filter(eventn == ev) %>% mutate(time_ev = seq(0,n()-1, 1))
 
     #### Downsample time
-    # tryCatch.ep({
+    tryCatch.ep({
     if (length(t_cols) > 0L) {
       time_data <- sapply(df_ev[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] }) %>% data.table()
 
@@ -277,10 +277,10 @@ ep.eye_downsample <- function(df,
     } else {
       time_data <- NULL
     }
-    # }, describe_text = "-- 4.4.1 Downsample time column")
+    }, describe_text = "-- 4.4.1 Downsample time column")
 
     #### Downsample analog data
-  # tryCatch.ep({
+  tryCatch.ep({
 
     if (length(a_cols) > 0L) {
       # if(method == "mean"){
@@ -300,24 +300,24 @@ ep.eye_downsample <- function(df,
       analog_data <- NULL
     }
 
-  # }, describe_text = "-- 4.4.2 Downsample analogue channels")
+  }, describe_text = "-- 4.4.2 Downsample analogue channels")
 
   #### Downsample digital data
-  # tryCatch.ep({
+  tryCatch.ep({
     if (length(d_cols) > 0L) {
       #could support subsampling here -- doesn't seem like a great idea, though
       digital_data <- data.table(do.call(cbind,lapply(df_ev[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
     } else {
       digital_data <- NULL
     }
-  # }, describe_text = "-- 4.4.3 Downsample digital channels")
+  }, describe_text = "-- 4.4.3 Downsample digital channels")
 
   #### Downsample/combine character data
-  # tryCatch.ep({
+  tryCatch.ep({
     if(length(c_cols > 0L)){
       char_data <- downsample_chars(df_ev[,..c_cols], dfac = downsample_factor)
     }
-  # }, describe_text = "-- 4.4.4 Downsample/combine character channels")
+  }, describe_text = "-- 4.4.4 Downsample/combine character channels")
 
 
   ####combine all signals

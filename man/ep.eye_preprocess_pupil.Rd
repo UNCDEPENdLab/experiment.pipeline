@@ -6,6 +6,7 @@
 \usage{
 ep.eye_preprocess_pupil(
   ep.eye,
+  config,
   blink_corr,
   filter,
   interpolate,
@@ -16,6 +17,8 @@ ep.eye_preprocess_pupil(
 }
 \arguments{
 \item{ep.eye}{A data object containing eye-tracking information.}
+
+\item{config}{config}
 
 \item{blink_corr}{A list containing parameters for blink correction: `ms_before` and `ms_after` specifying the milliseconds before and after a blink to be corrected.}
 

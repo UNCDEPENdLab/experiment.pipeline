@@ -4,10 +4,12 @@
 \alias{ep.eye_cleanup}
 \title{Eye Data Preprocessing and Cleanup}
 \usage{
-ep.eye_cleanup(ep.eye, globals, header = NULL)
+ep.eye_cleanup(ep.eye, config, globals, header = NULL)
 }
 \arguments{
 \item{ep.eye}{An object containing the eye tracking data to be cleaned up.}
+
+\item{config}{config file}
 
 \item{globals}{A list of global parameters defined in the config file.}
 

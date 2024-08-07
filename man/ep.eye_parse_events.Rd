@@ -6,6 +6,7 @@
 \usage{
 ep.eye_parse_events(
   ep.eye,
+  config,
   extract_event_func_path,
   csv_path,
   msg_seq,
@@ -14,6 +15,8 @@ ep.eye_parse_events(
 }
 \arguments{
 \item{ep.eye}{ep.eye object that has been previously initialized and tidied}
+
+\item{config}{config file}
 
 \item{extract_event_func_path}{Path to user-defined message parsing function here}
 

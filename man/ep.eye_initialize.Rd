@@ -6,6 +6,7 @@
 \usage{
 ep.eye_initialize(
   file,
+  config,
   expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button",
     "info", "asc_file", "edf_file"),
   task = NULL,
@@ -20,6 +21,8 @@ ep.eye_initialize(
 }
 \arguments{
 \item{file}{Path to a single \code{.edf} file using \code{read_edf()}.}
+
+\item{config}{configuration list}
 
 \item{expected_edf_fields}{Character vector of field names to enforce during initialization.}
 
