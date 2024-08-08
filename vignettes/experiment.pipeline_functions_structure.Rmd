@@ -1,0 +1,50 @@
+---
+title: "Experiment Pipeline Functions Structure"
+author: "Nidhi Desai"
+date: "`r Sys.Date()`"
+
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+---
+
+ep.phys_process_subject
+    |_ep.phys_setup_proc_config()
+        |_ep.phys_setup_proc_config_helper.R
+            |_validate_exp_yaml()
+            |_ep.phys_set_config_definitions()
+            |_ep.phys_set_config_expstruct()
+            |_ep.phys_get_ttl_freq()
+            |_ep.phys_build_ttl_seq()
+    |_ep.phys_initialize()
+        |_ep.phys_initialize_helpers.R
+            |_read_acq()
+            |_ep.phys_setup_data_structure()
+            |_augment_ttl_details()
+            |_splice_physio()
+            |_ep.phys_get_recording_length()
+            |_ep.phys_meta_checks()
+            |_ep.phys_validate_ttl_codes()
+            |_downsample_physio()
+    |_ep.phys_preprocess_eda()
+        |_ep.phys_eda_artifact_handling.R
+            |_ep.phys_eda_artifact_detection()
+            |_ep.phys_eda_artifact_correction()
+        |_ep.leda_initialization.R
+            |_leda.initialization()
+        |_ep.leda_preprocessing.R
+            |_leda.filter()
+            |_leda.smoothing()
+                |_smooth_non_adaptive()
+                |_smooth_adapt_wrapper()
+                    |_smooth_adapt()
+                        |_smooth()
+        |_ep.leda_cda_analysis.R
+            |_leda.sdeco()
+                |_ep.leda_deconvolution.R
+                    |_sdeconv_analysis()
+                    |_deconv_optimize()
+                    |_deconv_apply()
+        |_ep.leda_export_era_scr.R
+            |_export_era()
+            |_export_scrlist()
