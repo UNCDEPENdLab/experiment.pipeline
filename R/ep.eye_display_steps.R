@@ -52,6 +52,10 @@
 #'     }
 #'   }
 #' }
+#'
+#' @export
+#' @author Nate Hall
+
 ep.eye_display_steps <- function() {
   steps <- list(
     list(keyword = "config", fname = "ep.eye_setup_proc_config", example_argument = "edf_raw, file_path, header", description = "Processes user-supplied configuration yaml in experiment.pipeline style"),

@@ -65,3 +65,6 @@ Each step includes a keyword, the function invoked, example arguments for the fu
 ep.eye_display_steps()
 
 }
+\author{
+Nate Hall
+}
