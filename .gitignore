@@ -56,3 +56,5 @@ ND_local
 *.acq
 *.csv
 *.elog
+*.xlsx
+*.pptx

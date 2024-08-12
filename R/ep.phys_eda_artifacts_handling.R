@@ -14,7 +14,7 @@ phys_config$eda_preproc$artifact_detection$sd_change_time_inc <- 0.2
 phys_config$eda_preproc$artifact_detection$sd_change_time_dec <- 0.5
 phys_config$eda_preproc$plot$minor_grid_size <- 5
 phys_config$eda_preproc$plot$major_grid_size <- 50
-load("/proj/mnhallqlab/studies/neuromap/data/physio_s3/kingdom/preproc/downsampled/downsampled_data_DTK_153.RData")
+load("/proj/mnhallqlab/studies/neuromap/data/physio_s3/kingdom/preproc/downsampled/downsampled_data_DTK_715.RData")
 ep.physio <- list()
 ep.physio$eda <- list()
 ep.physio$eda$updated <- list()
@@ -237,11 +237,121 @@ ep.phys_eda_artifact_detection <- function(ep.physio, phys_config){
 #' This script runs artifact correction after artifact detection on downsampled physio data.
 #' @param ep.physio ep.physio structure
 #' @param phys_config list of physio specific configuration parameters
-#' @param xlsx_filepath path to the excel file containing the timestamps of the artifacts to be corrected
 #' @return ep.physio structure
 #' @author Nidhi Desai
 #' 
-ep.phys_eda_artifact_correction <- function(ep.physio, phys_config, txt_filepath){
+ep.phys_eda_artifact_correction <- function(ep.physio, phys_config){
     
+    # Extract timepoints which need to be replaced
+    df <- ep.physio$eda$artifacts %>% select(start_timepoint, end_timepoint) %>% rename(start = start_timepoint, stop = end_timepoint)
+    replace_artifacts <- merge_intervals(df) # merge_intervals function names the columns as start and stop
 
+    # 1. if the artifact goes down and comes up to similar levels in a short period of time, then replace the timepoints with a spline interpolation
+    ep.physio$eda$artifact_corrected <- data.frame(time_s = ep.physio$eda$updated$time_s, eda = replace_artifacts_with_spline(ep.physio$eda$updated, replace_artifacts, u_shape_artifact_threshold = 0.05, max_time_length = 5))
+    
+    # 2. if the artifact goes for a long time, then replace the timepoint's EDA with NA, so that no further analysis is done on those timepoints
+    ep.physio$eda$artifact_corrected <- data.frame(time_s = ep.physio$eda$artifact_corrected$time_s, eda = replace_long_artifacts_with_NA(ep.physio$eda$artifact_corrected, replace_artifacts, max_time_length = 5))
+
+    # plot original and corrected signal
+    p <- ggplot(ep.physio$eda$updated, aes(x = time_s, y = eda)) + geom_line() + geom_line(data = ep.physio$eda$artifact_corrected, aes(x = time_s, y = eda), color = "red")
+    interactive_plot  <- ggplotly(p, dynamicTicks = TRUE) %>% rangeslider() %>%  layout(hovermode = "x", xaxis = list(fixedrange = FALSE), yaxis = list(fixedrange = FALSE) )
+    htmlwidgets::saveWidget(interactive_plot, "interactive_plot_corrected.html") # save in a html file if using remove vs code and interactive plot does not open
+
+}
+
+#' Function to merge overlapping intervals. 
+#' NOTE: artifacts dataframe columns should have the names start and stop for the beginning and end of each artifact's timepoints.
+#' @param intervals dataframe with start and stop columns
+#'
+#' @return merged_intervals dataframe with merged intervals
+#' @author Nidhi Desai
+#' 
+merge_intervals <- function(intervals) {
+  if (nrow(intervals) == 0) return(intervals)
+  
+  intervals <- intervals[order(intervals$start), ]
+  merged_intervals <- data.frame(start = numeric(0), stop = numeric(0))
+  
+  current_start <- intervals$start[1]
+  current_stop <- intervals$stop[1]
+  
+  for (i in 2:nrow(intervals)) {
+    if (intervals$start[i] <= current_stop) {
+      current_stop <- max(current_stop, intervals$stop[i])
+    } else {
+      merged_intervals <- rbind(merged_intervals, data.frame(start = current_start, stop = current_stop))
+      current_start <- intervals$start[i]
+      current_stop <- intervals$stop[i]
+    }
+  }
+  
+  merged_intervals <- rbind(merged_intervals, data.frame(start = current_start, stop = current_stop))
+  return(merged_intervals)
+}
+
+#' Function to replace artifacts with spline interpolation.
+#' NOTE: artifacts dataframe columns should have the names start and stop for the beginning and end of each artifact's timepoints
+#' @param eda_data dataframe with time and eda columns
+#' @param artifacts dataframe with start and stop columns
+#' @param u_shape_artifact_threshold threshold for similar levels
+#' @param max_time_length maximum time length for artifacts to be interpolated
+#'
+#' @return eda_data with artifacts replaced with spline interpolation
+#' @author Nidhi Desai
+#'
+replace_artifacts_with_spline <- function(eda_data, artifacts, u_shape_artifact_threshold = 0.05, max_time_length = 5) {
+  for (i in 1:nrow(artifacts)) {
+    artifact_start <- artifacts$start[i]
+    artifact_stop <- artifacts$stop[i]
+    
+    # Find indices of the artifact period
+    artifact_indices <- which(eda_data$time >= artifact_start & eda_data$time <= artifact_stop)
+    
+    # Check if EDA levels drop and return to similar levels
+    if (length(artifact_indices) > 2) {
+        start_value <- eda_data$eda[min(artifact_indices)]
+        end_value <- eda_data$eda[max(artifact_indices)]
+        
+        if ((abs(start_value - end_value) < u_shape_artifact_threshold) & ((artifact_stop - artifact_start) < max_time_length)) { # threshold for similar levels and artifacts are not too long
+            # Perform spline interpolation
+            before_indices <- which(eda_data$time < artifact_start)
+            after_indices <- which(eda_data$time > artifact_stop)
+        
+            if (length(before_indices) > 0 && length(after_indices) > 0) {
+                
+                interp_indices <- c(before_indices[length(before_indices)], after_indices[1])
+                interp_values <- eda_data$eda[interp_indices]
+                interp_times <- eda_data$time[interp_indices]
+                spline_fit <- spline(interp_times, interp_values, xout = eda_data$time[artifact_indices])
+                # Replace artifact with interpolated values
+                eda_data$eda[artifact_indices] <- spline_fit$y
+            }
+        }
+    }
+  }
+  return(eda_data$eda)
+}
+
+# function to replace too long artifacts with NAs
+#' NOTE: artifacts dataframe columns should have the names start and stop for the beginning and end of each artifact's timepoints
+#' @param eda_data dataframe with time and eda columns
+#' @param artifacts dataframe with start and stop columns
+#' @param max_time_length maximum time length for artifacts to be interpolated
+#' 
+#' @return eda_data with artifacts replaced with NA
+#' @author Nidhi Desai
+#' 
+replace_long_artifacts_with_NA <- function(eda_data, artifacts, max_time_length = 5) {
+  for (i in 1:nrow(artifacts)) {
+    artifact_start <- artifacts$start[i]
+    artifact_stop <- artifacts$stop[i]
+    
+    # Find indices of the artifact period
+    artifact_indices <- which(eda_data$time >= artifact_start & eda_data$time <= artifact_stop)
+    
+    if ((artifact_stop - artifact_start) > max_time_length) {
+      eda_data$eda[artifact_indices] <- NA
+    }
+  }
+  return(eda_data$eda)
 }
