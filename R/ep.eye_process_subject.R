@@ -6,6 +6,9 @@
 #' @param ... Optional arguments to pass to \code{read_edf.R} function.
 #' @return A fully processed ep.eye object. [DETAILS HERE]
 #' @details This function is ideally used within the \code{ep_batch_process_eye.R}
+#' @details
+#' data.table notes: one annoying challenge is making sure that data.table has openMP support enabled. See https://github.com/Rdatatable/data.table/issues/5419#issuecomment-1465023581 and https://stackoverflow.com/questions/76374014/use-openmp-on-m2-mac-with-r-and-data-table. You will need to download a few packages and update Makevars and your bashrc file.
+#'
 #' @examples
 #'  \dontrun{
 #'    file <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
@@ -26,10 +29,12 @@ ep.eye_process_subject <- function(edf_raw,
   # debug:
   # -------------------------
   # source("/proj/mnhallqlab/users/nate/experiment.pipeline/NH_local/setup_envi.R") ## once package and dependencies are installed and load properly, this will be accomplished by loading the package library.
+
   #  # Neighborhood - PSU
   # ---------------------
   # edf_raw <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/Neighborhood_PSU/Eye/004_AZ_Neighborhood_Eye.edf"
   # config_path <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data_ep_specs/yaml/Neighborhood_PSU.yaml"
+
   # # Sorting Mushrooms
   # -------------------
   #  edf_raw <- "/proj/mnhallqlab/studies/NeuroMAP/s3_data/SortingMushrooms_PSU/Eye/010_AE_SortingMushrooms_Eye.edf"
@@ -46,21 +51,23 @@ ep.eye_process_subject <- function(edf_raw,
 
   # Dimensions + Threat
   # -------------------
-  # setwd("/Users/natehall/Documents/git_archive/github_repos/experiment.pipeline")
+  # setwd("/Users/natehall/r_packages/experiment.pipeline")
   # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
   # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
   # step <- NULL
+  # devtools::load_all()
   # -------------------------
 
-  library(tictoc)
-  library(readr)
-  library(tidyverse)
-  library(data.table)
-  library(yaml)
-  library(checkmate)
-  library(tryCatchLog)
-  library(nate.utils)
-  library(futile.logger)
+  capture.output(pacman::p_load(tictoc,
+                                      readr,
+                                      tidyverse,
+                                      data.table,
+                                      yaml,
+                                      checkmate,
+                                      tryCatchLog,
+                                      nate.utils,
+                                      futile.logger)) -> tmp; rm(tmp)
+
 
   ######
   ### 1. Setup processing configuration variables and build block and event-specific message sequences.
@@ -119,8 +126,8 @@ ep.eye_process_subject <- function(edf_raw,
                                              "- Unifies messages into the raw data by merging message timestamps into the raw data",
                                              "- Performs a check of the metadata (see config documentation)",
                                              "- Shifts timestamps in raw and gaze events data to a zero start point"
-                                             )
                                   )
+    )
     toc()
     if (!is.null(step)) return(eye_init)
   }

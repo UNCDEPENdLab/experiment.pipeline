@@ -23,6 +23,8 @@ This is the main worker function that processes a single subject through the ep.
 }
 \details{
 This function is ideally used within the \code{ep_batch_process_eye.R}
+
+data.table notes: one annoying challenge is making sure that data.table has openMP support enabled. See https://github.com/Rdatatable/data.table/issues/5419#issuecomment-1465023581 and https://stackoverflow.com/questions/76374014/use-openmp-on-m2-mac-with-r-and-data-table. You will need to download a few packages and update Makevars and your bashrc file.
 }
 \examples{
  \dontrun{
