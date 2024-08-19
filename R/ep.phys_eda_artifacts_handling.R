@@ -1,3 +1,13 @@
+############################
+##### List of subsidiary functions utilized in `ep.phys_eda_artifacts_handling()`
+############################
+# - ep.phys_eda_artifact_detection()
+# - ep.phys_eda_artifact_correction()
+# -- merge_intervals()
+# -- replace_artifacts_with_spline()
+# -- replace_long_artifacts_with_NA()
+############################
+
 # for testing
 rm(list = ls())    
 pacman::p_load(ggplot2, dplyr, plotly, editData)
@@ -8,8 +18,8 @@ phys_config$eda_preproc$artifact_detection$flag_low_avg <- 1
 phys_config$eda_preproc$artifact_detection$max_insta_slope <- 10
 phys_config$eda_preproc$artifact_detection$min_out_range <- 0.05
 phys_config$eda_preproc$artifact_detection$max_out_range <- 40
-phys_config$eda_preproc$artifact_detection$rise_drop_threshold <- 2
-phys_config$eda_preproc$artifact_detection$rise_drop_window <- 1
+phys_config$eda_preproc$artifact_detection$rise_drop_threshold <- 2 # in uS
+phys_config$eda_preproc$artifact_detection$rise_drop_window <- 0.25 # in seconds
 phys_config$eda_preproc$artifact_detection$movingavg_max_inc <- 15
 phys_config$eda_preproc$artifact_detection$movingavg_max_dec <- 5
 phys_config$eda_preproc$artifact_detection$sd_change_time_inc <- 0.2
@@ -18,10 +28,6 @@ phys_config$eda_preproc$plot$minor_grid_size <- 5
 phys_config$eda_preproc$plot$major_grid_size <- 50
 phys_config$eda_preproc$artifact_correction$u_shape_artifact_threshold <- 0.1
 phys_config$eda_preproc$artifact_correction$min_timerange_NA <- 5 
-load("/proj/mnhallqlab/studies/neuromap/data/physio_s3/kingdom/preproc/downsampled/downsampled_data_DTK_715.RData")
-ep.physio <- list()
-ep.physio$eda <- list()
-ep.physio$eda$updated <- data.frame(time_s = acq_down_dtk$raw$time_s, eda = acq_down_dtk$raw$EDA...EDA..X..PPGED.R)
 
 
 #' This script runs artifact detection on downsampled physio data.
@@ -278,7 +284,7 @@ ep.phys_eda_artifact_correction <- function(ep.physio, phys_config){
                                                                                                                                           min_time_length = phys_config$eda_preproc$artifact_correction$min_timerange_NA))
 
     # plot original and corrected signal
-    p <- ggplot(ep.physio$eda$updated, aes(x = time_s, y = eda)) + geom_line() + geom_line(data = ep.physio$eda$artifact_corrected, aes(x = time_s, y = eda), color = "darkgreen")
+    p <- ggplot(ep.physio$eda$updated, aes(x = time_s, y = eda)) + geom_line() + geom_line(data = ep.physio$eda$artifact_corrected, aes(x = time_s, y = eda), color = "lightblue")
     interactive_plot <- ggplotly(p, dynamicTicks = TRUE) %>% rangeslider() %>%  layout(hovermode = "x", xaxis = list(fixedrange = FALSE), yaxis = list(fixedrange = FALSE) )
     html_file_2 <- tempfile(pattern = "artifact_correction_", fileext = ".html")
     htmlwidgets::saveWidget(interactive_plot, html_file_2, selfcontained = TRUE)
@@ -388,9 +394,13 @@ replace_long_artifacts_with_NA <- function(eda_data, artifacts, min_time_length 
 
 
 # running 
+load("/proj/mnhallqlab/studies/neuromap/data/physio_s3/kingdom/preproc/downsampled/downsampled_data_DTK_368.RData")
+ep.physio <- list()
+ep.physio$eda <- list()
+ep.physio$eda$updated <- data.frame(time_s = acq_down_dtk$raw$time_s, eda = acq_down_dtk$raw$EDA...EDA..X..PPGED.R)
 ep.physio <- ep.phys_eda_artifact_detection(ep.physio, phys_config)
 ep.physio <- ep.phys_eda_artifact_correction(ep.physio, phys_config)
-
+save(ep.physio, file = "/proj/mnhallqlab/studies/neuromap/data/physio_s3/kingdom/preproc/eda/eda_artifacts_corrected_DTK_368.RData")
 
 
 

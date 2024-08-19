@@ -36,7 +36,6 @@ validate_exp_yaml <- function(yaml_file) {
 }
 
 
-
 #' @title Add default definitions to config file
 #' @description 
 #' @param file Path to .edf file
@@ -130,22 +129,20 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
     if ("initialize" %in% names(config$definitions$physio)){
       opts <- config$definitions$physio$initialize
       
+      ### extract information about ttl codes and splicing
       # TODO need to confirm if using ttl codes for checks and splicing will be skipped in ttl_codes_task is not mentioned in the config file
-
-      ### extract information about ttl codes
       if ("ttl_codes_task" %in% names(opts)){
         opts[["ttl_codes"]] <- TRUE
-        
         #### Note if the data needs to be spliced
         if ("task_start" %in% names(opts) & "task_end" %in% names(opts)){
-          if (!is.numeric(opts[["task_start"]])){
-            stop("initialize > ttl_codes_task > task_start is not numeric") # TODO change this to warning or error later 
+          if (!is.numeric(opts[["task_start"]]) & !is.numeric(opt[["task_end"]])){
+            stop("initialize > ttl_codes_task > task_start and task_end are not numeric")
+          } else if (!is.numeric(opts[["task_start"]])){
+            stop("initialize > ttl_codes_task > task_start is not numeric") # TODO change this to warning or error later
           } else if (!is.numeric(opt[["task_end"]])){
             stop("initialize > ttl_codes_task > task_end is not numeric")
-          } else {
-            if (!("splice_data" %in% names(opts))){
+          } else if (!("splice_data" %in% names(opts))){
               opts[["splice_data"]] <- TRUE
-            }
           }
         }
       } else { # No ttl_codes_task option in config file
@@ -155,7 +152,7 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
       }
       
       #### meta_check will default to NULL and will be skipped in initialization procedure if not specified
-    } 
+    }
     
     ### if processing options are not specified, revert to default options.
     else {
@@ -198,8 +195,83 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
   else if(field == "eda_preproc"){
     # TODO add eda preproc inputs later
     if ("eda_preproc" %in% names(config$definitions$physio)){
+      
       opts <- config$definitions$physio$eda_preproc
       
+      # add plotting options
+      if ("plot" %in% names(opts) & ("minor_grid_size" %in% names(opts[["plot"]]) | ("major_grid_size" %in% names(opts[["plot"]])))){
+        if (!"minor_grid_size" %in% names(opts[["plot"]])){ opts[["plot"]][["minor_grid_size"]] <- NULL }
+        if (!"major_grid_size" %in% names(opts[["plot"]])){ opts[["plot"]][["major_grid_size"]] <- NULL }
+      } else {
+        opts[["plot"]][["minor_grid_size"]] <- 10
+        opts[["plot"]][["major_grid_size"]] <- 50
+      }
+
+      # add artifact detection options
+      if ("artifact_detection" %in% names(opts)){
+
+        # if choosing default options config should have "artifact_detection: default"
+        if (!is.list(opts[["artifact_detection"]])){
+          if (opts[["artifact_detection"]] == "default" | opts[["artifact_detection"]] == "defaults" ) {
+            opts[["artifact_detection"]] <- list()
+            opts[["artifact_detection"]][["flag_low_avg"]] <- 1
+            opts[["artifact_detection"]][["min_out_range"]] <- 0.05
+            opts[["artifact_detection"]][["max_out_range"]] <- 40
+            opts[["artifact_detection"]][["max_insta_slope"]] <- 10
+            opts[["artifact_detection"]][["rise_drop_window"]] <- 1
+            opts[["artifact_detection"]][["rise_drop_threshold"]] <- 2
+            opts[["artifact_detection"]][["moving_max_inc"]] <- 15
+            opts[["artifact_detection"]][["moving_max_dec"]] <- 5
+            opts[["artifact_detection"]][["sd_change_time_inc"]] <- 0.2
+            opts[["artifact_detection"]][["sd_change_time_dec"]] <- 0.5
+          }
+        }
+
+        if (!"flag_low_avg" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["flag_low_avg"]] <- NULL }
+        
+        if (!"min_out_range" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["min_out_range"]] <- NULL }
+        
+        if (!"max_out_range" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["max_out_range"]] <- NULL }
+        
+        if (!"max_insta_slope" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["max_out_range"]] <- NULL }
+        
+        # both rise_drop_window and rise_drop_threshold needs to be mentioned together
+        if ("rise_drop_window" %in% names(opts[["artifact_detection"]])) {
+          if(!"rise_drop_threshold" %in% names(opts[["artifact_detection"]])) { stop("rise_drop_threshold not mentioned in artifact_detection, only rise_drop_window is mentioned") }
+        } else if ("rise_drop_threshold" %in% names(opts[["artifact_detection"]])) {
+          if(!"rise_drop_window" %in% names(opts[["artifact_detection"]])) { stop("rise_drop_window not mentioned in artifact_detection, only rise_drop_threshold is mentioned") }
+        } else {
+          opts[["artifact_detection"]][["rise_drop_window"]] <- NULL
+          opts[["artifact_detection"]][["rise_drop_threshold"]] <- NULL
+        }
+
+        if (!"moving_max_inc" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["moving_max_inc"]] <- NULL }
+        if (!"moving_max_dec" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["moving_max_dec"]] <- NULL }
+
+        if (!"sd_change_time_inc" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["sd_change_time_inc"]] <- NULL }
+        if (!"sd_change_time_dec" %in% names(opts[["artifact_detection"]])) { opts[["artifact_detection"]][["sd_change_time_dec"]] <- NULL }
+      }
+
+      # add artifact correction options
+      if ("artifact_correction" %in% names(opts)){
+        if (!is.list(opts[["artifact_correction"]])){
+          if (opts[["artifact_correction"]] == "default" | opts[["artifact_correction"]] == "defaults" ) {
+            opts[["artifact_correction"]] <- list()
+            opts[["artifact_correction"]][["u_shape_artifact_threshold"]] <- 0.1
+            opts[["artifact_correction"]][["min_timerange_NA"]] <- 5
+          }
+        }
+
+        if (!"u_shape_artifact_threshold" %in% names(opts[["artifact_correction"]])) { opts[["artifact_correction"]][["u_shape_artifact_threshold"]] <- NULL }
+        if (!"min_timerange_NA" %in% names(opts[["artifact_correction"]])) { opts[["artifact_correction"]][["min_timerange_NA"]] <- NULL }
+      }
+      
+      # add filtering options
+      if ("filtering" %in% names(opts)){
+        # TODO NEED TO ADD
+      }
+
+      # add decomposition options
       if ("decomposition" %in% names(opts)){
         if (!"tau" %in% names(opts[["decomposition"]])) { opts[["decomposition"]][["tau"]] <- 0.1} # TODO add a default tau value, right now added a placeholder
         if (!"scl_range" %in% names(opts[["decomposition"]])) { opts[["decomposition"]][["scl_range"]] <- c(2, 20)} # in microsiemens (uS)
@@ -214,24 +286,25 @@ ep.phys_set_config_definitions_helper <- function(file, config, field){
           opts[["decomposition"]][["tau"]] <- 0.1 # TODO add a default tau value, this is currently a placeholder
           opts[["decomposition"]][["scl_range"]] <- c(2, 20) # in microsiemens (uS)
           opts[["decomposition"]][["scr"]][["amp_threshold"]] <- 0.01 # in muS
-          opts[["decomposition"]][["scr"]][["response_window"]] <- c(1, 4) # in seconds
+          opts[["decomposition"]][["scr"]][["response_window"]] <- c(1, 3) # in seconds
       }
-    } else {
-      opts <- FALSE # TODO should we have this FALSE or NULL. Is this assumption correct that if ecda_preproc is not mentioned then eda data should not be processed
+    } else { # if ecg_preproc is not mentioned then eda preprocessing won't be done
+      opts <- NULL # TODO should we have this FALSE or NULL. Is this assumption correct that if ecda_preproc is not mentioned then eda data should not be processed
     }
   }
   
   # QA
   else if(field == "qa"){
+    opts <- NULL # palceholder for now
+    # TODO NEED TO COMPLETE THIS SECTION
     
-    # TODO left here
-    
+  } else {
+    opts <- NULL
   }
   
   config[["definitions"]][["physio"]][[field]] <- opts
   return(config)
 }
-
 
 
 #' @title 

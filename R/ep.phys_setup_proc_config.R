@@ -9,6 +9,7 @@
 
 #' @title Read and setup processing configuration
 #' @author Nidhi Desai
+# for testing purposes
 
 ep.phys_setup_proc_config <- function(file, config_path, header = NULL) {
   

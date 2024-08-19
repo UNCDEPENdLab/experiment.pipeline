@@ -5,19 +5,17 @@
 #' @author Nidhi Desai
 #' 
 ep.phys_preprocess_eda <- function(ep.physio, phys_config, ...) {
-    pacman::p_load(ggplot2, dplyr, plotly, DataEditR)
+    
+    pacman::p_load(ggplot2, dplyr, plotly, editData)
     ######
     ## 1. Artifact detection and correction
     ######
     ep.physio <- ep.phys_eda_artifact_detection(ep.physio, phys_config)
-    
-    # THE CODE NEEDS TO PAUSE HERE TO ALLOW MANUAL CHECKING OF ARTIFACTS
     # For single subject processing, the code will pause here to allow manual checking of artifacts using an interactive plot and interaction dataframe editor.
     # Change the timestamps in the artifacts dataframe, sync and save, if needed.
     # Change the detection algorithm's input parameters, if larger number of artifacts detected needs change.
 
     ep.physio <- ep.phys_eda_artifact_correction(ep.physio, phys_config)
-
 
     ######
     ## ledalab setting initialization (add to ep.phys_initialize later)
