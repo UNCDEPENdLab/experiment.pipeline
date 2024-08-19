@@ -84,21 +84,24 @@ ep.eye_process_subject <- function(edf_raw,
     # do some session configuring
     setwd(config$definitions$eye$global$base_dir)
 
-    options(keep.source = TRUE)        # source code file name and line number tracking
-    options("tryCatchLog.write.error.dump.file" = TRUE) # dump for post-mortem analysis
-    options("tryCatchLog.write.error.dump.folder" = config$definitions$eye$global$log$error_dump)
+    ## setting up futile.logger options for logging files, but only do this if requested (default = FALSE)
+    if(is.list(config$definitions$eye$global$log)){
+      options(keep.source = TRUE)        # source code file name and line number tracking
 
-    log_path <- file.path(config$definitions$eye$global$log$log_dir, paste0(config$definitions$eye$global$id, ".elog"))
-    if (file.exists(log_path) & !config$definitions$eye$global$log$append) {
-      file.remove(log_path)
-      flog.appender(appender.file(log_path))  # to log into a file instead of console
-    } else{
-      # keep appending to what exists
-      flog.appender(appender.file(log_path))  # to log into a file instead of console
+      options("tryCatchLog.write.error.dump.file" = TRUE) # dump for post-mortem analysis
+      options("tryCatchLog.write.error.dump.folder" = config$definitions$eye$global$log$error_dump)
+
+      log_path <- file.path(config$definitions$eye$global$log$log_dir, paste0(config$definitions$eye$global$id, ".elog"))
+      if (file.exists(log_path) & !config$definitions$eye$global$log$append) {
+        file.remove(log_path)
+        flog.appender(appender.file(log_path))  # to log into a file instead of console
+      } else{
+        # keep appending to what exists
+        flog.appender(appender.file(log_path))  # to log into a file instead of console
+      }
+
+      flog.threshold(INFO)    # TRACE, DEBUG, INFO, WARN, ERROR, FATAL
     }
-
-
-    flog.threshold(INFO)    # TRACE, DEBUG, INFO, WARN, ERROR, FATAL
 
     toc()
     if (!is.null(step)) return(eye_raw)
@@ -137,7 +140,7 @@ ep.eye_process_subject <- function(edf_raw,
     eye_parsed <- ep.eye_parse_events(eye_init,
                                       config,
                                       extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path,
-                                      csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv")),
+                                      csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$id, ".csv")),
                                       msg_seq = config$definitions$eye$msg_parse$msg_seq,
                                       header = "3. Parse task events:")
     toc()

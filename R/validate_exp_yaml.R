@@ -8,11 +8,11 @@ validate_exp_yaml <- function(yaml_file) {
   stopifnot(file.exists(yaml_file))
   yy <- read_yaml(yaml_file)
 
-  reqnames <- c("task", "variable_mapping",
+  reqnames <- c("task", "variable_mapping", "definitions",
                 "runs", "blocks")
 
-  #NH: is this required to validate the yaml?
-  optnames <- c("definitions") #aliases for reused snippets/nodes.
+  # #NH: is this required to validate the yaml?
+  # optnames <- c("definitions") #aliases for reused snippets/nodes.
 
 
   # stopifnot(all(reqnames %in% names(yy)))

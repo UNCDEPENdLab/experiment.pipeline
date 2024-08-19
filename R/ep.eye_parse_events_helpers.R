@@ -30,7 +30,7 @@ ep.eye_parse_event_info <- function(ep.eye,
   # -----
   # ep.eye <- eye_init
   # extract_event_func_path = config$definitions$eye$msg_parse$extract_event_func_path
-  # csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$prefix, ".csv"))
+  # csv_path = file.path(config$definitions$eye$msg_parse$csv_dir_path, paste0(config$definitions$eye$global$id, ".csv"))
   # msg_seq = config$definitions$eye$msg_parse$msg_seq
   # dt <- "- 3.1 Parsing event information:\n"
   # -----

@@ -138,7 +138,7 @@ ep.eye_initialize <- function(file,
 
   ### save initialized ep.eye object to correct folder
   if(config$definitions$eye$global$save_steps){
-    init_dir <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_initialize")
+    init_dir <- config$definitions$eye$global$preproc_out %>% file.path("ep.eye_initialize")
     if(!dir.exists(init_dir)) {dir.create(init_dir, recursive = TRUE)}
     subj_path <- file.path(init_dir, paste0(config$definitions$eye$global$id, ".rds"))
     tryCatch.ep({

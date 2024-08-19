@@ -4,14 +4,14 @@
 \alias{init_eyelog}
 \title{Initializes .elog}
 \usage{
-init_eyelog(file, log_dir = NULL, prefix = NULL)
+init_eyelog(file, log_dir = NULL, id = NULL)
 }
 \arguments{
 \item{file}{Path to the .edf file to process.}
 
 \item{log_dir}{Path to directory to store .elog. If NULL (default) will write to current directory.}
 
-\item{prefix}{Optional prefix to append to .elog name.}
+\item{id}{Optional id to append to .elog name.}
 }
 \value{
 Nested list with processing options pulled from .yml configuration file.

@@ -2,14 +2,14 @@
 #' @description .elog files uses \code{sink()} to create a .txt file which will store eye-specific messages about how QA checks are going.
 #' @param file Path to the .edf file to process.
 #' @param log_dir Path to directory to store .elog. If NULL (default) will write to current directory.
-#' @param prefix Optional prefix to append to .elog name.
+#' @param id Optional id to append to .elog name.
 #' @return Nested list with processing options pulled from .yml configuration file.
 #' @note Initially, my thought is to create .blog and .plog files for behavior and physio respectively and eventually write a separate function (or set of functions) that searches through logs and documents how certain checks went in a more succinct format (e.g. a .csv with subjects on rows and stages of QA on columns).
 #'  A report can then be generated to either verify folks that look fine or to draw attention to problematic data.
 #' @author Nate Hall
 #'
 #' @export
-init_eyelog <- function(file, log_dir = NULL, prefix = NULL){
+init_eyelog <- function(file, log_dir = NULL, id = NULL){
 
   if(is.null(log_dir)){log_dir <- getwd(); message("Generating .elog file in current directory: ", getwd())} else{
     message("Generating .elog file in: ", log_dir)
@@ -18,8 +18,8 @@ init_eyelog <- function(file, log_dir = NULL, prefix = NULL){
     }
   }
 
-  if(is.null(prefix)) prefix <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(file)) # strips ascending path and replaces file extension
-  log_fname <- file.path(log_dir, paste0(prefix, ".elog"))
+  if(is.null(id)) id <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(file)) # strips ascending path and replaces file extension
+  log_fname <- file.path(log_dir, paste0(id, ".elog"))
 
   if(file.exists(log_fname)){
     message("elog already exists for: ", log_fname, ". Overwriting.") #can entertain other options, but this is fine for now.

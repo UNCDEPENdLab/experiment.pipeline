@@ -46,7 +46,7 @@ process_eye_dir <- function(dir, # directory with all edf files. Should be label
     # }
 
 
-    out <- read_process_eye(file = sub, config = config, prefix = id,
+    out <- read_process_eye(file = sub, config = config, id = id,
                             log = log, log_dir = log_dir,
                             save_steps = save_steps, out_dir = out_dir)
     out

@@ -96,13 +96,13 @@ ep.eye_tag_event_time <- function(ep.eye){
 
 
 ep.eye_save_preproc <- function(ep.eye,
-                                prefix,
+                                id,
                                 out_dir) {
     if(is.null(out_dir)) {
-      spath <- paste0(prefix, "_ep.eye.preproc.RData")
+      spath <- paste0(id, "_ep.eye.preproc.RData")
     } else{
       if(!dir.exists(out_dir)) dir.create(out_dir)
-      spath <- file.path(out_dir, paste0(prefix, "_ep.eye.preproc.RData"))
+      spath <- file.path(out_dir, paste0(id, "_ep.eye.preproc.RData"))
     }
     save(ep.eye, file = spath);
     return(spath)
