@@ -405,7 +405,7 @@ ep.eye_downsample <- function(df,
         analog_data <- NULL
       }
 
-    })#, describe_text = paste0("-- 4.4.2 Downsample analogue channels [eventn: ", ev,"]"))
+    })#, describe_text = paste0("-- 4.4.2 Downsample analog channels [eventn: ", ev,"]"))
 
     #### Downsample digital data
     tryCatch.ep({
