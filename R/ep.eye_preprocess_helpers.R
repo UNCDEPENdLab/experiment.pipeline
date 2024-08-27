@@ -383,7 +383,7 @@ ep.eye_downsample <- function(df,
         # setkeyv(inp, "eventn")
 
         #key by eventn so there is no mixing of analogue data between (unrelated) events
-        analog_data <- subsample_dt(df_ev[, ..a_cols], dfac = dfac, method = method)
+        analog_data <- subsample_dt(df_ev %>% select(all_of(a_cols), chunk), dfac = dfac, method = method)
         # analog_data <- subsample_dt(df[,..a_cols], dfac = dfac, method = method)
 
         ## TODO Sidequest:
@@ -405,7 +405,7 @@ ep.eye_downsample <- function(df,
         analog_data <- NULL
       }
 
-    }, describe_text = paste0("-- 4.4.2 Downsample analogue channels [eventn: ", ev,"]"))
+    })#, describe_text = paste0("-- 4.4.2 Downsample analogue channels [eventn: ", ev,"]"))
 
     #### Downsample digital data
     tryCatch.ep({
@@ -417,14 +417,14 @@ ep.eye_downsample <- function(df,
       } else {
         digital_data <- NULL
       }
-    }, describe_text = "-- 4.4.3 Downsample digital channels")
+    })#, describe_text = "-- 4.4.3 Downsample digital channels")
 
     #### Downsample/combine character data
     tryCatch.ep({
       if (length(c_cols > 0L)) {
         char_data <- downsample_chars(df_ev[, ..c_cols], dfac = dfac)
       }
-    }, describe_text = "-- 4.4.4 Downsample/combine character channels")
+    })#, describe_text = "-- 4.4.4 Downsample/combine character channels")
 
 
     ####combine all signals
