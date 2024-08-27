@@ -1,7 +1,7 @@
 ############################
 ##### List of subsidiary functions utilized in `ep.eye_setup_proc_config()`
 ############################
-# - ep.eye_set_config_definitions()
+# - ep.eye_default_options()
 # - ep.eye_build_msg_seq()
 ############################
 
@@ -85,11 +85,12 @@
 #' @author Nate Hall
 #' @export
 #'
-ep.eye_default_options <- function() {
+ep.eye_default_options <- function(edf_raw) {
   defaults <- list(
     global = list(
+      task = "experiment.pipeline_default",
       base_dir = getwd(),
-      prefix = "\\d{2,3}",
+      id = "\\d{2,3}",
       save_steps = TRUE,
       preproc_out = file.path(getwd(), "preproc_out"),
       log = FALSE,

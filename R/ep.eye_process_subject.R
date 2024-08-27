@@ -51,7 +51,7 @@ ep.eye_process_subject <- function(edf_raw,
 
   # Dimensions + Threat
   # -------------------
-  # setwd("/Users/natehall/r_packages/experiment.pipeline")
+  # setwd("~/r_packages/experiment.pipeline")
   # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
   # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
   # step <- NULL
@@ -59,14 +59,16 @@ ep.eye_process_subject <- function(edf_raw,
   # -------------------------
 
   capture.output(pacman::p_load(tictoc,
-                                      readr,
-                                      tidyverse,
-                                      data.table,
-                                      yaml,
-                                      checkmate,
-                                      tryCatchLog,
-                                      nate.utils,
-                                      futile.logger)) -> tmp; rm(tmp)
+                                readr,
+                                tidyverse,
+                                data.table,
+                                yaml,
+                                checkmate,
+                                tryCatchLog,
+                                nate.utils,
+                                futile.logger,
+                                dtplyr,
+                                bannerCommenter)) -> tmp; rm(tmp)
 
 
   ######
@@ -112,10 +114,10 @@ ep.eye_process_subject <- function(edf_raw,
     eye_init <- ep.eye_initialize(edf_raw,
                                   config,
                                   expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
-                                  task = config$task,
+                                  task = config$definitions$eye$global$task,
                                   id = config$definitions$eye$global$id,
                                   gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
-                                  confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
+                                  # confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
                                   meta_check = config$definitions$eye$initialize$meta_check,
                                   inherit_btw_ev = config$definitions$eye$initialize$inherit_btw_ev,
                                   header = c("2. Initialize ep.eye object:",

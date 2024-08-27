@@ -106,7 +106,7 @@ task: SortingMushrooms
 ```
 This is imported as:
 ```{r}
-config$task # or config[["task"]]
+config$definitions$eye$global$task # or config[["task"]]
 ```
 ## `runs`
 

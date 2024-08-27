@@ -29,7 +29,7 @@ config <- ep.eye_setup_proc_config(edf_path,
 
 ep.eye <- ep.eye_initialize(edf_path,
                               expected_edf_fields = config$definitions$eye$initialize$expected_edf_fields,
-                              task = config$task,
+                              task = config$definitions$eye$global$task,
                               gaze_events = config$definitions$eye$initialize$unify_gaze_events$gaze_events,
                               confirm_correspondence = config$definitions$eye$initialize$unify_gaze_events$confirm_correspondence,
                               meta_check = config$definitions$eye$initialize$meta_check,

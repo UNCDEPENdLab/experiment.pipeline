@@ -29,47 +29,79 @@ ep.eye_setup_proc_config <- function(edf_raw,
   #            "- Every ep.eye processing function takes config as an input.",
   #            "- Thus, config controls the behavior of every part of data processing moving forward!")
   # -----
-  stopifnot(file.exists(edf_raw))
-  if (length(file) > 1L) { stop("At present, ep.eye_setup_proc_configs is designed for one file at a time") }
+  stopifnot(file.exists(edf_raw) & file.exists(config_path))
+  if (length(edf_raw) > 1L) { stop("At present, ep.eye_setup_proc_configs is designed for one file at a time") }
 
-  config <- validate_exp_yaml(config_path)
-
-  #### start by pulling in global options which will launch an .elog file if requested.
-  # TODO add verbose argument to suppress output (perhaps just default to verbose = FALSE, unless log == TRUE).
-  config <- ep.eye_set_config_definitions(edf_raw, config, "global")
-  if(!is.null(header)){
-    bannerCommenter::open_box(header) %>% cat()
-    cat(paste0("Config status: SUCCESS\n\n------- global config options:\n")) %>% cat()
-    nate.utils::print_tree(config$definitions$eye$global)
-    # cat("------\n")
-  }
-
-  # Designated definition fields. Implement defaults if no options are supplied.
-  eye_proc_fields <- c("initialize", "msg_parse", "gaze_preproc", "pupil_preproc", "qa")
-  # count <- 1
-  for(f in eye_proc_fields){
-    # count <- count + 1
-
-    tryCatch.ep({
-      config <- ep.eye_set_config_definitions(edf_raw, config, f)
-    # }, describe_text = paste0(str_extract(header, "\\d+\\."), count, " Setup ", f, " options:"))
-  })#, describe_text = paste0(" Setup ", f, " options:"))
-
-
-
-
-    cat(paste0("------ ",f, " config options:\n"))
-    if(!is.null(config$definitions$eye[[f]])){
-      nate.utils::print_tree(config$definitions$eye[[f]])
-    } else {
-      cat(paste0("└─", f, " definitions NULL [empty] with no default\n\n"))
+  #custom recursive function (will allow for nesting in specified lists)
+  merge_configs <- function(user_config, default_config) {
+    if (is.null(default_config)) {
+      return(user_config)
     }
 
+    for (name in names(default_config)) {
+      if (is.list(default_config[[name]])) {
+        if (name %in% names(user_config) && is.list(user_config[[name]])) {
+          # Recursively merge nested lists
+          default_config[[name]] <- merge_configs(user_config[[name]], default_config[[name]])
+        }
+      } else {
+        # Replace default with user value if it exists
+        if (name %in% names(user_config)) {
+          default_config[[name]] <- user_config[[name]]
+        }
+      }
+    }
+
+    # Add any new elements from user_config that aren't in default_config
+    for (name in setdiff(names(user_config), names(default_config))) {
+      default_config[[name]] <- user_config[[name]]
+    }
+
+    return(default_config)
   }
+
+  # Load your configurations
+  config_user <- validate_exp_yaml(config_path)
+  config_defaults <- ep.eye_default_options(edf_raw)
+
+  # Definitions you care about
+  eye_proc_definitions <- c("global", "initialize", "msg_parse", "gaze_preproc", "pupil_preproc", "qa")
+
+  # Check for typos or unexpected sections
+  stopifnot(all(names(config_user$definitions$eye) %in% eye_proc_definitions))
+
+  # Initialize the final config
+  config <- list()
+
+  # Loop over each eye_proc_definition
+  for (nit in eye_proc_definitions) {
+    # Get user and default options for the current section
+    user_opts <- config_user$definitions$eye[[nit]]
+    default_opts <- config_defaults[[nit]]
+
+    # Merge the options using the recursive function
+    merged_opts <- merge_configs(user_opts, default_opts)
+
+    # Assign the merged configuration back to the final config list
+    config$definitions$eye[[nit]] <- merged_opts
+  }
+
+  # pull id from prefix
+  config$definitions$eye$global$id <- str_extract(edf_raw, config$definitions$eye$global$id)
 
   #### Build block and event-specific message sequences.
   config[["definitions"]][["eye"]] <- config %>% ep.eye_build_msg_seq(dt = paste0("- Build block/event-specific expected message sequences:"))
 
-return(config)
+   bannerCommenter::boxup("Final ep.eye Config Specification:") |> cat()
+  for(nit in eye_proc_definitions){
+    cat(paste0("------ ",nit, " config options:\n"))
+    if(!is.null(config$definitions$eye[[nit]])){
+      nate.utils::print_tree(config$definitions$eye[[nit]]); if(nit == "global") cat("\n") # this just makes the spacing a little prettier
+    } else {
+      cat(paste0("└─", nit, " definitions NULL [empty] with no default\n\n"))
+    }
+  }
+
+  return(config)
 }
 
