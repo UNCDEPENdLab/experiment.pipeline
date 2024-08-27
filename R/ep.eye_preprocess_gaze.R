@@ -24,7 +24,7 @@ ep.eye_preprocess_gaze <- function(ep.eye,
                                    header = NULL){
   ## setup debug
   # ep.eye <- eye_parsed
-  # ep.eye <- readRDS("data_proc/eye_preproc/ep.eye_parse_events/188.rds")
+  # ep.eye <- readRDS("data_proc/eye_preproc/ep.eye_parse_events/595.rds")
   # aoi = config$definitions$eye$gaze_preproc$aoi
   # downsample = config$definitions$eye$gaze_preproc$downsample
   # header = "4. Preprocess gaze data:"

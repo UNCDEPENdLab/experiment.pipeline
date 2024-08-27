@@ -25,13 +25,15 @@
 #'
 #' @export
 
-ep.eye_rm_impossible <- function(ep.eye, dt = NULL){
+ep.eye_rm_impossible <- function(ep.eye, dt = NULL) {
   tryCatch.ep({
-    ep.eye$raw <- ep.eye$raw %>% mutate(xp = ifelse(xp >= ep.eye$metadata$screen.x | xp <= 0, NA, xp),
-                                                        yp = ifelse(yp >= ep.eye$metadata$screen.y | yp <= 0, NA, yp),
-                                                        xp = ifelse(is.na(yp), NA, xp),
-                                                        yp = ifelse(is.na(xp), NA, yp),
-  )
+    ep.eye$raw <- ep.eye$raw %>% mutate(
+      xp = ifelse(xp >= ep.eye$metadata$screen.x | xp <= 0, NA, xp),
+      yp = ifelse(yp >= ep.eye$metadata$screen.y |
+                    yp <= 0, NA, yp),
+      xp = ifelse(is.na(yp), NA, xp),
+      yp = ifelse(is.na(xp), NA, yp),
+    )
   }, describe_text = dt)
   return(ep.eye)
 }
@@ -52,22 +54,18 @@ ep.eye_add_aois <- function(ep.eye,
                             extract_coords,
                             extract_labs,
                             split_coords,
-                            tag_raw = FALSE
-                            ){
+                            tag_raw = FALSE) {
   ### 4.2.1 pull AOI information into new columns by eventn
   # TODO add extraction_method = "data.frame" to allow user to pass pre-defined AOI information per event (e.g. if extracting via a regex isn't feasible)
   aoi_ref <- ep.eye_gen_aoi_ref(ep.eye,
-                         indicator,
-                         extract_coords,
-                         extract_labs,
-                         split_coords,
-                         dt = "-- 4.2.1 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
+                                indicator,
+                                extract_coords,
+                                extract_labs,
+                                split_coords,
+                                dt = "-- 4.2.1 Generate AOI reference object  (note. currently only regex supported for rectangular AOIs):")
 
   ### 4.2.2 tag gaze data with AOI_look field
-  ep.eye <- ep.eye_gen_aoi_look(ep.eye,
-                         aoi_ref,
-                         tag_raw,
-                         dt = "-- 4.2.2 Generate AOI fields in data:")
+  ep.eye <- ep.eye_gen_aoi_look(ep.eye, aoi_ref, tag_raw, dt = "-- 4.2.2 Generate AOI fields in data:")
 
   return(ep.eye)
 }
@@ -87,26 +85,35 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
                                extract_coords,
                                extract_labs,
                                split_coords,
-                               dt){
+                               dt) {
   tryCatch.ep({
-
     #append to this df and write to metadata for reference of aoi labels and coordinates per eventn
     aoi_ref <- data.frame()
 
-    for(i in unique(ep.eye$raw$eventn)){
+    for (i in unique(ep.eye$raw$eventn)) {
       # i <- 1
       ev <- ep.eye$raw %>% dplyr::filter(eventn == i)
-      aois <- ev$et.msg[grepl(indicator ,ev$et.msg)]
+      aois <- ev$et.msg[grepl(indicator , ev$et.msg)]
 
       # N.B. currently aoi coords are tagged as x1, y1, x2, y2 according to the extract_coords specification. This is not very flexible and will want to revisit this for sure.
       for (a in aois) {
         # a <- aois[2]
-        coords <- as.numeric(do.call(c, str_split(str_extract(a, extract_coords), split_coords)))
+        coords <- as.numeric(do.call(c, str_split(
+          str_extract(a, extract_coords), split_coords
+        )))
         lab <- str_extract(a, extract_labs)
-        aoi_ref <- rbind(aoi_ref, data.frame(eventn = i,
-                                             aoi_msg = a,
-                                             x1 = coords[1], y1 = coords[2], x2 = coords[3], y2 = coords[4],
-                                             aoi_lab = lab))
+        aoi_ref <- rbind(
+          aoi_ref,
+          data.frame(
+            eventn = i,
+            aoi_msg = a,
+            x1 = coords[1],
+            y1 = coords[2],
+            x2 = coords[3],
+            y2 = coords[4],
+            aoi_lab = lab
+          )
+        )
       }
     }
   }, describe_text = dt)
@@ -124,24 +131,36 @@ ep.eye_gen_aoi_ref <- function(ep.eye,
 #'
 #' @export
 
-ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
+ep.eye_gen_aoi_look <- function(ep.eye,
+                                aoi_ref,
+                                tag_raw = FALSE,
+                                dt = NULL) {
   # TODO allow for user to pass their own AOI_ref object
   cat(dt, "\n")
-  if(tag_raw){ ## leaving in as an option, though I think it is probably more important to gauge which AOIs were the focus during saccades (to/from) and fixations.
+  if (tag_raw) {
+    ## leaving in as an option, though I think it is probably more important to gauge which AOIs were the focus during saccades (to/from) and fixations.
     dt <- "--- 4.2.2.0 Appending AOIs to raw data"
     tryCatch.ep({
       ep.eye$raw$aoi_look <- "."
-      for(i in 1:nrow(ep.eye$raw)) {
+      for (i in 1:nrow(ep.eye$raw)) {
         print(i)
-        evn <- ep.eye$raw[[i,"eventn"]]
-        ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(aoi_look = ifelse(ep.eye$raw[[i,"xp"]] >= min(x1,x2) & ep.eye$raw[[i,"xp"]] <= max(x1,x2) &
-                                                                                           ep.eye$raw[[i,"yp"]] >= min(y1,y2) & ep.eye$raw[[i,"yp"]] <= max(y1,y2), TRUE, FALSE)) %>% ungroup()
+        evn <- ep.eye$raw[[i, "eventn"]]
+        ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(
+          aoi_look = ifelse(
+            ep.eye$raw[[i, "xp"]] >= min(x1, x2) &
+              ep.eye$raw[[i, "xp"]] <= max(x1, x2) &
+              ep.eye$raw[[i, "yp"]] >= min(y1, y2) &
+              ep.eye$raw[[i, "yp"]] <= max(y1, y2),
+            TRUE,
+            FALSE
+          )
+        ) %>% ungroup()
 
-        if(any(ev_aois$aoi_look)){
-          ep.eye$raw[i,"aoi_look"] <- ev_aois %>% dplyr::filter(aoi_look) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
+        if (any(ev_aois$aoi_look)) {
+          ep.eye$raw[i, "aoi_look"] <- ev_aois %>% dplyr::filter(aoi_look) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
         }
       }
-    },describe_text = dt)
+    }, describe_text = dt)
   }
 
   # saccades
@@ -153,23 +172,41 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
       # print(i)
       # i <- 1
 
-      evn <- ep.eye$gaze$sacc[[i,"eventn"]]
+      evn <- ep.eye$gaze$sacc[[i, "eventn"]]
 
-      ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(aoi_start = ifelse(ep.eye$gaze$sacc[[i,"sxp"]] >= min(x1,x2) & ep.eye$gaze$sacc[[i,"sxp"]] <= max(x1,x2) &
-                                                                                                                ep.eye$gaze$sacc[[i,"syp"]] >= min(y1,y2) & ep.eye$gaze$sacc[[i,"syp"]] <= max(y1,y2), TRUE, FALSE),
-                                                                                            aoi_end = ifelse(ep.eye$gaze$sacc[[i,"exp"]] >= min(x1,x2) & ep.eye$gaze$sacc[[i,"exp"]] <= max(x1,x2) &
-                                                                                                              ep.eye$gaze$sacc[[i,"eyp"]] >= min(y1,y2) & ep.eye$gaze$sacc[[i,"eyp"]] <= max(y1,y2), TRUE, FALSE)) %>% ungroup()
+      ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(
+        aoi_start = ifelse(
+          ep.eye$gaze$sacc[[i, "sxp"]] >= min(x1, x2) &
+            ep.eye$gaze$sacc[[i, "sxp"]] <= max(x1, x2) &
+            ep.eye$gaze$sacc[[i, "syp"]] >= min(y1, y2) &
+            ep.eye$gaze$sacc[[i, "syp"]] <= max(y1, y2),
+          TRUE,
+          FALSE
+        ),
+        aoi_end = ifelse(
+          ep.eye$gaze$sacc[[i, "exp"]] >= min(x1, x2) &
+            ep.eye$gaze$sacc[[i, "exp"]] <= max(x1, x2) &
+            ep.eye$gaze$sacc[[i, "eyp"]] >= min(y1, y2) &
+            ep.eye$gaze$sacc[[i, "eyp"]] <= max(y1, y2),
+          TRUE,
+          FALSE
+        )
+      ) %>% ungroup()
 
       # NAs denote missing measurements at the beginning or end of saccade. These may need to be dumped ultimately. For now, it's easiest to code them as "no aoi" and let later scripts handle this.
-      if(all(is.na(ev_aois$aoi_start))) {ev_aois$aoi_start <- FALSE}
-      if(all(is.na(ev_aois$aoi_end))) {ev_aois$aoi_end <- FALSE}
-
-      if(any(ev_aois$aoi_start)){
-        ep.eye$gaze$sacc[i,"aoi_start"] <- ev_aois %>% dplyr::filter(aoi_start) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
+      if (all(is.na(ev_aois$aoi_start))) {
+        ev_aois$aoi_start <- FALSE
+      }
+      if (all(is.na(ev_aois$aoi_end))) {
+        ev_aois$aoi_end <- FALSE
       }
 
-      if(any(ev_aois$aoi_end)){
-        ep.eye$gaze$sacc[i,"aoi_end"] <- ev_aois %>% dplyr::filter(aoi_end) %>% pull(aoi_lab) %>% paste(collapse = "/")
+      if (any(ev_aois$aoi_start)) {
+        ep.eye$gaze$sacc[i, "aoi_start"] <- ev_aois %>% dplyr::filter(aoi_start) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
+      }
+
+      if (any(ev_aois$aoi_end)) {
+        ep.eye$gaze$sacc[i, "aoi_end"] <- ev_aois %>% dplyr::filter(aoi_end) %>% pull(aoi_lab) %>% paste(collapse = "/")
       }
 
     }
@@ -184,21 +221,32 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
       # print(i)
       # i <- 1
 
-      evn <- ep.eye$gaze$fix[[i,"eventn"]]
+      evn <- ep.eye$gaze$fix[[i, "eventn"]]
 
-      ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(aoi_look = ifelse(ep.eye$gaze$fix[[i,"axp"]] >= min(x1,x2) & ep.eye$gaze$fix[[i,"axp"]] <= max(x1,x2) &
-                                                                                          ep.eye$gaze$fix[[i,"ayp"]] >= min(y1,y2) & ep.eye$gaze$fix[[i,"ayp"]] <= max(y1,y2), TRUE, FALSE)) %>% ungroup()
+      ev_aois <- aoi_ref %>% dplyr::filter(eventn == evn) %>% group_by(aoi_lab) %>% mutate(
+        aoi_look = ifelse(
+          ep.eye$gaze$fix[[i, "axp"]] >= min(x1, x2) &
+            ep.eye$gaze$fix[[i, "axp"]] <= max(x1, x2) &
+            ep.eye$gaze$fix[[i, "ayp"]] >= min(y1, y2) &
+            ep.eye$gaze$fix[[i, "ayp"]] <= max(y1, y2),
+          TRUE,
+          FALSE
+        )
+      ) %>% ungroup()
 
       # NAs denote missing measurements
-      if(all(is.na(ev_aois$aoi_look))) {ev_aois$aoi_look <- FALSE}
-
-
-      if(any(ev_aois$aoi_look)){
-        ep.eye$gaze$fix[i,"aoi_look"] <- ev_aois %>% dplyr::filter(aoi_look) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
+      if (all(is.na(ev_aois$aoi_look))) {
+        ev_aois$aoi_look <- FALSE
       }
 
 
-    }}, describe_text = dt)
+      if (any(ev_aois$aoi_look)) {
+        ep.eye$gaze$fix[i, "aoi_look"] <- ev_aois %>% dplyr::filter(aoi_look) %>% pull(aoi_lab) %>% paste(collapse = "/") # if gaze falls within 2 aoi rects, will collapse into single aoi_look variable, separated by /. E.g. face/eyes, aoi1/aoi2.
+      }
+
+
+    }
+  }, describe_text = dt)
 
   ep.eye$metadata$aoi_ref <- data.table(aoi_ref)
   return(ep.eye)
@@ -208,19 +256,28 @@ ep.eye_gen_aoi_look <- function(ep.eye, aoi_ref, tag_raw = FALSE, dt = NULL){
 #' @param ep.eye an ep.eye object
 #' @param dt descriptive text to print to log file, defaults to NULL.
 #'
-ep.eye_collapse_time <- function(ep.eye, dt){
+ep.eye_collapse_time <- function(ep.eye, dt) {
   tryCatch.ep({
     ep.eye$raw <- ep.eye$raw %>% data.frame() %>%
-      dplyr::group_by(eventn, time, xp, yp, ps, saccn, fixn, blinkn, block, block_trial, event) %>%
-      dplyr::summarise(et.msg = paste(et.msg, collapse = " | "), .groups = "drop") %>% data.table()
+      dplyr::group_by(eventn,
+                      time,
+                      xp,
+                      yp,
+                      ps,
+                      saccn,
+                      fixn,
+                      blinkn,
+                      block,
+                      block_trial,
+                      event) %>%
+      dplyr::summarise(et.msg = paste(et.msg, collapse = " | "),
+                       .groups = "drop") %>% data.table()
     # browser()
 
-    if(unique(table(ep.eye$raw$time)) != 1){
+    if (unique(table(ep.eye$raw$time)) != 1) {
       warning("Some measurements have more than one row")
     }
-  },
-  describe_text = dt
-  )
+  }, describe_text = dt)
   return(ep.eye)
 }
 
@@ -236,110 +293,163 @@ ep.eye_collapse_time <- function(ep.eye, dt){
 #'
 #' @export
 ep.eye_downsample <- function(df,
-                              sample.rate=1000,
-                              downsampled_freq=20,
+                              sample.rate = 1000,
+                              downsampled_freq = 20,
                               digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"),
                               analog_channels = c("xp", "yp", "ps"),
                               char_channels = c("et.msg", "block", "event"),
                               # TODO could be useful to implement so chunks with large amt of  missing measurements get dropped/set to NA. min_samps = 10, #
-                              method = "mean") {
-  ### debug
+                              # min_samps = .2, # use as proportion instead of absolute ammount. that way it will be easier to adjust the number of measurements needed in each downsampling chunk (if they are non-even, as the last chunk will often be if nrow is not divisible by dfac)
+                              method = "mean",
+                              rcpp = TRUE) {
+
+  # debug:
+  # -----
+  # df <- eye$raw # pulled right from edf
+  # df <- eye_init$raw # pulled right from edf
+  # -----
   # df <- ep.eye$raw
-  # downsample_factor = downsample$factor
+  # sample.rate = 1000
+  # downsampled_freq = config$definitions$eye$gaze_preproc$downsample$downsampled_freq
   # digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial") # integer values of trial, event, and gevs.
   # analog_channels = c("xp", "yp") # gaze and pupil measurements
   # char_channels = c("et.msg", "block", "event") # characters, if there are unique values within a block, will paste them together with " || "
-  # method = downsample$method # mean, subsamp
-  # # dt = NULL
+  # method = config$definitions$eye$gaze_preproc$downsample$method # mean, subsamp
+  # -----
 
   #### checks
-  try({suppressWarnings(setDT(df))}, silent = TRUE) # set df to data.table if not already.
+  try({
+    suppressWarnings(setDT(df))
+  }, silent = TRUE)
+  # set df to data.table if not already.
   assert_data_table(df) #for now, we are using data.table objects, so DT syntax applies
-  # assert_count(downsample_factor)
+  # assert_count(dfac)
 
 
   t_cols <- c("time", "time_ev") #hard code single time column for now, dont see how this would need to be different. 4/2/21 include event-lock time start.
   d_cols <- digital_channels
   a_cols <- analog_channels
   c_cols <- char_channels
-  downsample_factor <- round(sample.rate/downsampled_freq, 0)
+  dfac <- round(sample.rate / downsampled_freq, 0)
 
   ret_allevs <- data.table()
-  for(ev in unique(df$eventn)){
-    df_ev <- df %>% filter(eventn == ev) %>% mutate(time_ev = seq(0,n()-1, 1))
+
+  for (ev in unique(df$eventn)) {
+
+    df_ev <- df %>%
+      filter(eventn == ev) %>%
+      mutate(time_ev = seq(0, n() - 1, 1),
+             chunk = rep(1:ceiling(n() / dfac), each = dfac, length.out = n()),
+             .after = time)
+
+    n_chunks <- max(df_ev$chunk)
 
     #### Downsample time
     tryCatch.ep({
-    if (length(t_cols) > 0L) {
-      time_data <- sapply(df_ev[, ..t_cols], function(col) { col[seq(1, length(col), downsample_factor)] }) %>% data.table()
+      if (length(t_cols) > 0L) {
 
-      # time_data <- data.frame(time_data$time) %>% rename(`time` = `time_data.time`)  # sometimes dplyr is just easier...
-    } else {
-      time_data <- NULL
-    }
-    }, describe_text = "-- 4.4.1 Downsample time column")
+        time_col <- df_ev %>% pull(time)
+
+        dtc <- diff(time_col) #%>% unique()
+
+        # which(dtc != 1)
+        # dtc[which(dtc != 1)]
+
+        begin <- df_ev %>% pull(time) %>% min() %>% plyr::round_any(dfac)
+        # use n_chunks computed above to ensure matching across datasets
+        end <- begin + ((n_chunks - 1)*dfac)
+
+        tds <- seq(begin, end, dfac)
+        evtds <- tds - begin
+
+        time_data <- data.table(time = tds,
+                                time_ev = evtds)
+
+      } else {
+        time_data <- NULL
+      }
+    })#, describe_text = "-- 4.4.1 Downsample time column")
 
     #### Downsample analog data
-  tryCatch.ep({
+    tryCatch.ep({
+      if (length(a_cols) > 0L) {
+        # if(method == "mean"){
+        #   setkeyv(df_ev, c("eventn", "time", "block_trial", "time_ev"))
+        # }
 
-    if (length(a_cols) > 0L) {
-      # if(method == "mean"){
-      #   setkeyv(df_ev, c("eventn", "time", "block_trial", "time_ev"))
-      # }
+        # 4/2/21 needs fix: test that all(digital_data$eventn == analog_data$eventn) is FALSE. I'm just not all that familiar with data.table syntax so MNH might need to weigh in.
+        # a_cols_ev <- c("eventn", a_cols)
+        # inp <- df_ev[,..a_cols_ev]
+        # setkeyv(inp, "eventn")
 
-      # 4/2/21 needs fix: test that all(digital_data$eventn == analog_data$eventn) is FALSE. I'm just not all that familiar with data.table syntax so MNH might need to weigh in.
-      # a_cols_ev <- c("eventn", a_cols)
-      # inp <- df_ev[,..a_cols_ev]
-      # setkeyv(inp, "eventn")
+        #key by eventn so there is no mixing of analogue data between (unrelated) events
+        analog_data <- subsample_dt(df_ev[, ..a_cols], dfac = dfac, method = method)
+        # analog_data <- subsample_dt(df[,..a_cols], dfac = dfac, method = method)
 
-      #key by eventn so there is no mixing of analogue data between (unrelated) events
-      analog_data <- subsample_dt(df_ev[,..a_cols], dfac = downsample_factor, method = method)
-      # analog_data <- subsample_dt(df[,..a_cols], dfac = downsample_factor, method = method)
+        ## TODO Sidequest:
+        # QA plot comparing raw and downsampled
+        # analog_data %>% bind_cols(time_data)
+        #   pivot_longer(cols = c(xp, yp), names_to = "variable", values_to = "value")
+        #
+        # df_ev_long <- df_ev %>%
+        #   pivot_longer(cols = c(xp, yp), names_to = "xy_coord", values_to = "xy_value") %>%
+        #   select(time_ev, xy_coord, xy_value)
+        #
+        # raw_plot <-  ggplot(df_ev_long, aes(x = time_ev, y = xy_value)) + geom_point() + facet_wrap(~xy_coord) + labs(y = "Raw gaze")
+        #
+        #
+        # ## ggplot
+        # plot_me <- df_ev
+      } else {
+        message("unknown downsampling method: ", method)
+        analog_data <- NULL
+      }
+
+    }, describe_text = paste0("-- 4.4.2 Downsample analogue channels [eventn: ", ev,"]"))
+
+    #### Downsample digital data
+    tryCatch.ep({
+      if (length(d_cols) > 0L) {
+        #could support subsampling here -- doesn't seem like a great idea, though
+        digital_data <- data.table(do.call(cbind, lapply(df_ev[, ..d_cols], function(col) {
+          downsample_digital_timeseries(col, dfac, FALSE)
+        })))
+      } else {
+        digital_data <- NULL
+      }
+    }, describe_text = "-- 4.4.3 Downsample digital channels")
+
+    #### Downsample/combine character data
+    tryCatch.ep({
+      if (length(c_cols > 0L)) {
+        char_data <- downsample_chars(df_ev[, ..c_cols], dfac = dfac)
+      }
+    }, describe_text = "-- 4.4.4 Downsample/combine character channels")
+
+
+    ####combine all signals
+    if (is.null(analog_data)) {
+      ret <- digital_data
+    } else if (is.null(digital_data)) {
+      ret <- analog_data
     } else {
-      message("unknown downsampling method: ", method)
-      analog_data <- NULL
+      stopifnot(nrow(analog_data) == nrow(digital_data)) # if this is violated, cbinding these will almost certainly be flawed.
+      ret <- cbind(as.data.frame(digital_data),
+                   as.data.frame(analog_data))
+      ret <- cbind(digital_data, analog_data)
     }
 
-  }, describe_text = "-- 4.4.2 Downsample analogue channels")
-
-  #### Downsample digital data
-  tryCatch.ep({
-    if (length(d_cols) > 0L) {
-      #could support subsampling here -- doesn't seem like a great idea, though
-      digital_data <- data.table(do.call(cbind,lapply(df_ev[, ..d_cols], function(col) { downsample_digital_timeseries(col, downsample_factor, FALSE) })))
-    } else {
-      digital_data <- NULL
+    if (!is.null(time_data)) {
+      stopifnot(nrow(ret) == nrow(time_data))
+      ret <- cbind(data.table(time_data), ret)
     }
-  }, describe_text = "-- 4.4.3 Downsample digital channels")
 
-  #### Downsample/combine character data
-  tryCatch.ep({
-    if(length(c_cols > 0L)){
-      char_data <- downsample_chars(df_ev[,..c_cols], dfac = downsample_factor)
+    if (!is.null(char_data)) {
+      stopifnot(nrow(ret) == nrow(char_data))
+      ret <- cbind(ret, char_data)
     }
-  }, describe_text = "-- 4.4.4 Downsample/combine character channels")
 
-
-  ####combine all signals
-  if (is.null(analog_data)) {
-    ret <- digital_data
-  } else if (is.null(digital_data)) {
-    ret <- analog_data
-  } else {
-    stopifnot(nrow(analog_data) == nrow(digital_data)) # if this is violated, cbinding these will almost certainly be flawed.
-    ret <- cbind(as.data.frame(digital_data), as.data.frame(analog_data))
-    ret <- cbind(digital_data, analog_data)
-  }
-
-  if (!is.null(time_data)) {
-    stopifnot(nrow(ret) == nrow(time_data))
-    ret <- cbind(data.table(time_data), ret) }
-
-  if (!is.null(char_data)) {
-    stopifnot(nrow(ret) == nrow(char_data))
-    ret <- cbind(ret, char_data) }
-
-  ret_allevs <- rbind(ret_allevs, ret)
+    ret_allevs <- rbind(ret_allevs, ret)
   }
 
   return(ret_allevs)
@@ -347,28 +457,59 @@ ep.eye_downsample <- function(df,
 
 
 ## adapted function originally written by MNH to downsample using subsampling (keep every n sample) or mean (average within-bin)
-subsample_dt <- function(dt, keys=key(dt), dfac=1L, method="subsamp") {
+subsample_dt <- function(dt,
+                         keys = key(dt),
+                         dfac = 1L,
+                         method = "subsamp") {
+  # debug:
+  # -----
+  # dt = df_ev[, ..a_cols]
+  # keys = key(dt)
+  # dfac = dfac
+  # method = method
+  # -----
 
   checkmate::assert_data_table(dt)
-  if (method=="subsamp") {
-    dt <- data.table(do.call(cbind,lapply(dt, function(col) {col[seq(1, length(col), dfac)] })))
-  } else if (method=="mean") {
-    downsamp <- function(col, dfac=1L) { col[seq(1, length(col), dfac)] }
+  if (method == "subsamp") {
+    dt_down <- data.table(do.call(cbind, lapply(dt, function(col) {
+      col[seq(1, length(col), dfac)]
+    })))
+  } else if (method == "mean") {
 
-    dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N), by=keys]
-    dt <- dt[, lapply(.SD, mean), by=c(keys, "chunk")] #compute mean of every k samples
-    dt[, chunk := NULL]
+    dt_down <- dt %>% group_by(chunk) %>% summarise(xp = mean(xp, na.rm = TRUE),
+                                         yp = mean(yp, na.rm = TRUE))
+
+    # downsamp <- function(col, dfac = 1L) {
+    #   col[seq(1, length(col), dfac)]
+    # }
+    #
+    # dt[, chunk := rep(1:ceiling(.N / dfac),
+    #                   each = dfac,
+    #                   length.out = .N), by = keys]
+    #
+    # dt %>%
+    #   mutate(chunk = rep(1:ceiling(n() / dfac), each = dfac, length.out = n()))
+    #
+    #
+    # dt %>% mutate(chunk = rep(1:ceiling(.N / dfac),
+    #                           each = dfac,
+    #                           length.out = .N))
+    #
+    #
+    # dt <- dt[, lapply(.SD, mean), by = c(keys, "chunk")] #compute mean of every k samples
+    # dt[, chunk := NULL]
     # dt[, time := time - (dfac-1)/2]
   }
-  return(dt)
+  return(dt_down)
 }
 
-downsample_chars <- function(dt, dfac=1L){
+downsample_chars <- function(dt, dfac = 1L) {
   # dt <- eye$raw[, ..c_cols]
 
-  dt[, chunk := rep(1:ceiling(.N/dfac), each=dfac, length.out=.N)]#, by=keys]
+  dt[, chunk := rep(1:ceiling(.N / dfac), each = dfac, length.out = .N)]#, by=keys]
 
-  dt <- dt[, lapply(.SD, function(x) paste(unique(x), collapse = " | ")), by = chunk]
+  dt <- dt[, lapply(.SD, function(x)
+    paste(unique(x), collapse = " | ")), by = chunk]
   dt[, et.msg := gsub(" | .", "", et.msg, fixed = TRUE)]
   dt[, et.msg := gsub(". | ", "", et.msg, fixed = TRUE)]
   dt[, chunk := NULL]
@@ -377,8 +518,7 @@ downsample_chars <- function(dt, dfac=1L){
 
 ep.eye_extend_blinks <- function(ep.eye,
                                  ms_before = 100,
-                                 ms_after = 100){
-
+                                 ms_after = 100) {
   ### extract pupil size from raw.
   pup <- ep.eye$raw
 
@@ -387,19 +527,19 @@ ep.eye_extend_blinks <- function(ep.eye,
   af <- ms_after
 
   ### convert to ntimepoints depending on sampling rate if not 1000
-  if(sr != 1000){
-    conv_ms <- 1000/sr
-    bf <- bf/conv_ms
-    af <- af/conv_ms
+  if (sr != 1000) {
+    conv_ms <- 1000 / sr
+    bf <- bf / conv_ms
+    af <- af / conv_ms
   }
 
 
-  blinks <- ep.eye$gaze$blink %>% tibble() %>% mutate(stime_ex = stime - bf,
-                                                   etime_ex = etime + af)
+  blinks <- ep.eye$gaze$blink %>% tibble() %>% mutate(stime_ex = stime - bf, etime_ex = etime + af)
 
   bl_rms <- c()
-  for(row in 1:nrow(blinks)){ #tried to avoid, this is just so much easier
-    rang <- blinks[row,] %>% select(stime_ex, etime_ex) %>% as.numeric()
+  for (row in 1:nrow(blinks)) {
+    #tried to avoid, this is just so much easier
+    rang <- blinks[row, ] %>% select(stime_ex, etime_ex) %>% as.numeric()
     bl_rms <- c(bl_rms, seq(rang[1], rang[2], 1))
   }
 
@@ -411,17 +551,16 @@ ep.eye_extend_blinks <- function(ep.eye,
 
 ep.eye_smooth_pupil <- function(ep.eye,
                                 method = "movingavg",
-                                window_length = 50){
-
+                                window_length = 50) {
   stopifnot(method == "movingavg")
 
   ### convert to ntimepoints depending on sampling rate if not 1000
   sr <- ep.eye$metadata$sample.rate
   maw <- window_length
 
-  if(sr != 1000){
-    conv_ms <- 1000/sr
-    maw <- maw/conv_ms
+  if (sr != 1000) {
+    conv_ms <- 1000 / sr
+    maw <- maw / conv_ms
   }
 
   # TODO expand to other movingavg types and incl hanning filter (https://github.com/dr-JT/pupillometry/blob/master/R/pupil_smooth.R)
@@ -434,7 +573,7 @@ ep.eye_smooth_pupil <- function(ep.eye,
   return(ep.eye)
 }
 
-movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
+movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")) {
   ### this is taken from the pracma package with added na.rm functionality
 
   stopifnot(is.numeric(x), is.numeric(n), is.character(type))
@@ -445,17 +584,21 @@ movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
     stop("Window length 'n' cannot be greater then length of time series.")
   y <- numeric(nx)
   if (type == "s.ep") {
-    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
+    for (k in 1:(n - 1))
+      y[k] <- mean(x[1:k], na.rm = TRUE)
     for (k in n:nx) {
-      if(all(x[k:(k+n)])){
+      if (all(x[k:(k + n)])) {
         y[k] <- NA
       } else{
-        y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)}
+        y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)
+      }
     }
 
-  } else if (type == "s"){
-    for (k in 1:(n - 1)) y[k] <- mean(x[1:k], na.rm = TRUE)
-    for (k in n:nx) y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)
+  } else if (type == "s") {
+    for (k in 1:(n - 1))
+      y[k] <- mean(x[1:k], na.rm = TRUE)
+    for (k in n:nx)
+      y[k] <- mean(x[(k - n + 1):k], na.rm = TRUE)
   }
   # else if (type == "t") {
   #   n <- ceiling((n + 1)/2)
@@ -501,32 +644,32 @@ movavg.ep <- function (x, n, type = c("s", "t", "w", "m", "e", "r")){
 
 ep.eye_interp_pupil <- function(ep.eye,
                                 algor = "linear",
-                                maxgap =  1000){
-
+                                maxgap =  1000) {
   ### convert to ntimepoints depending on sampling rate if not 1000
   sr <- ep.eye$metadata$sample.rate
   # maxgap <- maxgap
 
-  if(sr != 1000){
-    conv_ms <- 1000/sr
-    maxgap <- maxgap/conv_ms
+  if (sr != 1000) {
+    conv_ms <- 1000 / sr
+    maxgap <- maxgap / conv_ms
   }
 
-  all_t <- seq(0,max(ep.eye$raw$time))
+  all_t <- seq(0, max(ep.eye$raw$time))
 
   ##### N.B. if there are missing timepoints, they need to be included so we dont interpolate over periods where the tracker is off.
-  paddf <- data.table(eventn = NA,
-                      time = which(!all_t %in% ep.eye$raw$time) -1,
-                      ps = NA,
-                      saccn = NA,
-                      fixn = NA,
-                      blinkn = NA,
-                      block = NA,
-                      block_trial = NA,
-                      event = NA,
-                      et.msg = NA,
-                      ps_blinkex = NA,
-                      ps_smooth = NA
+  paddf <- data.table(
+    eventn = NA,
+    time = which(!all_t %in% ep.eye$raw$time) - 1,
+    ps = NA,
+    saccn = NA,
+    fixn = NA,
+    blinkn = NA,
+    block = NA,
+    block_trial = NA,
+    event = NA,
+    et.msg = NA,
+    ps_blinkex = NA,
+    ps_smooth = NA
   )
 
   temp <- rbind(ep.eye$pupil$preprocessed, paddf) %>% arrange(time)
@@ -542,8 +685,7 @@ ep.eye_interp_pupil <- function(ep.eye,
 ep.eye_baseline_correct <- function(ep.eye,
                                     method = "subtract",
                                     dur_ms = 100,
-                                    center_on){
-
+                                    center_on) {
   # if this is populated, the metadata will have information stored on the timestamp discrepancies and a warning that asks the user to check. Ideally, only one message is passed that marks the start of the trial/stimulus onset/etc
   mult_bldf <- data.table()
   # if this is populated, the trial in question does not have the specified center_on message and will use the first measurement alone as a baseline assessment
@@ -553,17 +695,21 @@ ep.eye_baseline_correct <- function(ep.eye,
 
 
   # TODO allow for multiple center_on messages to get passed simultaneously (e.g. stimulus onset and choice)
-  for(ev in unique(ep.eye$pupil$preprocessed$eventn)){
-
+  for (ev in unique(ep.eye$pupil$preprocessed$eventn)) {
     st <- ep.eye$pupil$preprocessed %>% filter(eventn == ev) %>% tibble()
 
-    baset <- st[which(grepl(center_on, st$et.msg)),]$time
+    baset <- st[which(grepl(center_on, st$et.msg)), ]$time
 
     #### if there are more than one instance where message is passed, take first position, but log discrepancies and pass error at the end to look through these. This should be rare
-    if(length(baset) > 1){
-      mult_bldf <- rbind(mult_bldf, data.table(eventn = ev,
-                                               time = baset,
-                                               et.msg = st %>% dplyr::filter(time %in% baset) %>% pull(et.msg)))
+    if (length(baset) > 1) {
+      mult_bldf <- rbind(
+        mult_bldf,
+        data.table(
+          eventn = ev,
+          time = baset,
+          et.msg = st %>% dplyr::filter(time %in% baset) %>% pull(et.msg)
+        )
+      )
       baset <- baset[1] # this could be considered for an argument to put in config file.
     }
 
@@ -571,13 +717,13 @@ ep.eye_baseline_correct <- function(ep.eye,
     sr <- ep.eye$metadata$sample.rate
 
     ### convert to ntimepoints depending on sampling rate if not 1000
-    if(sr != 1000){
-      conv_ms <- 1000/sr
-      dur_ms <- dur_ms/conv_ms
+    if (sr != 1000) {
+      conv_ms <- 1000 / sr
+      dur_ms <- dur_ms / conv_ms
     }
 
     #### if no baseline message passed on this event, set baseline measurement to the first in the event
-    if(length(baset) == 0){
+    if (length(baset) == 0) {
       bl <- st$ps_interp[1]
       baset <- st$time[1]
       missing_baseline <- c(missing_baseline, ev)
@@ -587,9 +733,8 @@ ep.eye_baseline_correct <- function(ep.eye,
     }
 
     ### perform baseline correction
-    if(method == "subtract"){
-      st <- st %>% mutate(ps_bc = ps_interp - bl,
-                          time_bc = time -baset) %>% data.table()
+    if (method == "subtract") {
+      st <- st %>% mutate(ps_bc = ps_interp - bl, time_bc = time - baset) %>% data.table()
     } else{
       message("Currently only subtrative ('subtract') baseline correction supported")
       # TODO implement divisive baseline correction (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7544668/#FN5)
@@ -601,16 +746,15 @@ ep.eye_baseline_correct <- function(ep.eye,
 
   ep.eye$pupil$preprocessed <- ret_bc
 
-  if(nrow(mult_bldf) != 0){
+  if (nrow(mult_bldf) != 0) {
     ep.eye$metadata$pupil_multiple_baseline_msgs <- mult_bldf
     # cat("MESSAGE: For at least one trial, multiple baseline/center_on messages passed. First instance selected by default but see ep.eye$metadata$pupil_multiple_baselines for large discrepancies\n")
   }
 
-  if(length(missing_baseline) != 0){
+  if (length(missing_baseline) != 0) {
     ep.eye$metadata$pupil_missing_baseline_msg <- missing_baseline
     # cat("MESSAGE: For at least one trial, no baseline/center_on messages passed. First measurement in trial used as baseline.\n")
   }
 
   return(ep.eye)
 }
-
