@@ -412,7 +412,8 @@ ep.eye_downsample <- function(df,
       if (length(d_cols) > 0L) {
         #could support subsampling here -- doesn't seem like a great idea, though
         digital_data <- data.table(do.call(cbind, lapply(df_ev[, ..d_cols], function(col) {
-          downsample_digital_timeseries(col, dfac, FALSE)
+          downsample_digital_timeseries_r(col, dfac, FALSE)
+          #downsample_digital_timeseries(col, dfac, FALSE) # C++ version that seems to cause problems
         })))
       } else {
         digital_data <- NULL

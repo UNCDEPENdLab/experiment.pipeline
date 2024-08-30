@@ -11,7 +11,8 @@ ep.eye_downsample(
   digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial"),
   analog_channels = c("xp", "yp", "ps"),
   char_channels = c("et.msg", "block", "event"),
-  method = "mean"
+  method = "mean",
+  rcpp = TRUE
 )
 }
 \arguments{

@@ -5,13 +5,14 @@
 \title{Import EDF File}
 \usage{
 read_edf(
-  edf_files,
+  edf_file,
   asc_output_dir = NULL,
   keep_asc = TRUE,
   gzip_asc = TRUE,
   samples = TRUE,
   header = NULL,
   parse_all = TRUE,
+  data.table = TRUE,
   ...
 )
 }

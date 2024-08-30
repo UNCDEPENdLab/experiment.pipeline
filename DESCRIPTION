@@ -37,7 +37,8 @@ Imports:
   stringr, 
   tidyr, 
   yaml,
-  tictoc
+  tictoc,
+  tryCatchLog
 LinkingTo:
   Rcpp,
   RcppArmadillo

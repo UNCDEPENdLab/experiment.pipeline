@@ -4,11 +4,7 @@
 \alias{ep.eye_unify_gaze_events}
 \title{Unify gaze events with raw data}
 \usage{
-ep.eye_unify_gaze_events(
-  ep.eye,
-  gaze_events = c("sacc", "fix", "blink"),
-  confirm_correspondence = FALSE
-)
+ep.eye_unify_gaze_events(ep.eye, gaze_events = c("sacc", "fix", "blink"))
 }
 \arguments{
 \item{ep.eye}{An initialized ep.eye object}
