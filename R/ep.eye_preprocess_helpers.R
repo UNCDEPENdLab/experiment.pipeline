@@ -316,7 +316,14 @@ ep.eye_downsample <- function(df,
   # char_channels = c("et.msg", "block", "event") # characters, if there are unique values within a block, will paste them together with " || "
   # method = config$definitions$eye$gaze_preproc$downsample$method # mean, subsamp
   # -----
-
+  # Pupil
+  # -----
+  # df <- ep.eye$pupil$preprocessed
+  # sample.rate <- ep.eye$metadata$sample.rate
+  # downsampled_freq <- downsample$downsampled_freq
+  # analog_channels <- c("ps", "ps_blinkex", "ps_smooth", "ps_interp", "ps_bc", "time_bc")
+  # method <- downsample$method
+  # -----
   #### checks
   try({
     suppressWarnings(setDT(df))

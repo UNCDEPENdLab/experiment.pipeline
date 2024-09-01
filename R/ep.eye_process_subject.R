@@ -52,10 +52,10 @@ ep.eye_process_subject <- function(edf_raw,
   # Dimensions + Threat
   # -------------------
   # setwd("~/r_packages/experiment.pipeline")
-  # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
-  # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/config/dimt_eye_config.yaml"
+  # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/92.edf"
+  # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/R/psych.pipeline/config/dimt_eye_config.yaml"
   # step <- NULL
-  # devtools::load_all()
+  devtools::load_all()
   # -------------------------
 
   capture.output(pacman::p_load(tictoc,
@@ -160,23 +160,23 @@ ep.eye_process_subject <- function(edf_raw,
     if (!is.null(step)) return(eye_gazePre)
   }
 
-  if (is.null(step) || step == "pupil_preproc") {
-    tic("5. pupil time")
-    eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
-                                                 config,
-                                                 blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
-                                                 filter = config$definitions$eye$pupil_preproc$filter,
-                                                 interpolate = config$definitions$eye$pupil_preproc$interpolate,
-                                                 baseline_correction = config$definitions$eye$pupil_preproc$baseline_correction,
-                                                 downsample = config$definitions$eye$pupil_preproc$downsample,
-                                                 header = "5. Pupil preprocessing:")
-    toc()
-    if (!is.null(step)) return(eye_gaze_pupilPre)
-  }
+  # if (is.null(step) || step == "pupil_preproc") {
+  #   tic("5. pupil time")
+  #   eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
+  #                                                config,
+  #                                                blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
+  #                                                filter = config$definitions$eye$pupil_preproc$filter,
+  #                                                interpolate = config$definitions$eye$pupil_preproc$interpolate,
+  #                                                baseline_correction = config$definitions$eye$pupil_preproc$baseline_correction,
+  #                                                downsample = config$definitions$eye$pupil_preproc$downsample,
+  #                                                header = "5. Pupil preprocessing:")
+  #   toc()
+  #   if (!is.null(step)) return(eye_gaze_pupilPre)
+  # }
 
   if (is.null(step) || step == "cleanup") {
     tic("6. cleanup time")
-    ep.eye_clean <- ep.eye_cleanup(eye_gaze_pupilPre,
+    ep.eye_clean <- ep.eye_cleanup(eye_gazePre,
                                    config,
                                    globals = config$definitions$eye$global,
                                    header = "6. Cleanup and export ep.eye: ")

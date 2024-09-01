@@ -25,6 +25,16 @@ ep.eye_preprocess_pupil <- function(ep.eye,
                                     baseline_correction,
                                     downsample,
                                     header = NULL){
+  # debug:
+  # -----
+  # ep.eye <- eye_gazePre
+  # blink_corr <- config$definitions$eye$pupil_preproc$blink_corr
+  # filter <- config$definitions$eye$pupil_preproc$filter
+  # interpolate <- config$definitions$eye$pupil_preproc$interpolate
+  # baseline_correction <- config$definitions$eye$pupil_preproc$baseline_correction
+  # downsample <- config$definitions$eye$pupil_preproc$downsample
+  # header <- "5. Pupil preprocessing:"
+  # -----
 
   log_chunk_header(header)
 
@@ -53,9 +63,9 @@ ep.eye_preprocess_pupil <- function(ep.eye,
   ### 5.4 Baseline Correction
   tryCatch.ep({
     ep.eye <- ep.eye_baseline_correct(ep.eye,
-                               method = baseline_correction$method,
-                               dur_ms = baseline_correction$dur_ms,
-                               center_on = baseline_correction$center_on)
+                                      method = baseline_correction$method,
+                                      dur_ms = baseline_correction$dur_ms,
+                                      center_on = baseline_correction$center_on)
   }, describe_text = "- 5.4 Baseline correction:")
 
   ### 5.5 Downsample pupil

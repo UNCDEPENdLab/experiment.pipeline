@@ -28,6 +28,7 @@ ep.eye_tag_event_time <- function(ep.eye){
   ######## RAW
   ################
   try({
+    # extract start and end event times
     raw_estimes <- ep.eye$raw  %>% group_by(eventn) %>%
       summarise(stime_ev = min(time),
                 etime_ev = max(time), .groups = "drop")
@@ -47,12 +48,12 @@ ep.eye_tag_event_time <- function(ep.eye){
     select(block, block_trial, event, eventn, time, time_ev, xp,yp, saccn, fixn,blinkn,et.msg)
   })
 
-  try({ep.eye$pupil$downsample <- ep.eye$pupil$downsample %>% group_by(eventn) %>%
-    summarise(stime_ev = min(time),
-              etime_ev = max(time), .groups = "drop") %>%
-    right_join(ep.eye$pupil$downsample, by = "eventn") %>% mutate(time_ev = (time - stime_ev)) %>%
-    select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn,blinkn,et.msg)
-  })
+  # try({ep.eye$pupil$downsample <- ep.eye$pupil$downsample %>% group_by(eventn) %>%
+  #   summarise(stime_ev = min(time),
+  #             etime_ev = max(time), .groups = "drop") %>%
+  #   right_join(ep.eye$pupil$downsample, by = "eventn") %>% mutate(time_ev = (time - stime_ev)) %>%
+  #   select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn,blinkn,et.msg)
+  # })
 
 
   ################
@@ -60,7 +61,6 @@ ep.eye_tag_event_time <- function(ep.eye){
   ################
 
   try({
-
     ##saccades
     ep.eye$gaze$sacc <- raw_estimes %>% right_join(ep.eye$gaze$sacc, by = "eventn") %>%
       mutate(etime_ev = (etime - stime_ev),
@@ -85,11 +85,11 @@ ep.eye_tag_event_time <- function(ep.eye){
   ######## PREPROCESSED (NO DOWNSAMPLING) PUPIL: use raw_estimes
   ################
 
-  try({
-    ep.eye$pupil$preprocessed <- raw_estimes %>% right_join(ep.eye$pupil$preprocessed, by = "eventn") %>%
-      mutate(time_ev = (time - stime_ev)) %>%
-      select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn, blinkn, et.msg)
-  })
+  # try({
+  #   ep.eye$pupil$preprocessed <- raw_estimes %>% right_join(ep.eye$pupil$preprocessed, by = "eventn") %>%
+  #     mutate(time_ev = (time - stime_ev)) %>%
+  #     select(block, block_trial, event, eventn, time, time_ev, time_bc, ps, ps_blinkex, ps_smooth, ps_interp, ps_bc, saccn, fixn, blinkn, et.msg)
+  # })
 
   return(ep.eye)
 }

@@ -24,11 +24,13 @@ ep.eye_cleanup <- function(ep.eye,
                            globals,
                            header = NULL){
 
-  ### debug
-  # ep.eye <- eye_gaze_pupilPre
+  # debug:
+  # -----
+  # ep.eye <- eye_gazePre
   # globals <- config$definitions$eye$global
   # header = "6. Cleanup and export ep.eye"
-  #
+  # -----
+
   log_chunk_header(header)
 
   ### 6.1 Generate event-locked timing
@@ -61,13 +63,12 @@ ep.eye_cleanup <- function(ep.eye,
 
     ### save preproc'ed ep.eye object to correct folder
 
-      preproc_dir_clean <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_preproc_gaze")
+      preproc_dir_clean <- config$definitions$eye$global$preproc_out %>% file.path(., "ep.eye_preproc_clean")
       if(!dir.exists(preproc_dir_clean)) {dir.create(preproc_dir_clean, recursive = TRUE)}
       subj_path <- file.path(preproc_dir_clean, paste0(config$definitions$eye$global$id, ".rds"))
       tryCatch.ep({
         saveRDS(ep.eye, subj_path)
-      },
-      describe_text = paste0("- 4.5 Save preprocessed + cleaned up ep.eye [", subj_path,"]:"))
+      }, describe_text = paste0("- 4.5 Save preprocessed + cleaned up ep.eye [", subj_path,"]:"))
 
 
   } else{

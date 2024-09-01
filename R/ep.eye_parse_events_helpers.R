@@ -25,6 +25,7 @@ ep.eye_parse_event_info <- function(ep.eye,
                                     csv_path = NULL,
                                     msg_seq,
                                     dt = NULL) {
+  # TODO: name this something a bit more in line with what it does AND propagate changes throughout the package
   # browser()
   # debug:
   # -----
