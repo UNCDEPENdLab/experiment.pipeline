@@ -55,7 +55,7 @@ ep.eye_process_subject <- function(edf_raw,
   # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/92.edf"
   # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/R/psych.pipeline/config/dimt_eye_config.yaml"
   # step <- NULL
-  devtools::load_all()
+  # devtools::load_all()
   # -------------------------
 
   capture.output(pacman::p_load(tictoc,
