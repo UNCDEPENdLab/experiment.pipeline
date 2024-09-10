@@ -23,38 +23,50 @@
 #'
 #' @param empty_df a dataframe with no rows and all expected columns, used to add missing columns to dataframe created
 #' @param exptd_events dataframe of expected event properties for all events in this block. Contains output from create_exptd_trial() function
-#' @param behav dataframe of the behavioural datafile with rows for each event for all trials and blocks and columns containing the data ex: RTs, trial conditions, responses, etc.. 
-#'     One column needs to be reference column with eventid to match the config and behav file rows. eventid is the column in exptd_trial that matches with the behav file column mentioned in event_col.
 #' @param event_col is the column name in the behave file which contains event names for each row of data. This will be matched with the eventid column in exptd_trial
-#' @param nblocks number of repetitions of the current block, so that the events and trials for only one repetition is present in the output. Used in event_seq_match_behav() function
 #' @param block_f name of the block that the event belongs to
 #' @param expstruct_f the experiment structure defined in the config file
+#' @param phase_f name of the phase that the event belongs to
+#' @param use_behav boolean to indicate if the behav file is used to determine the sequence of events in the block. If TRUE, output will contain the expected dataframe based on events in behav data along with the expected dataframe based on the config file.
+#' @param behav dataframe of the behavioural datafile with rows for each event for all trials and blocks and columns containing the data ex: RTs, trial conditions, responses, etc.. 
+#'     One column needs to be reference column with eventid to match the config and behav file rows. eventid is the column in exptd_trial that matches with the behav file column mentioned in event_col.
 #'
-#' @return block_trials dataframe of expected event properties for all events in all trials in the current block
+#' @return block_trials_behav dataframe of expected event properties for all events in all trials in the current block
 #'
 #' @importFrom tidyverse %>% mutate row_number slice add_row distinct
 #' 
 #' @author Nidhi Desai
 #' 
-create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks, 
-                               block_f, phase_f, expstruct_f){
+create_exptd_block <- function(empty_df, exptd_events, event_col,
+                               block_f, phase_f, expstruct_f, use_behav, behav = NULL){
   
-  block_level <- expstruct_f$blocks[[block_f]]
+  # if use_behav is TRUE
+  if (use_behav == TRUE){
+    if (is.null(behav)) {stop("behav file is required")}
+  }
+
+  # the block might be named different when called inside the phase and the def: would match 
+  if (block_f %in% names(expstruct_f$blocks)){ 
+    block_level <- expstruct_f$blocks[[block_f]]
+  } else {
+    block_level <- expstruct_f$blocks[[phase_level$blocks[[block_f]]$def]]
+  }
+  
   trials_block <- block_level[["trials"]] # trials in the current block
   trial_names <- names(trials_block) # names of trials in this block
-  block_level_subsetvals <- if_null(block_level$block_seq_val) # all trials and events inside this block can be found by using these behav column values 
-  
+  block_level_subsetvals <- if_null(block_level$block_seq_val) # all trials and events inside this block can be found by using these behav column values. Will be NA to not check the block sequence.
+
   # ==== add all events and trials in this block in correct sequence ==== 
   # ---------------------------------------------------------------------
   
-  block_trials <- empty_df
+  block_trials_behav <- empty_df
   for (t in seq_along(trial_names)){ 
     trial <- trial_names[t]
     exptd_trial <- exptd_events[[trial]]
     
     # ---- determining event sequences ---- 
     # -------------------------------------
-    # 1. event_seq = FALSE OR event_seq = "match_config" and event_freq = match_config for a block ----
+    # ---- 1. event_seq = FALSE OR event_seq = match_config and event_freq = match_config for a block ----
     
     # CASE 1: 
     # event_seq = FALSE and event_freq = match_config
@@ -67,14 +79,13 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
     # if event_seq=match_config this would mean that the event_type sequences will be matched but not the options within the events. 
     # if there is a pattern to the sequence of options, this indicates a need for separate trials for each type of option for this event_type and these trials can be added in correct sequence in the block.
     
-    if ((if_null(expstruct_f$phases[[phase_f]]$event_seq) == FALSE | if_null(expstruct_f$phases[[phase_f]]$event_seq) == "match_config") & 
-        if_null(expstruct_f$phases[[phase_f]]$event_freq) == "match_config"){ 
-      block_trials <- event_freq_match_config(exptd_trial)
-      block_trials <- block_trials %>% mutate(row_num = row_number()) %>%
-        mutate(trial_num = behav[block_trials$behav_nrow, expstruct_f$phases[[phase_f]][["ntrial_var"]]]) # add trial numbers from the behav file 
-      block_trials[, setdiff(names(empty_df), names(block_trials))] <- NA # add missing columns as NA to match the exptd dataframe
+    if ((is.null(expstruct_f$phases[[phase_f]]$event_seq) == FALSE | is.null(expstruct_f$phases[[phase_f]]$event_seq) == "match_config") & 
+        is.null(expstruct_f$phases[[phase_f]]$event_freq) == "match_config"){ 
+      block_trials_config <- event_freq_match_config(exptd_trial)
+      block_trials_config <- block_trials_config %>% mutate(row_num = row_number()) %>%
+        mutate(trial_num = behav[block_trials_config$behav_nrow, expstruct_f$phases[[phase_f]][["ntrial_var"]]]) # add trial numbers from the behav file 
+      block_trials_config[, setdiff(names(empty_df), names(block_trials_config))] <- NA # add missing columns as NA to match the exptd dataframe
     }
-    
     
     # ---- 2. event_seq = match_behav and event_freq = match_behav for a block ----
     # When event_seq is set to match_behav, the assumption is that the behav file contains the accurate sequence of events 
@@ -83,17 +94,15 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
     # Here block trials will be created by the sequence in actual behav data and matching our expected event to the
     # rows in the behav data and kindof replacing our expected event into the sequence we already see in the behav file
     
-    else if (if_null(expstruct_f$phases[[phase_f]]$event_seq) == "match_behav" &
-             if_null(expstruct_f$phases[[phase_f]]$event_freq) == "match_behav"){
-      block_trials <- event_seq_match_behav(exptd_trial, behav, event_col, nblocks)
-      block_trials <- block_trials %>% mutate(row_num = row_number()) %>% 
-        mutate(trial_num = behav[block_trials$behav_nrow, expstruct_f$phases[[phase_f]][["ntrial_var"]]]) # add trial numbers from the behav file 
-      block_trials[, setdiff(names(empty_df), names(block_trials))] <- NA # add missing columns as NA to match the exptd dataframe
+    else if (expstruct_f$phases[[phase_f]]$event_seq == "match_behav" &
+             expstruct_f$phases[[phase_f]]$event_freq == "match_behav"){
+      block_trials_behav <- event_seq_match_behav(exptd_trial, behav, event_col, nblocks)
+      block_trials_behav <- block_trials_behav %>% mutate(row_num = row_number()) %>% 
+        mutate(trial_num = behav[block_trials_behav$behav_nrow, expstruct_f$phases[[phase_f]][["ntrial_var"]]]) # add trial numbers from the behav file 
+      block_trials_behav[, setdiff(names(empty_df), names(block_trials_behav))] <- NA # add missing columns as NA to match the exptd dataframe
     }
     
-    # TODO Check what happens when there is a repeat trial and 2 consecutive display_both_stimuli appear in block_trials
-    
-    
+    # TODO Check what happens when there is a repeat trial and 2 consecutive display_both_stimuli appear in block_trials_behav
     # ---- 3. event_seq = match_behav and event_freq = match_config for a block ----
     
     # When event_seq is set to match_behav, the assumption is that the behav file contains the accurate sequence of events 
@@ -111,21 +120,22 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
     # which indicates that the config file will be used for frequency matching. So the expectation that the config will contain information
     # about the frequency of each event is acceptable.
     
-    else if (if_null(expstruct_f$phases[[phase_f]]$event_seq) == "match_behav" &
-             if_null(expstruct_f$phases[[phase_f]]$event_freq) == "match_config"){
-      # NOTE block_trials is the table created from the behav data and block_trials_config is the table created from the config file.
+    # NOTE: which option for an event or trial is present will be determined using the behav file. But base event sequence will be determined by the config file
+
+    else if (expstruct_f$phases[[phase_f]]$event_seq == "match_behav" &
+             expstruct_f$phases[[phase_f]]$event_freq == "match_config"){
+      # NOTE block_trials_behav is the table created from the behav data and block_trials_config is the table created from the config file.
       
-      # block_trials_config table created from only the config file, reference to add events in the block_trials created from the behav data so that the freq of events could be matched to the config file
-      block_trials_config <- event_freq_match_config(exptd_trial) 
-      block_trials_config <- block_trials_config %>% filter(event_type != "repeatPitTrial")
+      # block_trials_config table created from only the config file, reference to add events in the block_trials_behav created from the behav data so that the freq of events could be matched to the config file
+      block_trials_config <- event_freq_match_config(exptd_trial)
+      # block_trials_config <- block_trials_config %>% filter(event_type != "repeatPitTrial") # TODO specific to weather task. Figure out how to deal with this
       
-      # block_trials table below is created from the behav file and the events are in correct sequence as per the behav data. 
-      block_trials <- event_seq_match_behav(exptd_trial, behav, event_col, nblocks)
-      block_trials <- block_trials %>% mutate(row_num = row_number()) %>% 
-        mutate(trial_num = behav[block_trials$behav_nrow, expstruct_f$phases[[phase_f]][["ntrial_var"]]]) # add trial numbers from the behav file 
-      block_trials[, setdiff(names(empty_df), names(block_trials))] <- NA # add missing columns as NA to match the exptd dataframe
+      # block_trials_behav table below is created from the behav file and the events are in correct sequence as per the behav data. 
+      block_trials_behav <- event_seq_match_behav(exptd_trial, behav, event_col)
       
-      ## incorporating frequencies and sequence together correctly by merging block_trials_config and block_trials
+      block_trials_behav[, setdiff(names(empty_df), names(block_trials_behav))] <- NA # add missing columns as NA to match the exptd dataframe
+      
+      ## incorporating frequencies and sequence together correctly by merging block_trials_config and block_trials_behav
       
       # create one trial first from the config file and find the sequence of events in this trial from the behav
       # then repeat the trial in the block as per the frequencies in config file
@@ -135,52 +145,53 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
       # 1. sequence of events inside a trial
       # 2. For events with options, knowing which option occurred in each of the trials
       
-      # correct the sequence of events inside a trial in the block_trials_config using block_trials
-      exptd_trial <- exptd_trial %>% filter(event_type != "repeatPitTrial") # TODO later remove this after we figure out how to deal with the extra option in trial flow
-      trial_evs <- block_trials_config[1:length(unique(exptd_trial$event_type)),] # these events constitute a trial and is trial is the set of events that are repeated to create block_trials
-      ev_seq_behav <- unlist(lapply(trial_evs$event_type, function(x){ which(block_trials$event_type == x)[1] }))
-      trial_evs <- trial_evs %>% arrange(ev_seq_behav)
+      # correct the sequence of events inside a trial in the block_trials_config using block_trials_behav
+      # exptd_trial <- exptd_trial %>% filter(event_type != "repeatPitTrial") # TODO later remove this after we figure out how to deal with the extra option in trial flow
+      # trial_evs <- block_trials_config[1:length(unique(exptd_trial$event_type)),] # these events constitute a trial and is trial is the set of events that are repeated to create block_trials_behav
+      # ev_seq_behav <- unlist(lapply(trial_evs$event_type, function(x){ which(block_trials_behav$event_type == x)[1] }))
+      # trial_evs <- trial_evs %>% arrange(ev_seq_behav)
       
       # calculate number of trials in this block
-      evs_with_options <- unique(exptd_trial[duplicated(exptd_trial$event_type), "event_type"])
-      common_ntrials <- unique(exptd_trial$ntrials[!exptd_trial$event_type %in% evs_with_options]) # TODO might not work for all situations
-      common_ntrials <- as.numeric(common_ntrials[!is.na(common_ntrials)])
-      copy_rows <- rep(1:nrow(trial_evs), common_ntrials)
-      trial_num <- rep(1:common_ntrials, each = nrow(trial_evs))
-      block_trials_config <- trial_evs %>% slice(copy_rows) %>% mutate(trial_num = trial_num)
-      block_trials_config <- block_trials_config %>% mutate(row_num = row_number())
-      behav <- behav %>% mutate(row_number = row_number())
+      # evs_with_options <- unique(exptd_trial[duplicated(exptd_trial$event_type), "event_type"])
+      # common_ntrials <- unique(exptd_trial$ntrials[!exptd_trial$event_type %in% evs_with_options]) # TODO might not work for all situations
+      # common_ntrials <- as.numeric(common_ntrials[!is.na(common_ntrials)])
+      # copy_rows <- rep(1:nrow(trial_evs), common_ntrials)
+      # trial_num <- rep(1:common_ntrials, each = nrow(trial_evs))
+      # block_trials_config <- trial_evs %>% slice(copy_rows) %>% mutate(trial_num = trial_num)
+      # block_trials_config <- block_trials_config %>% mutate(row_num = row_number())
+      # behav <- behav %>% mutate(row_number = row_number())
       
-      # add/delete rows of events from the block_trials which does not match block_trials_config, so that the events with options can be correctly matched across the two tables
+      # add/delete rows of events from the block_trials_behav which does not match block_trials_config, so that the events with options can be correctly matched across the two tables
       # compare frequencies of events in both expected tables from behav and config file
+      # TODO add missing rows from the config file to the block_trials_behav table created from the behav file
       f_ref <- table(block_trials_config$event_type)
-      f_compare <- table(block_trials$event_type)
+      f_compare <- table(block_trials_behav$event_type)
       all_elems <- union(names(f_ref), names(f_compare))
       miss_ev <- all_elems[f_ref[all_elems] > f_compare[all_elems]]
       extra_ev <- all_elems[f_ref[all_elems] < f_compare[all_elems]]
       
-      # adding missing events to block_trials
+      # adding missing events to block_trials_behav
       if (length(miss_ev) > 0) { # length(miss_ev) is 0 means no mismatch in frequencies for any events
         
-        # convert block_trials eventid from character to list
-        block_trials$eventid <- lapply(block_trials$eventid, function(x){c(x)})
-        block_trials$event_dur <- lapply(block_trials$event_dur, function(x){c(x)})
-        block_trials$ttl_code <- lapply(block_trials$ttl_code, function(x){c(x)})
-        block_trials$behav_eventid <- lapply(block_trials$behav_eventid, function(x){c(x)})
+        # convert block_trials_behav eventid from character to list
+        block_trials_behav$eventid <- lapply(block_trials_behav$eventid, function(x){c(x)})
+        block_trials_behav$event_dur <- lapply(block_trials_behav$event_dur, function(x){c(x)})
+        block_trials_behav$ttl_code <- lapply(block_trials_behav$ttl_code, function(x){c(x)})
+        block_trials_behav$behav_eventid <- lapply(block_trials_behav$behav_eventid, function(x){c(x)})
         
         # get the trial numbers where events are missing from the trial counter column in the behav file
-        trial_num_behav <- behav %>% filter(row_number %in% block_trials$behav_nrow) %>% pull(pitNumTrialsCounter)
+        trial_num_behav <- behav %>% filter(row_number %in% block_trials_behav$behav_nrow) %>% pull(pitNumTrialsCounter)
         trial_num_expected <- nrow(exptd_trial %>% distinct(event_type, .keep_all = TRUE) %>% distinct(behav_eventid, .keep_all = TRUE))
         missing_trial_num <- unname(which(table(trial_num_behav) != trial_num_expected))
-        # get the trial numbers where the event might be a separate event (part of the present event) in behav file but is still missing and can be found by the frequency of trial numbers in block_trials
-        missing_trial_num <- unique(c(missing_trial_num, unname(which(table(block_trials$trial_num) != nrow(trial_evs)))))
+        # get the trial numbers where the event might be a separate event (part of the present event) in behav file but is still missing and can be found by the frequency of trial numbers in block_trials_behav
+        missing_trial_num <- unique(c(missing_trial_num, unname(which(table(block_trials_behav$trial_num) != nrow(trial_evs)))))
         
-        # add the missing event rows into block_trials from the block_trials_config table
+        # add the missing event rows into block_trials_behav from the block_trials_config table
         for (m in missing_trial_num){
-          # add missing row to block_trials
-          present_ev_trial <- block_trials %>% filter(trial_num == m) %>% pull(event_type)
+          # add missing row to block_trials_behav
+          present_ev_trial <- block_trials_behav %>% filter(trial_num == m) %>% pull(event_type)
           present <- trial_evs$event_type %in% present_ev_trial
-          present_rownum <- block_trials %>% filter(trial_num == m) %>% pull(row_num)
+          present_rownum <- block_trials_behav %>% filter(trial_num == m) %>% pull(row_num)
           exptd_trial_rownum <- rep(NA, nrow(trial_evs))
           exptd_trial_rownum[present] <- present_rownum
           
@@ -191,62 +202,62 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
           for (me in missing_rownum){
             temp_row <- trial_evs[curr_trial_rownum == me,]
             temp_row <- temp_row %>% add_column(behav_nrow = NA) %>% add_column(trial_num = m) %>% mutate(row_num = me)
-            block_trials <- block_trials %>% add_row(temp_row, .after = me-1)
+            block_trials_behav <- block_trials_behav %>% add_row(temp_row, .after = me-1)
           }
-          block_trials <- block_trials %>% mutate(row_num = row_number())
+          block_trials_behav <- block_trials_behav %>% mutate(row_num = row_number())
         }
       }
       
       
-      # removing extra events to block_trials
+      # removing extra events to block_trials_behav
       # TODO do we really need this, what the chance of this possibility?
-      if (length(extra_ev) > 0) {
-        # each trial should have one count of each event, more than that would suggest additional unwanted events
+      # if (length(extra_ev) > 0) {
+      #   # each trial should have one count of each event, more than that would suggest additional unwanted events
         
-        # get the trial numbers where extra events are present compared to expected exptd_trial table
-        trial_num_expected <- nrow(exptd_trial %>% distinct(event_type, .keep_all = TRUE))
-        extra_trial_num <- unname(which(table(block_trials$trial_num) != trial_num_expected))
+      #   # get the trial numbers where extra events are present compared to expected exptd_trial table
+      #   trial_num_expected <- nrow(exptd_trial %>% distinct(event_type, .keep_all = TRUE))
+      #   extra_trial_num <- unname(which(table(block_trials_behav$trial_num) != trial_num_expected))
         
-        # remove the extra rows from block_trials
-        all_evs <- trial_evs$event_type
-        for (m in extra_trial_num){
-          block_trials <- block_trials %>% mutate(row_num = row_number())
-          this_trial_evs <- block_trials %>% filter(trial_num == m) 
+      #   # remove the extra rows from block_trials_behav
+      #   all_evs <- trial_evs$event_type
+      #   for (m in extra_trial_num){
+      #     block_trials_behav <- block_trials_behav %>% mutate(row_num = row_number())
+      #     this_trial_evs <- block_trials_behav %>% filter(trial_num == m) 
           
-          # There are there ways to have extra rows --
+      #     # There are there ways to have extra rows --
           
-          if (nrow(this_trial_evs) > trial_num_expected){
-            # do all events exists in this trial?
-            if (!all(all_evs %in% this_trial_evs$event_type)) {
-              stop(paste("trial number", m, "dont contain all events prior to checking extra events."))
-            }
+      #     if (nrow(this_trial_evs) > trial_num_expected){
+      #       # do all events exists in this trial?
+      #       if (!all(all_evs %in% this_trial_evs$event_type)) {
+      #         stop(paste("trial number", m, "dont contain all events prior to checking extra events."))
+      #       }
             
-            # 1. delete rows whose event is not in the all_evs list
-            indx <- which(!(this_trial_evs$event_type %in% all_evs))
-            if (length(indx) > 0) {
-              block_trials <- block_trials %>% slice(-this_trial_evs$row_num[indx])
-            }
+      #       # 1. delete rows whose event is not in the all_evs list
+      #       indx <- which(!(this_trial_evs$event_type %in% all_evs))
+      #       if (length(indx) > 0) {
+      #         block_trials_behav <- block_trials_behav %>% slice(-this_trial_evs$row_num[indx])
+      #       }
             
-            # 2. extra events in existing trials
+      #       # 2. extra events in existing trials
             
-            # the first occurrence of the event will be considered as the correct one and repeatitions of the event will be removed from block_trials
-            delete_rows <- c()
-            duplicated_ev <- this_trial_evs$event_type[duplicated(this_trial_evs$event_type)]
-            nondup_rows <- which(!(this_trial_evs$event_type %in% duplicated_ev))
-            for (i in duplicated_ev){
-              relative_position <- which(all_evs == i)
-              this_trial_evs$event_type[relative_position]
-              # TODO this needs to be figured out
+      #       # the first occurrence of the event will be considered as the correct one and repeatitions of the event will be removed from block_trials_behav
+      #       delete_rows <- c()
+      #       duplicated_ev <- this_trial_evs$event_type[duplicated(this_trial_evs$event_type)]
+      #       nondup_rows <- which(!(this_trial_evs$event_type %in% duplicated_ev))
+      #       for (i in duplicated_ev){
+      #         relative_position <- which(all_evs == i)
+      #         this_trial_evs$event_type[relative_position]
+      #         # TODO this needs to be figured out
               
-            }
-          }
+      #       }
+      #     }
           
-          # 3. extra trials with all or some events
-          if (m > common_ntrials){
-            block_trials <- block_trials %>% slice(-this_trial_evs$row_num)
-          }
-        }
-      }
+      #     # 3. extra trials with all or some events
+      #     if (m > common_ntrials){
+      #       block_trials_behav <- block_trials_behav %>% slice(-this_trial_evs$row_num)
+      #     }
+      #   }
+      # }
     }
     
     # ---- 4. event_seq = FALSE and event_freq = FALSE for a block----
@@ -254,7 +265,7 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
   }
   
   
-  # ==== add block begin and end information to block_trials ==== 
+  # ==== add block begin and end information to block_trials_behav ==== 
   # -------------------------------------------------------------
   
   block_begin_end <- empty_df
@@ -273,21 +284,23 @@ create_exptd_block <- function(empty_df, exptd_events, behav, event_col, nblocks
       mutate(behav_find_rows = list(subset_ls))
   }
   
-  # add block begin and end trials to block_trials
+  # add block begin and end trials to block_trials_behav
   block_begin_end <- block_begin_end %>% 
     mutate(eye_msg = as.list(eye_msg)) %>%
     mutate(ntrials = as.character(ntrials))
     
   # add the block level behav_find_rows if not present already
   if(nrow(block_begin_end) > 0){
-    block_trials <- block_trials %>% add_row(block_begin_end[1,], .before = 1)
+    block_trials_behav <- block_trials_behav %>% add_row(block_begin_end[1,], .before = 1)
   }
   if (nrow(block_begin_end) == 2){
-    block_trials <- block_trials %>% add_row(block_begin_end[2,], .after = nrow(block_trials))
+    block_trials_behav <- block_trials_behav %>% add_row(block_begin_end[2,], .after = nrow(block_trials_behav))
   }
   
-  return(block_trials)
+  return(block_trials_behav)
 }
+
+create_exptd_block
 
 
 
@@ -313,18 +326,47 @@ create_exptd_trial <- function(empty_df, trial_f, block_f, expstruct_f){
   phase_extract <- extract_list_levels(expstruct_f$phases, 3, full.names = TRUE)
   phase_extract <- phase_extract[grepl(block_f, phase_extract)]
   phase_f <- strsplit(phase_extract, ".", fixed = TRUE)[[1]][1]
+  phase_level <- expstruct_f$phases[[phase_f]]
   
-  block_level <- expstruct_f$blocks[[block_f]]
-  trials_block <- block_level[["trials"]] # trials in the current block
-  trial_level <- expstruct_f$trials[[trial_f]]
+  # the block might be named different when called inside the phase and the def: would match 
+  if (block_f %in% names(expstruct_f$blocks)){ 
+    block_level <- expstruct_f$blocks[[block_f]]
+  } else {
+    block_level <- expstruct_f$blocks[[phase_level$blocks[[block_f]]$def]]
+  }
+
+  # replace any parts of the block that might have been changed
+  if (any(names(expstruct_f$phases[[phase_f]]$blocks[[block_f]]) != "def")){
+    for (p in names(expstruct_f$phases[[phase_f]]$blocks[[block_f]])){
+      block_level[[p]] <- expstruct_f$phases[[phase_f]]$blocks[[block_f]][[p]]
+    }
+  }
+
+  # build trials in the current block
+  trials_block <- block_level[["trials"]]
+  if (trial_f %in% names(expstruct_f$trials)){
+    trial_level <- expstruct_f$trials[[trial_f]]
+  } else if (!is.null(trials_block[[trial_f]]$def) & trials_block[[trial_f]]$def %in% names(expstruct_f$trials)){
+    trial_level <- expstruct_f$trials[[trials_block[[trial_f]]$def]]
+  } else {
+    stop(paste("trial", trial_f, "or its definition not found in the config file"))
+  }
   
   ## some trials used in a block might have some part of the trial changed, this needs to be added while building the trial
+    # it is not necessarily a section of the event that needs to be changed, it is possible that the events inside an option in a trial needs to be changed
   if (is.list(trials_block[[trial_f]])){ # not default trial definition
     events_to_change <- extract_list_levels(trials_block[[trial_f]], 1, FALSE)
-    for (q in events_to_change){
-      prop_to_change <- names(trials_block[[trial_f]][[q]])
-      for (p in prop_to_change){ # properties of an event to change
-        trial_level[[q]][[p]] <- trials_block[[trial_f]][[q]][[p]]
+    if (length(events_to_change) > 1){
+      events_to_change <- events_to_change[nchar(events_to_change) > 0]
+      for (y in unique(events_to_change)){
+        trial_level[[y]] <- trials_block[[trial_f]][[y]]
+      }
+    } else if (nchar(events_to_change) > 0){ # TODO NEEDS TO BE TESTED
+      for (q in events_to_change){
+        prop_to_change <- names(trials_block[[trial_f]][[q]])
+        for (p in prop_to_change){ # properties of an event to change
+          trial_level[[q]][[p]] <- trials_block[[trial_f]][[q]][[p]]
+        }
       }
     }
   }
@@ -350,7 +392,7 @@ create_exptd_trial <- function(empty_df, trial_f, block_f, expstruct_f){
   
   for (e in seq_along(trial_events)){ # loop over events in this trial
     ev <- trial_events[e]
-      
+
     #### options in trials ####
     # if a trial_level contains "option", then we will create separate trial dataframes for each option
     # "option" present under events in trials is dealt with here
@@ -367,13 +409,13 @@ create_exptd_trial <- function(empty_df, trial_f, block_f, expstruct_f){
     }
     
     ## extract the number of expected trials containing the event
-    ev_opt_ntrials <- get_ntrials_config(ev, length(ev_id), trial_f, block_f, expstruct_f)
+    ev_opt_ntrials <- get_ntrials_config(ev, length(ev_id), trial_f, trial_level, block_f, expstruct_f)
     
     #### create a row of data for this event ####
     # ev_id has multiple elements if there are options inside an event
     for (k in seq_along(ev_id)){
       ev_opt <- ev_id[[k]]
-      new_event <- create_exptd_event(ev, ev_opt, ev_id, expstruct_f, trial_f, block_f, phase_f)
+      new_event <- create_exptd_event(ev, ev_opt, k, ev_id, expstruct_f, trial_f, trial_level, block_f, phase_f)
       
       # add rows for each event to the trial dataframe
       new_trial <- rbind(new_trial, new_event) 
@@ -381,7 +423,6 @@ create_exptd_trial <- function(empty_df, trial_f, block_f, expstruct_f){
   }
   return(new_trial)
 }
-
 
 
 #' @title creates expected event data for a given event option in a trial
@@ -403,19 +444,20 @@ create_exptd_trial <- function(empty_df, trial_f, block_f, expstruct_f){
 #' 
 #' @author Nidhi Desai
 #'
-create_exptd_event <- function(ev, ev_opt, ev_id, expstruct_f, 
-                               trial_f, block_f, phase_f){
+create_exptd_event <- function(ev, ev_opt, ev_opt_num, ev_id, expstruct_f, 
+                               trial_f, trial_level, block_f, phase_f){
+  
   ev_level <- expstruct_f$events[[ev_opt]]
   
   # ---- extract the event information from the config file ----
   # ------------------------------------------------------------
   
-  temp <- unique(extract_list_levels(expstruct_f$trials[[trial_f]], 2, TRUE))
+  temp <- unique(extract_list_levels(trial_level, 2, TRUE)) # trial level could be different than expstruct_f$trials[[trial_f]] because of different names
   ev_option_num <- str_split(temp[grepl(paste0(".", ev), temp)], "\\.")
   if(length(ev_option_num) == 0){ # no options in trial flow
-    ev_struct <- expstruct_f$trials[[trial_f]][[ev]]
+    ev_struct <- trial_level[[ev]]
   } else if (length(ev_option_num) == 1){ # one flow option contains this event
-    ev_struct <- expstruct_f$trials[[trial_f]][[ev_option_num[[1]][1]]][[ev]]
+    ev_struct <- trial_level[[ev_option_num[[1]][1]]][[ev]]
   } else {
     stop (paste("Many options in trial flow which contain the event:", ev))
   }
@@ -424,7 +466,7 @@ create_exptd_event <- function(ev, ev_opt, ev_id, expstruct_f,
   # ---------------------------------------
   # some events used in a trial might have some part of the event changed, this needs to be added while building the event
   if(length(ev_id) > 1){
-    event_level_info <- ev_struct[[paste0("option", toString(which(ev_id == ev_opt)))]] # if multiple options in this event
+    event_level_info <- ev_struct[[paste0("option", toString(ev_opt_num))]] # if multiple options in this event
   } else {
     event_level_info <- ev_struct
   }
@@ -441,14 +483,14 @@ create_exptd_event <- function(ev, ev_opt, ev_id, expstruct_f,
   
   # ---- extract the number of expected trials containing the event ----
   # --------------------------------------------------------------------
-  ev_opt_ntrials <- get_ntrials_config(ev, length(ev_id), trial_f, block_f, expstruct_f)
+  ev_opt_ntrials <- get_ntrials_config(ev, length(ev_id), trial_f, trial_level, block_f, expstruct_f)
   
   # ---- form a new row for the current event in this specific trial and block ----
   # -------------------------------------------------------------------------------
   new_event <- data.frame(event_type = ev, eventid = ev_opt, trialid = trial_f, blockid = block_f, phaseid = phase_f,
                           event_dur = if_null(ev_level$dur), ttl_code = if_null(ev_level$ttl_code), 
                           eye_msg = I(ifelse(is.null(ev_level$eye_mid_msg), NA, list(ev_level$eye_mid_msg))),
-                          ntrials = ev_opt_ntrials[which(ev_id == ev_opt)])
+                          ntrials = unique(ev_opt_ntrials[which(ev_id == ev_opt)])) # unique incase same names of event
   
   # ---- add behav file subset variables ----
   # -----------------------------------------
@@ -461,21 +503,26 @@ create_exptd_event <- function(ev, ev_opt, ev_id, expstruct_f,
     # corresponding event related data from the behav file can be found using either behav_subset_val mentioned for the entire block or behav_find_rows specifically for an event
     block_level_subsetvals <- if_null(expstruct_f$blocks[[block_f]]$block_seq_val) # all trials and events inside this block can be found by using these behav column values 
     
-    if(!is.null(block_level_subsetvals)) { 
+    if(!is.na(block_level_subsetvals)) { 
       subset_ls <- extract_subset_vals(behav_subset_var, block_level_subsetvals)
-      new_event <- new_event %>% add_column(behav_find_rows = list(subset_ls))
+      subset_ls_names <- names(subset_ls)
+      add_find_rows <- paste0(unlist(lapply(1:length(subset_ls), function(x) {paste0(subset_ls_names[x], "=", subset_ls[x])})), collapse = ",") # TODO NEED TO BE TESTED
+      new_event <- new_event %>% add_column(behav_find_rows = add_find_rows)
     } else {
       new_event <- new_event %>% add_column(behav_find_rows = NA)
     }
     
     if (!is.null(ev_level$behav_subset_val)){
-      subset_ls <- lapply(ev_level$behav_subset_val, function(s){ as.numeric(trimws(str_split(s, "=")[[1]][2])) }) 
+      subset_ls <- unlist(lapply(ev_level$behav_subset_val, function(s){ trimws(str_split(s, "=")[[1]][2]) }))
       match_letters <- unlist(lapply(ev_level$behav_subset_val, function(s){ trimws(str_split(s, "=")[[1]][1]) }))
-      subset_ls <- setNames(subset_ls, unlist(lapply(match_letters, function(x){ behav_subset_var[[x]] })))
-      if(is.na(new_event$behav_find_rows)) {
-        new_event <- new_event %>% add_column(behav_find_rows = list(subset_ls))
+      subset_ls_names <- unlist(lapply(match_letters, function(x){ behav_subset_var[[x]] }))
+      add_find_rows <- paste0(unlist(lapply(1:length(subset_ls), function(x) {paste0(subset_ls_names[x], "=", subset_ls[x])})), collapse = ",")
+      if(!("behav_find_rows" %in% colnames(new_event))) { # (is.na(new_event$behav_find_rows)) { 
+        new_event <- new_event %>% add_column(behav_find_rows = add_find_rows)
+      } else if (is.na(new_event$behav_find_rows)) {
+        new_event <- new_event %>% mutate(behav_find_rows = add_find_rows)      
       } else {
-        new_event <- new_event %>% mutate(behav_find_rows = list(append(unlist(behav_find_rows), subset_ls)))
+        new_event <- new_event %>% mutate(behav_find_rows = paste0(behav_find_rows, ",", add_find_rows))
       }
     }
     
@@ -506,23 +553,29 @@ create_exptd_event <- function(ev, ev_opt, ev_id, expstruct_f,
 #' 
 #' @author Nidhi Desai
 #' 
-get_ntrials_config <- function(ev, len_ev_opts, trial_f, block_f, expstruct_f){
+get_ntrials_config <- function(ev, len_ev_opts, trial_f, trial_level, block_f, expstruct_f, block_level_ntrials){
   
-  block_level_ntrials <- if_null(expstruct_f$blocks[[block_f]]$ntrials)
+  # the block might be named different when called inside the phase and the def: would match 
+  if (block_f %in% names(expstruct_f$blocks)){ 
+    block_level <- expstruct_f$blocks[[block_f]]
+  } else {
+    block_level <- expstruct_f$blocks[[phase_level$blocks[[block_f]]$def]]
+  }
+  block_level_ntrials <- if_null(block_level$ntrials)
   
   # ---- extract ntrials for options in a trial flow ----
   # -----------------------------------------------------
   
   ## extact ntrials for options in a trial (different possible trial paths), if present
-  trial_2nd_level <- extract_list_levels(expstruct_f$trials[[trial_f]], 2, full.names = TRUE)
+  trial_2nd_level <- extract_list_levels(trial_level, 2, full.names = TRUE)
   options_ntrials <- grepl("option", trial_2nd_level) &  grepl("ntrials", trial_2nd_level)
   if (sum(options_ntrials) >= 1){ # we have trial options and ntrials
     trial_2nd_level <- trial_2nd_level[options_ntrials]
-    options_ntrials <- as.numeric(expstruct_f$trials[[trial_f]][[sub(".ntrials", "", trial_2nd_level)]]$ntrials)
+    options_ntrials <- as.numeric(trial_level[[sub(".ntrials", "", trial_2nd_level)]]$ntrials)
     block_level_ntrials <- options_ntrials
-    trial_level <- expstruct_f$trials[[trial_f]][[sub(".ntrials", "", trial_2nd_level)]][[ev]]
+    trial_level <- trial_level[[sub(".ntrials", "", trial_2nd_level)]][[ev]]
   } else {
-    trial_level <- expstruct_f$trials[[trial_f]][[ev]]
+    trial_level <- trial_level[[ev]]
   }
   
   # ---- extract ntrials for no options inside an event ----
@@ -533,36 +586,35 @@ get_ntrials_config <- function(ev, len_ev_opts, trial_f, block_f, expstruct_f){
       ev_opt_ntrials <- trial_level[["ntrials"]]
     } else if (!is.na(block_level_ntrials)) {
       ev_opt_ntrials <- block_level_ntrials
+    } else {
+      stop(paste("ntrials not mentioned for event", ev, "in trial or block sections", trial_f))
     }
   }
-  
-  
   # ---- extract ntrials for options inside an event ----
   # -----------------------------------------------------
   
-  if (len_ev_opts > 1){ # options are present inside an event
+  else if (len_ev_opts > 1){ # options are present inside an event
     
     nt_in_event <- names(unlist(trial_level))[grepl("ntrials", names(unlist(trial_level)))]
     if (length(nt_in_event) > 0){
       if (any(grepl("option", nt_in_event))){ # if the "ntrials" is present inside an option inside the event
         if(length(nt_in_event) == len_ev_opts){ # optionwise ntrials are present inside an event
-          ev_opt_ntrials <- sapply(1:len_ev_opts, function(x){ as.numeric(unlist(expstruct_f$trials[[trial_f]][[ev]])[[paste0("option", toString(x), ".ntrials")]]) })
+          ev_opt_ntrials <- sapply(1:len_ev_opts, function(x){ as.numeric(unlist(trial_level)[[paste0("option", toString(x), ".ntrials")]]) })
           if(!is.na(block_level_ntrials) & (sum(ev_opt_ntrials) != block_level_ntrials)) { stop(paste("ntrials in options for trial", trial_f, " and event ", ev, "do not add upto the number of trials")) } # check if the sum of ntrials in option is equal to the trial level ntrials, if mentioned
         } else { # if the ntrials is outside any options but inside the event
-          ev_opt_ntrials <- c(paste(toString(expstruct_f$trials[[trial_f]][[ev_option_num]][[ev]][["ntrials"]]), "total") , rep(NA, len_ev_opts-1))
+          ev_opt_ntrials <- c(paste(toString(trial_level[[ev_option_num]][[ev]][["ntrials"]]), "total") , rep(NA, len_ev_opts-1))
         }
       }
-
     } else {
-      if (sum(grepl("ntrials", names(unlist(expstruct_f$trials[[trial_f]][[ev]])))) == 0) { # no optionwise ntrials are present inside an event
+      if (sum(grepl("ntrials", names(unlist(trial_level[[ev]])))) == 0) { # no optionwise ntrials are present inside an event
         if (!is.na(block_level_ntrials)){
           ev_opt_ntrials <- c(paste(toString(block_level_ntrials), "total") , rep(NA, len_ev_opts-1))
         } else {
           # check if this event is under an option for trial flow which might contain the ntrials for this event
-          temp <- unique(extract_list_levels(expstruct_f$trials[[trial_f]], 2, TRUE))
+          temp <- unique(extract_list_levels(trial_level, 2, TRUE))
           ev_option_num <- str_split(temp[grepl(paste0(".", ev), temp)], "\\.")[[1]][1]
-          if("ntrials" %in% names(expstruct_f$trials[[trial_f]][[ev_option_num]])) {
-            ev_opt_ntrials <- c(paste(toString(expstruct_f$trials[[trial_f]][[ev_option_num]][["ntrials"]]), "total") , rep(NA, len_ev_opts-1))
+          if("ntrials" %in% names(trial_level[[ev_option_num]])) {
+            ev_opt_ntrials <- c(paste(toString(trial_level[[ev_option_num]][["ntrials"]]), "total") , rep(NA, len_ev_opts-1))
           } else {
             ev_opt_ntrials <- c(paste(toString(block_level_ntrials), "total") , rep(NA, len_ev_opts-1))
           }
@@ -580,7 +632,7 @@ get_ntrials_config <- function(ev, len_ev_opts, trial_f, block_f, expstruct_f){
 #' @title build a dataframe of all expected events and trials in a block from the config file, when the event_freq for the phase is set to match_config
 #' @param exptd_trial contains the exptd_events dataframe for a trial.
 #' 
-#' @return block_trials dataframe of all events and trials in a block created based on the config file
+#' @return block_trials_behav dataframe of all events and trials in a block created based on the config file
 #' 
 #' @importFrom dplyr %>% slice pull
 #'
@@ -589,7 +641,7 @@ get_ntrials_config <- function(ev, len_ev_opts, trial_f, block_f, expstruct_f){
 event_freq_match_config <- function(exptd_trial){
   if (sum(duplicated(exptd_trial$event_type)) == 0){ # no options in an event
     # all events can be one after the other so repeat the set of trials ntrials number of times
-    block_trials <- exptd_trial %>% slice(rep(1:n(), unique(exptd_trial$ntrials)))
+    block_trials_behav <- exptd_trial %>% slice(rep(1:n(), unique(exptd_trial$ntrials)))
     
   } else { # options in events
     # it doesn't matter here what is the sequence in which the options in an event re expected to apear
@@ -602,23 +654,23 @@ event_freq_match_config <- function(exptd_trial){
     dup_indexes <- lapply(dup_values, function(val) which(exptd_trial$event_type == val))
     
     # build a basic table for block trials, events in these will be changed based on options for the events
-    block_trials <- exptd_trial[!duplicated(exptd_trial$event_type), ]
+    block_trials_behav <- exptd_trial[!duplicated(exptd_trial$event_type), ]
     common_ntrials <- unique(exptd_trial$ntrials[!exptd_trial$event_type %in% dup_values]) # TODO might not work for all situations
     common_ntrials <- as.numeric(common_ntrials[!is.na(common_ntrials)])
     if (length(common_ntrials) > 1) {stop("ntrials in non-option events are not same for all these events")}
-    copy_rows <- rep(1:nrow(block_trials), common_ntrials)
-    block_trials <- block_trials %>% slice(copy_rows)
+    copy_rows <- rep(1:nrow(block_trials_behav), common_ntrials)
+    block_trials_behav <- block_trials_behav %>% slice(copy_rows)
     
     for (d in seq_along(dup_indexes)){ # in case of multiple event_types with options
-      dup_rows <- dup_indexes[[d]]
+      dup_rows <- dup_indexes[[d]] # TODO maybe this will contain duplicates from various different event, need to figure out how to deal with it
       
-      # # replace the event rows with the appropriate option for that event in block_trials   ----        
+      # # replace the event rows with the appropriate option for that event in block_trials_behav   ----        
       # if (sum(is.na(exptd_trial$ntrials[dup_rows])) == 0){ # the ntrials column has expected number of trials for each option in an element, this is used to calculate frequency of each option.
       #   # get ntrials from a non-options event
       #   nt <- unique(exptd_trial %>% slice(-dup_rows) %>% pull(ntrials))
       #   if (length(nt) > 1) {stop (paste("ntrials for events without any option are different from each other. The ntrials need to be same across."))}
       #   
-      #   # block_trials <- block_trials %>% slice(rep(1:n(), nt))
+      #   # block_trials_behav <- block_trials_behav %>% slice(rep(1:n(), nt))
       #   
       #   dup_event_option_loc <- dup_rows[2:length(dup_rows)]
       #   dup_event_ntrials <- exptd_trial$ntrials[dup_rows]
@@ -628,21 +680,21 @@ event_freq_match_config <- function(exptd_trial){
       #   
       #   # rep_ev <- exptd_trial %>% slice(dup_rows[2:length(dup_rows)]) # rows for repeated events that will be used to replace the row in first location for this event
       #   # other_evs <- exptd_trial %>% slice(-dup_rows[2:length(dup_rows)]) # rows for repeated events
-      #   # block_trials <- block_trials %>% rbind(do.call(rbind, replicate(dup_event_ntrials[1], other_evs, simplify = FALSE)))
+      #   # block_trials_behav <- block_trials_behav %>% rbind(do.call(rbind, replicate(dup_event_ntrials[1], other_evs, simplify = FALSE)))
       #   
       #   # here we will find the row for the current event and replace them as per the ntrials
       #   # this will work for multiple situations:
       #     # when the event is the first one among all events with options
-      #     # when for a previous event, options have been added to block_trials
+      #     # when for a previous event, options have been added to block_trials_behav
       #   counter <- 1
       #   for (m in c(1:nrow(rep_ev))){
       #     # other_evs[dup_event_loc,] <- rep_ev %>% slice(m)
-      #     ev_rows <- which(block_trials$event_type == dup_values)
+      #     ev_rows <- which(block_trials_behav$event_type == dup_values)
       #     indx <- counter:(counter + dup_event_ntrials[m] - 1)
       #     replace_rows <- ev_rows[indx]
-      #     block_trials[replace_rows,] <- rep_ev %>% slice(m)
+      #     block_trials_behav[replace_rows,] <- rep_ev %>% slice(m)
       #     counter <- length(replace_rows) + 1
-      #     # block_trials <- block_trials %>% rbind(do.call(rbind, replicate(dup_event_ntrials[m], other_evs, simplify = FALSE)))
+      #     # block_trials_behav <- block_trials_behav %>% rbind(do.call(rbind, replicate(dup_event_ntrials[m], other_evs, simplify = FALSE)))
       #   }
       # } ----
       
@@ -685,7 +737,7 @@ event_freq_match_config <- function(exptd_trial){
         for (h in colnames(rep_ev)){
           val1 <- rep_ev[[h]][[1]]
           val2 <- exptd_trial[f, h]
-          rep_ev[[h]] <- ifelse(all(is.na(val1) & is.na(val2)), NA, list(c(val1, val2)))
+          rep_ev[[h]] <- ifelse(all(is.na(val1) & is.na(val2)), NA, ifelse(val1==val2, val1, list(c(val1, val2))))
         }
       }
       rep_ev$ntrials <- ifelse(grepl("total", exptd_trial$ntrials[dup_rows[1]]), ntrials_event, rep_ev$ntrials)
@@ -699,13 +751,13 @@ event_freq_match_config <- function(exptd_trial){
       }
       
       # here we will find the row for the event and replace them with the combined options row
-      ev_rows <- which(block_trials$event_type == dup_values[d])
-      block_trials[ev_rows,] <- rep_ev
+      ev_rows <- which(block_trials_behav$event_type == dup_values[d])
+      block_trials_behav[ev_rows,] <- rep_ev
       # TODO issue with repeatTrial in WPT that it gets repeated after each display_both_stimuli. Need to figure out how to represent this trial. This is might be solved for situations where we input the behav data
     }
-    # block_trials <- block_trials %>% select(-ntrials) # removing ntrials since it has been incorporated in the table by repeating the events the expected number of times
+    # block_trials_behav <- block_trials_behav %>% select(-ntrials) # removing ntrials since it has been incorporated in the table by repeating the events the expected number of times
   }
-  return(block_trials)
+  return(block_trials_behav)
 }
 
 
@@ -715,15 +767,14 @@ event_freq_match_config <- function(exptd_trial){
 #' @param behav dataframe of the behavioural datafile with rows for each event for all trials and blocks and columns containing the data ex: RTs, trial conditions, responses, etc.. 
 #'     One column needs to be reference column with eventid to match the config and behav file rows. eventid is the column in exptd_trial that matches with the behav file column mentioned in event_col.
 #' @param event_col is the column name in the behave file which contains event names for each row of data. This will be matched with the eventid column in exptd_trial.
-#' @param nblocks number of repetitions of the current block, so that the events and trials for only one repetition is present in the output.
-#' 
-#' @return block_trials dataframe of all events and trials in a block created based on the config file
+
+#' @return block_trials_behav dataframe of all events and trials in a block created based on the config file
 #'
 #' @importFrom dplyr %>% mutate row_number filter left_join pull arrange select
 #'
 #' @author Nidhi Desai
 #'   
-event_seq_match_behav <- function(exptd_trial, behav, event_col, nblocks){
+event_seq_match_behav <- function(exptd_trial, behav, event_col){
   # replace the column name for event types in the behav file for easy accessibility in the code below
   colnames(behav)[colnames(behav) == event_col] <- "eventid"
   behav <- behav %>% mutate(row_number = row_number())
@@ -731,36 +782,39 @@ event_seq_match_behav <- function(exptd_trial, behav, event_col, nblocks){
   # We are creating a table of row_numbers from the behav data and the event that those correspond to
   # for each event find the row numbers corresponding to that event and add to this table and add the event number (row in exptd_trial) to the next column
   # at the end sort the row number column in ascending order and now we can replace the rows from exptd_trial into this table in the sequence of events found in behav file.
-  block_trials <- data.frame(behav_nrow = as.numeric(), exptd_nrow = as.numeric())
+  block_trials_behav <- data.frame(behav_nrow = as.numeric(), exptd_nrow = as.numeric())
   for (r in seq_along(exptd_trial$event_type)){ # for each event_type
     # filtering the behav data for the current event based on behav_file_rows
     rows_list <- behav %>% filter(eventid == exptd_trial$behav_eventid[r]) %>% pull(row_number)
     if (length(rows_list) == 0) { next }
-    # if (!is.na(exptd_trial$behav_find_rows[r][1])){
+    
     # frequency is still being calculated from the config file, so we don't need to extract frequency from the behav datafile
-    for (y in seq_along(exptd_trial$behav_find_rows[[r]])){
-      rows_list <- behav %>%
-        filter(row_number %in% rows_list) %>%
-        filter(!!sym(names(exptd_trial$behav_find_rows[[r]][y])) == exptd_trial$behav_find_rows[[r]][[y]]) %>%
-        pull(row_number)
+    if (!is.na(exptd_trial$behav_find_rows[[r]])){
+      find_rows_all <- trimws(unlist(str_split(exptd_trial$behav_find_rows[[r]], ",")))
+      find_rows_names <- sapply(str_split(find_rows_all, "="), `[`, 1)
+      find_rows_values <- sapply(str_split(find_rows_all, "="), `[`, 2)
+      for (y in seq_along(find_rows_names)){
+        rows_list <- behav %>%
+          filter(row_number %in% rows_list) %>%
+          filter(!!sym(find_rows_names[y]) == find_rows_values[y]) %>%
+          pull(row_number)
+      }
     }
-    if (length(rows_list) == 0) { next }
-    # }
-    block_trials <- rbind(block_trials, data.frame(behav_nrow = rows_list, exptd_nrow = r))
+    block_trials_behav <- rbind(block_trials_behav, data.frame(behav_nrow = rows_list, exptd_nrow = r))
   }
-  block_trials <- block_trials %>% arrange(behav_nrow)
+  block_trials_behav <- block_trials_behav %>% arrange(behav_nrow)
   
   # These events are for all nblocks*ntrials*nevents
-  # The block_trials can be divided into row numbers for separate repetitions of blocks by separating the rows into nblocks pieces
-  block_trials <- block_trials[1:(nrow(block_trials)/nblocks),]
+  # The block_trials_behav can be divided into row numbers for separate repetitions of blocks by separating the rows into nblocks pieces
+  # block_trials_behav <- block_trials_behav[1:(nrow(block_trials_behav)/nblocks),]
   
   # replace the event numbers with rows of events from exptd_trial
   exptd_trial <- exptd_trial %>% mutate(row_num = row_number())
-  block_trials <- block_trials %>% 
+  block_trials_behav <- block_trials_behav %>% 
     left_join(exptd_trial, by = c("exptd_nrow" = "row_num")) %>% 
     select(-exptd_nrow)
   
-  return(block_trials)
+  return(block_trials_behav)
 }
 
 
