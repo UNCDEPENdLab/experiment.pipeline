@@ -79,7 +79,7 @@ definitions: #shared key mapping for behavior across blocks
         method: "subtract"
         dur_ms: 100
         center_on: "DISPLAY ON"
-    return_raw: TRUE # If false, will remove the raw data from the ep object.
+    remove_raw: TRUE # If false, will remove the raw data from the ep object.
 
 
   phys:

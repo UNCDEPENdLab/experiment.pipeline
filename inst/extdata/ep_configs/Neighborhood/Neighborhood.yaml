@@ -33,7 +33,7 @@ definitions:
       # preproc_out: '~/GitHub/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       # preproc_out: '~/Projects/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
       preproc_out: '/proj/mnhallqlab/users/nidhi/exp.pipe_eye/experiment.pipeline/inst/extdata/ep_preproc/Neighborhood/preproc'
-      return_raw: TRUE # set to FALSE when processing multiple subjects to save memory in ep.eye_preproc data saved
+      remove_raw: TRUE # set to FALSE when processing multiple subjects to save memory in ep.eye_preproc data saved
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
       unify_gaze_events:

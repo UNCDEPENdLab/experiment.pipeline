@@ -28,7 +28,7 @@ definitions:
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_steps: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
-      return_raw: TRUE
+      remove_raw: TRUE
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
       unify_gaze_events:

@@ -183,7 +183,7 @@ definitions:
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_steps: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
-      return_raw: TRUE
+      remove_raw: TRUE
     initialize:
       expected_edf_fields: ['raw', 'sacc', 'fix', 'blinks', 'msg', 'input', 'button', 'info', 'asc_file', 'edf_file']
       unify_gaze_events:
@@ -283,7 +283,7 @@ definitions:
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/elog'
       save_steps: FALSE
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/SortingMushrooms/preproc'
-      return_raw: TRUE
+      remove_raw: TRUE
 ################################
 ```
 
@@ -322,7 +322,7 @@ sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(edf_path))
 - **`preproc_out`**: Path to directory to store preprocessed `ep.eye` files. 
   - **Defaults** to NULL. If NULL, creates a directory, named "preproc" in working directory.
 
-- **`return_raw`**: Logical to determine whether or not to return `ep.eye$raw` data to cut down on file size unless explicitly requested.
+- **`remove_raw`**: Logical to determine whether or not to return `ep.eye$raw` data to cut down on file size unless explicitly requested.
   - **Defaults** to FALSE. If FALSE, remove raw data from resulting 
 
 Knowing what we know now about default options, we could rewrite these global options as:
@@ -335,7 +335,7 @@ definitions:
       prefix: "\\d{3}_[[:upper:]]+"
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/elog'
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/preproc'
-      return_raw: TRUE 
+      remove_raw: TRUE 
 ################################
 ```
 
@@ -623,7 +623,7 @@ definitions:
       prefix: "\\d{3}_[[:upper:]]+"
       log_dir: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/elog'
       preproc_out: '~/github_repos/experiment.pipeline/inst/extdata/ep_preproc/preproc'
-      return_raw: TRUE 
+      remove_raw: TRUE 
     initialize:
       meta_check:
         meta_vars: ['sample.rate', 'model', 'mono', 'pupil.dtype', 'screen.x', 'screen.y', 'version']

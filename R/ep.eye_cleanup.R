@@ -39,7 +39,7 @@ ep.eye_cleanup <- function(ep.eye,
   }, describe_text = "- 6.1 time_ev column generated:")
 
   ### 6.2 Remove raw data to cut the size of returned object considerably.
-  if(globals$return_raw){
+  if(globals$remove_raw){
     tryCatch.ep({
         ep.eye$raw <- NULL
     }, describe_text = "- 6.2 Removing raw data:")

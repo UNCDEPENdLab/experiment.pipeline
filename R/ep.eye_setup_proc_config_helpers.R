@@ -18,7 +18,7 @@
 #'     \item \code{save_steps} (logical): Flag to save intermediate processing steps, defaults to \code{TRUE}.
 #'     \item \code{preproc_out} (character): Directory for preprocessed output, defaults to "preproc_out" in the current working directory.
 #'     \item \code{log} (logical): Flag to enable logging, defaults to \code{FALSE}.
-#'     \item \code{return_raw} (logical): Flag to return raw data, defaults to \code{FALSE}.
+#'     \item \code{remove_raw} (logical): Flag to return raw data, defaults to \code{FALSE}.
 #'   }
 #'   \item \strong{initialize:} Initialization options, including:
 #'   \itemize{
@@ -94,7 +94,7 @@ ep.eye_default_options <- function(edf_raw) {
       save_steps = TRUE,
       preproc_out = file.path(getwd(), "preproc_out"),
       log = FALSE,
-      return_raw = FALSE
+      remove_raw = FALSE
     ),
     initialize = list(
       expected_edf_fields = c("raw", "sacc", "fix", "blinks", "msg", "input", "button", "info", "asc_file"),

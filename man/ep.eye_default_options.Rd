@@ -16,7 +16,7 @@ A named list with default options for the following fields:
     \item \code{save_steps} (logical): Flag to save intermediate processing steps, defaults to \code{TRUE}.
     \item \code{preproc_out} (character): Directory for preprocessed output, defaults to "preproc_out" in the current working directory.
     \item \code{log} (logical): Flag to enable logging, defaults to \code{FALSE}.
-    \item \code{return_raw} (logical): Flag to return raw data, defaults to \code{FALSE}.
+    \item \code{remove_raw} (logical): Flag to return raw data, defaults to \code{FALSE}.
   }
   \item \strong{initialize:} Initialization options, including:
   \itemize{
