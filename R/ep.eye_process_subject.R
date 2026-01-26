@@ -51,12 +51,18 @@ ep.eye_process_subject <- function(edf_raw,
 
   # Dimensions + Threat
   # -------------------
-  setwd("~/r_packages/experiment.pipeline")
-  edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/92.edf"
-  config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/R/psych.pipeline/config/dimt_eye_config.yaml"
-  step <- NULL
-  devtools::load_all()
+  # setwd("~/r_packages/experiment.pipeline")
+  # edf_raw <- "~/Documents/github_repos/arl_repos/dimt_analysis/data_raw/eye/dimt/595.edf"
+  # config_path <- "~/Documents/github_repos/arl_repos/dimt_analysis/R/psych.pipeline/config/dimt_eye_config.yaml"
+  # step <- NULL
+  # devtools::load_all()
+#   eye_init <- read_rds(
+#   "~/Documents/github_repos/arl_repos/dimt_analysis/data_proc/eye_preproc/ep.eye_initialize/595.rds"
+# )
   # -------------------------
+
+  # DTK
+  # config_path <- "/Users/natehall/Downloads/dtk.yaml"
 
   capture.output(pacman::p_load(tictoc,
                                 readr,
@@ -162,7 +168,7 @@ ep.eye_process_subject <- function(edf_raw,
 
   # if (is.null(step) || step == "pupil_preproc") {
   #   tic("5. pupil time")
-  #   eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
+    # eye_gaze_pupilPre <- ep.eye_preprocess_pupil(eye_gazePre,
   #                                                config,
   #                                                blink_corr = config$definitions$eye$pupil_preproc$blink_corr,
   #                                                filter = config$definitions$eye$pupil_preproc$filter,

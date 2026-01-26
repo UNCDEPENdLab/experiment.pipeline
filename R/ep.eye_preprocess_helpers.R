@@ -305,11 +305,11 @@ ep.eye_downsample <- function(df,
 
   # debug:
   # -----
-  # df <- eye$raw # pulled right from edf
+  # df <- ep.eye$raw # pulled right from edf
   # df <- eye_init$raw # pulled right from edf
   # -----
   # df <- ep.eye$raw
-  # sample.rate = 1000
+  # sample.rate = ep.eye$metadata$sample.rate
   # downsampled_freq = config$definitions$eye$gaze_preproc$downsample$downsampled_freq
   # digital_channels = c("eventn", "saccn", "fixn", "blinkn", "block_trial") # integer values of trial, event, and gevs.
   # analog_channels = c("xp", "yp") # gaze and pupil measurements
@@ -337,7 +337,12 @@ ep.eye_downsample <- function(df,
   d_cols <- digital_channels
   a_cols <- analog_channels
   c_cols <- char_channels
-  dfac <- round(sample.rate / downsampled_freq, 0)
+  step_size_ms <- 1000/sample.rate
+  dfac <- round((sample.rate*step_size_ms) / downsampled_freq, 0)
+  chunk_size <- sample.rate/dfac
+
+  # sample.rate/(downsampled_freq)
+
 
   ret_allevs <- data.table()
 
@@ -345,9 +350,12 @@ ep.eye_downsample <- function(df,
 
     df_ev <- df %>%
       filter(eventn == ev) %>%
-      mutate(time_ev = seq(0, n() - 1, 1),
-             chunk = rep(1:ceiling(n() / dfac), each = dfac, length.out = n()),
+      mutate(time_ev = seq(0, n()*step_size_ms - 1, by = step_size_ms),
+             chunk = rep(1:ceiling(n() / chunk_size), each = chunk_size, length.out = n()),
              .after = time)
+
+    # rep(1:ceiling(nrow(df_ev) / chunk_size), each = chunk_size, length.out = nrow(df_ev)) %>% table()
+
 
     n_chunks <- max(df_ev$chunk)
 
@@ -364,9 +372,9 @@ ep.eye_downsample <- function(df,
 
         begin <- df_ev %>% pull(time) %>% min() %>% plyr::round_any(dfac)
         # use n_chunks computed above to ensure matching across datasets
-        end <- begin + ((n_chunks - 1)*dfac)
+        end <- begin + ((n_chunks - 1)*downsampled_freq)
 
-        tds <- seq(begin, end, dfac)
+        tds <- seq(begin, end, downsampled_freq)
         evtds <- tds - begin
 
         time_data <- data.table(time = tds,
@@ -419,7 +427,7 @@ ep.eye_downsample <- function(df,
       if (length(d_cols) > 0L) {
         #could support subsampling here -- doesn't seem like a great idea, though
         digital_data <- data.table(do.call(cbind, lapply(df_ev[, ..d_cols], function(col) {
-          downsample_digital_timeseries_r(col, dfac, FALSE)
+          downsample_digital_timeseries_r(col, chunk_size, FALSE)
           #downsample_digital_timeseries(col, dfac, FALSE) # C++ version that seems to cause problems
         })))
       } else {
@@ -430,7 +438,7 @@ ep.eye_downsample <- function(df,
     #### Downsample/combine character data
     tryCatch.ep({
       if (length(c_cols > 0L)) {
-        char_data <- downsample_chars(df_ev[, ..c_cols], dfac = dfac)
+        char_data <- downsample_chars(df_ev[, ..c_cols], dfac = chunk_size)
       }
     })#, describe_text = "-- 4.4.4 Downsample/combine character channels")
 
